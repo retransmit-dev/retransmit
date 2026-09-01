@@ -1,15 +1,15 @@
 "use client";
 
-import { Button } from "@retransmit/ui/components/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@retransmit/ui/components/card";
-import { Checkbox } from "@retransmit/ui/components/checkbox";
-import { Input } from "@retransmit/ui/components/input";
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Loader2, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -68,15 +68,25 @@ export default function TodosPage() {
           <CardDescription>Manage your tasks efficiently</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAddTodo} className="mb-6 flex items-center space-x-2">
+          <form
+            onSubmit={handleAddTodo}
+            className="mb-6 flex items-center space-x-2"
+          >
             <Input
               value={newTodoText}
               onChange={(e) => setNewTodoText(e.target.value)}
               placeholder="Add a new task..."
               disabled={createMutation.isPending}
             />
-            <Button type="submit" disabled={createMutation.isPending || !newTodoText.trim()}>
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+            <Button
+              type="submit"
+              disabled={createMutation.isPending || !newTodoText.trim()}
+            >
+              {createMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Add"
+              )}
             </Button>
           </form>
 
@@ -96,7 +106,9 @@ export default function TodosPage() {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       checked={todo.completed}
-                      onCheckedChange={() => handleToggleTodo(todo.id, todo.completed)}
+                      onCheckedChange={() =>
+                        handleToggleTodo(todo.id, todo.completed)
+                      }
                       id={`todo-${todo.id}`}
                     />
                     <label

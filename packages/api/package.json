@@ -13,7 +13,6 @@
   "dependencies": {
     "@retransmit/auth": "workspace:*",
     "@retransmit/db": "workspace:*",
-    "@retransmit/env": "workspace:*",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@types/pg": "catalog:",

@@ -1,6 +1,5 @@
 import { createDb } from "@retransmit/db";
 import * as schema from "@retransmit/db/schema/auth";
-import { env } from "@retransmit/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -14,12 +13,12 @@ export function createAuth() {
 
       schema: schema,
     }),
-    trustedOrigins: [env.BETTER_AUTH_URL],
+    trustedOrigins: [process.env.BETTER_AUTH_URL as string],
     emailAndPassword: {
       enabled: true,
     },
-    secret: env.BETTER_AUTH_SECRET,
-    baseURL: env.BETTER_AUTH_URL,
+    secret: process.env.BETTER_AUTH_SECRET as string,
+    baseURL: process.env.BETTER_AUTH_URL as string,
     plugins: [nextCookies()],
   });
 }

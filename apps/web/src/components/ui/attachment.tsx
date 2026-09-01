@@ -1,7 +1,7 @@
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { Button } from "@retransmit/ui/components/button";
-import { cn } from "@retransmit/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
@@ -78,7 +78,10 @@ function AttachmentMedia({
   );
 }
 
-function AttachmentContent({ className, ...props }: React.ComponentProps<"div">) {
+function AttachmentContent({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="attachment-content"
@@ -91,7 +94,10 @@ function AttachmentContent({ className, ...props }: React.ComponentProps<"div">)
   );
 }
 
-function AttachmentTitle({ className, ...props }: React.ComponentProps<"span">) {
+function AttachmentTitle({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="attachment-title"
@@ -104,7 +110,10 @@ function AttachmentTitle({ className, ...props }: React.ComponentProps<"span">) 
   );
 }
 
-function AttachmentDescription({ className, ...props }: React.ComponentProps<"span">) {
+function AttachmentDescription({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="attachment-description"
@@ -118,7 +127,10 @@ function AttachmentDescription({ className, ...props }: React.ComponentProps<"sp
   );
 }
 
-function AttachmentActions({ className, ...props }: React.ComponentProps<"div">) {
+function AttachmentActions({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="attachment-actions"
@@ -187,12 +199,12 @@ function AttachmentGroup({ className, ...props }: React.ComponentProps<"div">) {
 
 export {
   Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
   AttachmentGroup,
   AttachmentMedia,
-  AttachmentContent,
   AttachmentTitle,
-  AttachmentDescription,
-  AttachmentActions,
-  AttachmentAction,
   AttachmentTrigger,
 };

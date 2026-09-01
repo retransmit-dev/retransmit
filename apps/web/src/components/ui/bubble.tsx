@@ -1,6 +1,6 @@
+import { cn } from "@/lib/utils";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { cn } from "@retransmit/ui/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
@@ -61,7 +61,11 @@ function Bubble({
   );
 }
 
-function BubbleContent({ className, render, ...props }: useRender.ComponentProps<"div">) {
+function BubbleContent({
+  className,
+  render,
+  ...props
+}: useRender.ComponentProps<"div">) {
   return useRender({
     defaultTagName: "div",
     props: mergeProps<"div">(
@@ -120,4 +124,4 @@ function BubbleReactions({
   );
 }
 
-export { BubbleGroup, Bubble, BubbleContent, BubbleReactions };
+export { Bubble, BubbleContent, BubbleGroup, BubbleReactions };

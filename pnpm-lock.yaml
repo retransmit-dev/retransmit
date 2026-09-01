@@ -68,9 +68,6 @@ importers:
 
   .:
     dependencies:
-      '@retransmit/env':
-        specifier: workspace:*
-        version: link:packages/env
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -93,18 +90,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@base-ui/react':
+        specifier: ^1.7.0
+        version: 1.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@retransmit/api':
         specifier: workspace:*
         version: link:../../packages/api
       '@retransmit/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@retransmit/env':
-        specifier: workspace:*
-        version: link:../../packages/env
-      '@retransmit/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@swc/helpers':
         specifier: ^0.5.23
         version: 0.5.23
@@ -129,6 +123,12 @@ importers:
       better-auth:
         specifier: 'catalog:'
         version: 1.7.1(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0))(next@16.3.4(@types/node@26.4.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
@@ -150,6 +150,9 @@ importers:
       sonner:
         specifier: 'catalog:'
         version: 2.0.8(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      tailwind-merge:
+        specifier: ^3.6.0
+        version: 3.6.0
       zod:
         specifier: 'catalog:'
         version: 4.5.4
@@ -187,9 +190,6 @@ importers:
       '@retransmit/db':
         specifier: workspace:*
         version: link:../db
-      '@retransmit/env':
-        specifier: workspace:*
-        version: link:../env
       '@trpc/client':
         specifier: 'catalog:'
         version: 11.18.0(@trpc/server@11.18.0(typescript@6.0.3))(typescript@6.0.3)
@@ -224,9 +224,6 @@ importers:
       '@retransmit/db':
         specifier: workspace:*
         version: link:../db
-      '@retransmit/env':
-        specifier: workspace:*
-        version: link:../env
       better-auth:
         specifier: 'catalog:'
         version: 1.7.1(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0))(next@16.3.4(@types/node@26.4.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -248,9 +245,6 @@ importers:
 
   packages/db:
     dependencies:
-      '@retransmit/env':
-        specifier: workspace:*
-        version: link:../env
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2

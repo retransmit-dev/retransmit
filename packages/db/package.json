@@ -17,7 +17,6 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@retransmit/env": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
     "pg": "^8.22.0",
