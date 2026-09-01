@@ -7,14 +7,15 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "check-types": "turbo run check-types",
-    "dev:web": "turbo run dev -F web --",
-    "db:push": "turbo run db:push -F @retransmit/db --",
-    "db:studio": "turbo run db:studio -F @retransmit/db --",
-    "db:generate": "turbo run db:generate -F @retransmit/db --",
-    "db:migrate": "turbo run db:migrate -F @retransmit/db --"
+    "with-env": "dotenv -e .env --",
+    "dev": "pnpm with-env turbo run dev",
+    "build": "pnpm with-env turbo run build",
+    "check-types": "pnpm with-env turbo run check-types",
+    "dev:web": "pnpm with-env turbo run dev -F web --",
+    "db:push": "pnpm with-env turbo run db:push -F @retransmit/db --",
+    "db:studio": "pnpm with-env turbo run db:studio -F @retransmit/db --",
+    "db:generate": "pnpm with-env turbo run db:generate -F @retransmit/db --",
+    "db:migrate": "pnpm with-env turbo run db:migrate -F @retransmit/db --"
   },
   "dependencies": {
     "dotenv": "catalog:",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@retransmit/config": "workspace:*",
     "@types/node": "catalog:",
+    "dotenv-cli": "^11.0.0",
     "turbo": "^2.10.12",
     "typescript": "catalog:"
   },
