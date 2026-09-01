@@ -1,0 +1,3 @@
+{
+  "extends": "@retransmit/config/tsconfig.base.json"
+}

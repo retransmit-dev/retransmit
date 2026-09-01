@@ -1,0 +1,24 @@
+{
+  "name": "@retransmit/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@retransmit/db": "workspace:*",
+    "@retransmit/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@retransmit/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

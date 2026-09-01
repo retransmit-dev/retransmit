@@ -1,0 +1,29 @@
+{
+  "name": "@retransmit/api",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@retransmit/auth": "workspace:*",
+    "@retransmit/db": "workspace:*",
+    "@retransmit/env": "workspace:*",
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "@types/pg": "catalog:",
+    "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
+    "next": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@retransmit/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
