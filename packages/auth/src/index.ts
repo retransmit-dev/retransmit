@@ -26,6 +26,7 @@ export function createAuth() {
       accountLinking: {
         enabled: true,
         trustedProviders: ["google", "github"],
+        allowDifferentEmails: false,
       },
     },
     trustedOrigins: [process.env.BETTER_AUTH_URL as string],

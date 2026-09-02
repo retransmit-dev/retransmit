@@ -127,6 +127,19 @@ function mapLeadStatus(status: string): EmailStatus {
   }
 }
 
+/**
+ * The bidpilot export double-encoded UTF-8 (`©` arrives as `Â©`); undo it
+ * when a field looks affected and the repair is lossless.
+ */
+function fixDoubleEncodedUtf8(value: string): string {
+  if (!/[ÂÃ]/.test(value)) return value;
+  for (const char of value) {
+    if ((char.codePointAt(0) ?? 0) > 0xff) return value;
+  }
+  const repaired = Buffer.from(value, "latin1").toString("utf8");
+  return repaired.includes("�") ? value : repaired;
+}
+
 function parseDate(value: string): Date | null {
   if (!value) return null;
   const date = new Date(value);
@@ -201,8 +214,8 @@ async function main() {
         organizationId: organization.id,
         from: args.from,
         to: [address],
-        subject: lead.sent_subject || "(bidpilot outreach, not sent)",
-        text: lead.sent_body || null,
+        subject: fixDoubleEncodedUtf8(lead.sent_subject || "(bidpilot outreach, not sent)"),
+        text: lead.sent_body ? fixDoubleEncodedUtf8(lead.sent_body) : null,
         marketing: true,
         providerMessageId: lead.message_id || null,
         status,

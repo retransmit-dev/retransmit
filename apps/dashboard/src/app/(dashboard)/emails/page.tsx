@@ -44,7 +44,7 @@ import {
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronRightIcon, MailIcon } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 const PAGE_SIZE = 25;
 
@@ -123,6 +123,24 @@ function EmailDetailsSheet({
               </p>
             )}
 
+            {(details.data.html || details.data.text) && (
+              <div>
+                <h3 className="mb-2 font-medium">Message</h3>
+                {details.data.html ? (
+                  <iframe
+                    title="Email body"
+                    sandbox=""
+                    srcDoc={details.data.html}
+                    className="h-96 w-full rounded-md border bg-white"
+                  />
+                ) : (
+                  <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-md border p-3 font-sans">
+                    {details.data.text}
+                  </pre>
+                )}
+              </div>
+            )}
+
             <div>
               <h3 className="mb-2 font-medium">Events</h3>
               <div className="flex flex-col">
@@ -138,6 +156,25 @@ function EmailDetailsSheet({
                           {formatDate(event.createdAt)}
                         </span>
                       </div>
+                      {event.data && Object.keys(event.data).length > 0 && (
+                        <details className="mt-1">
+                          <summary className="cursor-pointer text-xs text-muted-foreground">
+                            Details
+                          </summary>
+                          <div className="mt-1 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-md border p-2 text-xs">
+                            {Object.entries(event.data)
+                              .filter(([, value]) => value !== "" && value != null)
+                              .map(([key, value]) => (
+                                <Fragment key={key}>
+                                  <span className="text-muted-foreground">{key}</span>
+                                  <span className="wrap-break-word">
+                                    {typeof value === "string" ? value : JSON.stringify(value)}
+                                  </span>
+                                </Fragment>
+                              ))}
+                          </div>
+                        </details>
+                      )}
                     </div>
                   ))
                 )}
