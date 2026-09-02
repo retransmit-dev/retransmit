@@ -13,3 +13,16 @@ export const siteConfig = {
     npm: "https://www.npmjs.com/package/retransmit.dev",
   },
 } as const;
+
+export function absoluteUrl(path: string) {
+  return path === "/" ? siteConfig.url : `${siteConfig.url}${path}`;
+}
+
+/* Referenced explicitly in per-page metadata because Next replaces rather
+   than merges `openGraph`, so every page must restate its images. */
+export const OG_IMAGE = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: `${siteConfig.name}, ${siteConfig.tagline.toLowerCase()}`,
+} as const;

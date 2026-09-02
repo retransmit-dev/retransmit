@@ -9,7 +9,7 @@ creating AWS, Twilio, or Meta accounts yourself. The first product is
 delivery tracking, batches of up to 10,000 emails, and signed webhooks.
 
 - **Website / dashboard**: [retransmit.dev](https://retransmit.dev)
-- **Docs**: [retransmit.dev/docs](https://retransmit.dev/docs)
+- **Docs**: [docs.retransmit.dev](https://docs.retransmit.dev)
 - **API**: `https://api.retransmit.dev`
 - **Node.js SDK**: [`retransmit.dev` on npm](https://www.npmjs.com/package/retransmit.dev)
 
@@ -43,7 +43,7 @@ curl -X POST https://api.retransmit.dev/v1/emails \
   -d '{"from":"Acme <hello@yourdomain.com>","to":"user@example.com","subject":"Welcome!","html":"<h1>Welcome!</h1>"}'
 ```
 
-See the [Quickstart](https://retransmit.dev/docs/quickstart) for API keys and
+See the [Quickstart](https://docs.retransmit.dev/quickstart) for API keys and
 domain verification.
 
 ## Repository layout
@@ -89,3 +89,7 @@ cd packages/sdk
 # bump "version" in package.json first
 pnpm publish   # prepublishOnly rebuilds dist/
 ```
+
+## License
+
+Retransmit is open source under the [GNU AGPL-3.0](LICENSE), the same license used by useSend and Plunk. The Node.js SDK in `packages/sdk` is published separately under MIT so client code can embed it without restrictions.

@@ -5,6 +5,7 @@ import "../globals.css";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteNav } from "@/components/marketing/site-nav";
 import Providers from "@/components/providers";
+import { SiteStructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/site";
 
 const dmSans = DM_Sans({
@@ -51,6 +52,13 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
   },
 };
 
@@ -86,6 +94,7 @@ export default function RootLayout({
           <SiteNav />
           <main id="main">{children}</main>
           <SiteFooter />
+          <SiteStructuredData />
         </Providers>
       </body>
     </html>

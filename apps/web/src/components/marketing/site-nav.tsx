@@ -29,12 +29,18 @@ export function SiteNav() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
         <Wordmark />
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          <a href="#features" className="transition-colors hover:text-foreground">
+          <a href="/#features" className="transition-colors hover:text-foreground">
             Features
           </a>
-          <a href="#pricing" className="transition-colors hover:text-foreground">
+          <a href="/#pricing" className="transition-colors hover:text-foreground">
             Pricing
           </a>
+          <Link
+            href="/compare"
+            className="transition-colors hover:text-foreground"
+          >
+            Compare
+          </Link>
           <a
             href={siteConfig.links.docs}
             className="transition-colors hover:text-foreground"

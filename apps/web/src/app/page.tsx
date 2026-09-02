@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import {
   Check,
   KeyRound,
@@ -23,6 +25,12 @@ import {
   webhookPayload,
 } from "@/components/marketing/snippets";
 import { siteConfig } from "@/lib/site";
+
+/* The canonical lives here, not in the root layout: root metadata is
+   inherited, so a canonical there would make every page claim "/". */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 function CheckItem({ children }: { children: React.ReactNode }) {
   return (

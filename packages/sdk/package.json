@@ -8,7 +8,7 @@
     "ses",
     "transactional-email"
   ],
-  "homepage": "https://retransmit.dev/docs",
+  "homepage": "https://docs.retransmit.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jpainam/retransmit.git",
