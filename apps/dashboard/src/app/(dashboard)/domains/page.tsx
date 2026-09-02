@@ -130,6 +130,8 @@ function DomainDetailsSheet({
     }),
   );
 
+  const isVerified = details.data?.status === "verified";
+
   return (
     <Sheet open={domainId !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="overflow-y-auto p-4 sm:max-w-md">
@@ -139,9 +141,9 @@ function DomainDetailsSheet({
             {details.data && <DomainStatusBadge status={details.data.status} />}
           </SheetTitle>
           <SheetDescription>
-            Publish these records at your DNS provider, then check the
-            verification status. Verification usually completes within a few
-            minutes but can take up to 72 hours.
+            {isVerified
+              ? "This domain is verified and ready to send. These DNS records back its DKIM signing — keep them published."
+              : "Publish these records at your DNS provider, then check the verification status. Verification usually completes within a few minutes but can take up to 72 hours."}
           </SheetDescription>
         </SheetHeader>
         {details.isLoading ? (
@@ -154,11 +156,12 @@ function DomainDetailsSheet({
           <>
             <DnsRecordsTable records={details.data.dnsRecords} />
             <Button
+              variant={isVerified ? "outline" : "default"}
               onClick={() => details.data && verifyMutation.mutate({ id: details.data.id })}
               disabled={verifyMutation.isPending}
             >
               {verifyMutation.isPending ? <Spinner /> : <RefreshCwIcon />}
-              Check verification status
+              {isVerified ? "Re-check status" : "Check verification status"}
             </Button>
           </>
         ) : null}
