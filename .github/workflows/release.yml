@@ -25,8 +25,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
+
+      # Trusted Publishing (OIDC) needs npm >= 11.5.1; pnpm publish delegates
+      # the actual upload to the npm CLI, so the bundled version matters.
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --filter retransmit.dev...
