@@ -78,7 +78,7 @@ function EmailDetailsSheet({
 
   return (
     <Sheet open={emailId !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="overflow-y-auto p-4 sm:max-w-lg">
+      <SheetContent side="right" className="overflow-y-auto p-4 data-[side=right]:sm:max-w-2xl">
         <SheetHeader className="p-0">
           <SheetTitle className="flex items-center gap-2">
             <span className="truncate">{details.data?.subject ?? "Email"}</span>
