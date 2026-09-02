@@ -1,0 +1,9 @@
+{
+  "extends": "@retransmit/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // tsup's dts build injects `baseUrl`, which TypeScript 6 flags as deprecated.
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src"]
+}
