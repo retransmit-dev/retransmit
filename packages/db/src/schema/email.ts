@@ -46,6 +46,10 @@ export const WEBHOOK_EVENT_TYPES = [
   "email.rejected",
   "email.failed",
   "email.unsubscribed",
+  "sms.sent",
+  "sms.delivered",
+  "sms.undelivered",
+  "sms.failed",
 ] as const;
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 

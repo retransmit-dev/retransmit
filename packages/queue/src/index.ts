@@ -7,6 +7,8 @@ import { PgBoss } from "pg-boss";
 export const QUEUES = {
   emailSend: "email-send",
   emailSendDead: "email-send-dead",
+  smsSend: "sms-send",
+  smsSendDead: "sms-send-dead",
   webhookDispatch: "webhook-dispatch",
   webhookDispatchDead: "webhook-dispatch-dead",
 } as const;
@@ -14,6 +16,11 @@ export const QUEUES = {
 /** Job payload for `email-send` (and its dead-letter queue). */
 export interface EmailSendJob {
   emailId: string;
+}
+
+/** Job payload for `sms-send` (and its dead-letter queue). */
+export interface SmsSendJob {
+  smsId: string;
 }
 
 /** Job payload for `webhook-dispatch` (and its dead-letter queue). */
@@ -58,6 +65,11 @@ export function getBoss(): Promise<PgBoss> {
       ...SEND_RETRY,
       deadLetter: QUEUES.emailSendDead,
     });
+    await boss.createQueue(QUEUES.smsSendDead);
+    await boss.createQueue(QUEUES.smsSend, {
+      ...SEND_RETRY,
+      deadLetter: QUEUES.smsSendDead,
+    });
     await boss.createQueue(QUEUES.webhookDispatchDead);
     await boss.createQueue(QUEUES.webhookDispatch, {
       ...WEBHOOK_RETRY,
@@ -91,6 +103,11 @@ export async function enqueueEmailSendBatch(emailIds: string[]): Promise<void> {
       emailIds.slice(i, i + CHUNK).map((emailId) => ({ data: { emailId } })),
     );
   }
+}
+
+export async function enqueueSmsSend(smsId: string): Promise<void> {
+  const instance = await getBoss();
+  await instance.send(QUEUES.smsSend, { smsId } satisfies SmsSendJob);
 }
 
 export async function enqueueWebhookDispatch(jobs: WebhookDispatchJob[]): Promise<void> {

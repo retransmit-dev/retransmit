@@ -42,14 +42,16 @@ export interface EmailEventPayload {
 }
 
 /**
- * Fans an email event out as one `webhook-dispatch` job per subscribed
- * endpoint. Delivery happens in the worker with retries and a dead-letter
- * queue; this never blocks or fails the caller beyond the enqueue itself.
+ * Fans an event out as one `webhook-dispatch` job per subscribed endpoint.
+ * Channel-agnostic: email and SMS events share the endpoint table and the
+ * dispatch queue. Delivery happens in the worker with retries and a
+ * dead-letter queue; this never blocks or fails the caller beyond the
+ * enqueue itself.
  */
-export async function dispatchEmailEvent(
+export async function dispatchWebhookEvent(
   userId: string,
   type: WebhookEventType,
-  payload: EmailEventPayload,
+  payload: Record<string, unknown>,
 ): Promise<void> {
   const endpoints = await db
     .select({ id: webhookEndpoint.id, eventTypes: webhookEndpoint.eventTypes })
@@ -69,6 +71,14 @@ export async function dispatchEmailEvent(
   await enqueueWebhookDispatch(
     subscribed.map((endpoint) => ({ endpointId: endpoint.id, eventType: type, body })),
   );
+}
+
+export async function dispatchEmailEvent(
+  userId: string,
+  type: WebhookEventType,
+  payload: EmailEventPayload,
+): Promise<void> {
+  await dispatchWebhookEvent(userId, type, payload as unknown as Record<string, unknown>);
 }
 
 /**

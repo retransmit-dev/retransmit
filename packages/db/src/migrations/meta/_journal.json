@@ -29,6 +29,13 @@
       "when": 1788337825521,
       "tag": "0003_empty_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788372948586,
+      "tag": "0004_giant_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }

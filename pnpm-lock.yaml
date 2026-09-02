@@ -115,6 +115,9 @@ importers:
       '@retransmit/queue':
         specifier: workspace:*
         version: link:../../packages/queue
+      '@retransmit/sms':
+        specifier: workspace:*
+        version: link:../../packages/sms
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0)
@@ -546,6 +549,34 @@ importers:
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.13)(typescript@6.0.3)(yaml@2.9.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  packages/sms:
+    dependencies:
+      '@retransmit/db':
+        specifier: workspace:*
+        version: link:../db
+      '@retransmit/email':
+        specifier: workspace:*
+        version: link:../email
+      '@retransmit/queue':
+        specifier: workspace:*
+        version: link:../queue
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0)
+      zod:
+        specifier: 'catalog:'
+        version: 4.5.4
+    devDependencies:
+      '@retransmit/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

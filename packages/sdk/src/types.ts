@@ -82,6 +82,60 @@ export interface GetEmailResponse {
   events: EmailEvent[];
 }
 
+export const SMS_STATUSES = [
+  "queued",
+  "sent",
+  "delivered",
+  "undelivered",
+  "expired",
+  "rejected",
+  "failed",
+] as const;
+export type SmsStatus = (typeof SMS_STATUSES)[number];
+
+export interface SendSmsOptions {
+  /**
+   * Sender id shown on the recipient's device (up to 11 characters:
+   * letters, digits, space, - and _). Defaults to the sender configured for
+   * the routed provider.
+   */
+  from?: string;
+  /** One recipient or up to 50, in international format (`+237670000000`). All must share one country. */
+  to: string | string[];
+  text: string;
+}
+
+export interface SendSmsResponse {
+  id: string;
+  status: "queued";
+  /** ISO 3166-1 alpha-2 destination country detected from the number prefix. */
+  country: string | null;
+  /** Billable message parts. */
+  segments: number;
+  created_at: string;
+}
+
+export interface SmsEvent {
+  type: string;
+  created_at: string;
+}
+
+export interface GetSmsResponse {
+  id: string;
+  from: string | null;
+  to: string[];
+  text: string;
+  country: string | null;
+  segments: number;
+  /** Upstream provider that carried the message, e.g. `mtn_cm`. */
+  provider: string | null;
+  status: SmsStatus;
+  error: string | null;
+  created_at: string;
+  last_event_at: string | null;
+  events: SmsEvent[];
+}
+
 export interface SendBatchResponse {
   id: string;
   total: number;

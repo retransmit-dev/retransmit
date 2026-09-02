@@ -14,6 +14,7 @@
     "@retransmit/db": "workspace:*",
     "@retransmit/email": "workspace:*",
     "@retransmit/queue": "workspace:*",
+    "@retransmit/sms": "workspace:*",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "next": "catalog:",

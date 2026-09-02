@@ -8,5 +8,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startEmailWorkers } = await import("@retransmit/email/worker");
     await startEmailWorkers();
+    const { startSmsWorkers } = await import("@retransmit/sms/worker");
+    await startSmsWorkers();
   }
 }
