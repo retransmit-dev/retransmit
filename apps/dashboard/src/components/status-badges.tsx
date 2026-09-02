@@ -60,6 +60,7 @@ const SUPPRESSION_REASON: Record<string, { label: string; dot: string }> = {
   bounce: { label: "Bounced", dot: "bg-red-500" },
   complaint: { label: "Complained", dot: "bg-amber-500" },
   manual: { label: "Manual", dot: "bg-zinc-400" },
+  unsubscribe: { label: "Unsubscribed", dot: "bg-sky-500" },
 };
 
 export function SuppressionReasonBadge({ reason }: { reason: string }) {

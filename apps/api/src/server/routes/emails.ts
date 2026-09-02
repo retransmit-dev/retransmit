@@ -29,6 +29,7 @@ const sendEmailSchema = z
     subject: z.string().min(1).max(998),
     html: z.string().max(1_000_000).optional(),
     text: z.string().max(1_000_000).optional(),
+    marketing: z.boolean().optional(),
   })
   .refine((value) => value.html || value.text, {
     message: "Provide `html`, `text`, or both",
@@ -112,6 +113,7 @@ function toEmailRow(
     subject: input.subject,
     html: input.html,
     text: input.text,
+    marketing: input.marketing ?? false,
   };
 }
 
@@ -290,6 +292,7 @@ emailRoutes.get("/:id", async (c) => {
     bcc: row.bcc,
     reply_to: row.replyTo,
     subject: row.subject,
+    marketing: row.marketing,
     status: row.status,
     error: row.error,
     created_at: row.createdAt.toISOString(),

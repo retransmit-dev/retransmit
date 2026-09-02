@@ -24,6 +24,7 @@ transient failures automatically. For many emails at once, use
 | `subject` | string | Yes | 1–998 characters. |
 | `html` | string | Yes* | HTML body, up to 1,000,000 characters. |
 | `text` | string | Yes* | Plain-text body, up to 1,000,000 characters. |
+| `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, one-click `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/marketing-email). Defaults to `false`. |
 
 \* At least one of `html` or `text` is required; you can provide both.
 

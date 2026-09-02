@@ -12,6 +12,7 @@ export function toWirePayload(options: SendEmailOptions) {
     subject: options.subject,
     html: options.html,
     text: options.text,
+    marketing: options.marketing,
   };
 }
 

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import { callbackRoutes } from "./routes/callbacks";
 import { emailRoutes } from "./routes/emails";
+import { unsubscribeRoutes } from "./routes/unsubscribe";
 
 export const app = new Hono();
 
@@ -16,6 +17,8 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 app.route("/v1/emails", emailRoutes);
 app.route("/v1/callbacks", callbackRoutes);
+// Public, token-authenticated pages linked from marketing emails.
+app.route("/unsubscribe", unsubscribeRoutes);
 
 app.notFound((c) =>
   c.json({ error: { code: "not_found", message: "The requested resource does not exist" } }, 404),

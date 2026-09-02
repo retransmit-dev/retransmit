@@ -27,6 +27,7 @@ export interface SendEmailInput {
   subject: string;
   html?: string;
   text?: string;
+  headers?: { name: string; value: string }[];
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<{ messageId?: string }> {
@@ -43,6 +44,7 @@ export async function sendEmail(input: SendEmailInput): Promise<{ messageId?: st
       Content: {
         Simple: {
           Subject: { Data: input.subject, Charset: "UTF-8" },
+          Headers: input.headers?.map((header) => ({ Name: header.name, Value: header.value })),
           Body: {
             ...(input.html ? { Html: { Data: input.html, Charset: "UTF-8" } } : {}),
             ...(input.text ? { Text: { Data: input.text, Charset: "UTF-8" } } : {}),

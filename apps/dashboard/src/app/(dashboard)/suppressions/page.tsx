@@ -65,6 +65,7 @@ const REASON_FILTERS = [
   { value: "bounce", label: "Bounced" },
   { value: "complaint", label: "Complained" },
   { value: "manual", label: "Manual" },
+  { value: "unsubscribe", label: "Unsubscribed" },
 ] as const;
 
 type ReasonFilter = (typeof REASON_FILTERS)[number]["value"];
@@ -94,8 +95,9 @@ function StatCard({
  * Parses a suppression CSV: one address per line, or `email,reason` rows
  * (a header row is skipped). Unknown reasons import as manual.
  */
-function parseSuppressionCsv(text: string): { email: string; reason: "bounce" | "complaint" | "manual" }[] {
-  const entries: { email: string; reason: "bounce" | "complaint" | "manual" }[] = [];
+type SuppressionEntry = { email: string; reason: "bounce" | "complaint" | "manual" | "unsubscribe" };
+function parseSuppressionCsv(text: string): SuppressionEntry[] {
+  const entries: SuppressionEntry[] = [];
   for (const line of text.split(/\r?\n/)) {
     const cells = line.split(/[,;\t]/).map((cell) => cell.trim().replace(/^"|"$/g, ""));
     const email = cells[0];
@@ -105,7 +107,9 @@ function parseSuppressionCsv(text: string): { email: string; reason: "bounce" | 
       ? ("bounce" as const)
       : rawReason.includes("complain") || rawReason.includes("spam")
         ? ("complaint" as const)
-        : ("manual" as const);
+        : rawReason.includes("unsub")
+          ? ("unsubscribe" as const)
+          : ("manual" as const);
     entries.push({ email, reason });
   }
   return entries;
@@ -136,9 +140,7 @@ export default function SuppressionsPage() {
   const [addValue, setAddValue] = useState("");
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [pendingImport, setPendingImport] = useState<
-    { email: string; reason: "bounce" | "complaint" | "manual" }[] | null
-  >(null);
+  const [pendingImport, setPendingImport] = useState<SuppressionEntry[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const org = useQuery(trpc.organization.current.queryOptions());
@@ -258,10 +260,11 @@ export default function SuppressionsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard value={stats.data?.total} label="Total" />
         <StatCard value={stats.data?.bounce} label="Bounced" tone="text-red-500" />
         <StatCard value={stats.data?.complaint} label="Complained" tone="text-amber-500" />
+        <StatCard value={stats.data?.unsubscribe} label="Unsubscribed" />
         <StatCard value={stats.data?.manual} label="Added manually" />
       </div>
 
@@ -321,8 +324,8 @@ export default function SuppressionsPage() {
                     <PopoverDescription>
                       A .csv or .txt file with one address per line. An
                       optional second column sets the reason: bounce,
-                      complaint, or manual. A header row is fine, it gets
-                      skipped.
+                      complaint, unsubscribe, or manual. A header row is
+                      fine, it gets skipped.
                     </PopoverDescription>
                   </PopoverHeader>
                   <pre className="rounded-md bg-muted p-2 font-mono text-xs leading-relaxed">

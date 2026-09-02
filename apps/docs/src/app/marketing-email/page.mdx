@@ -1,0 +1,105 @@
+import { Tabs } from "nextra/components";
+
+# Marketing Email
+
+Cold outreach, newsletters, and campaigns need a working unsubscribe path —
+mailbox providers require it (Gmail and Yahoo enforce one-click unsubscribe
+for bulk senders), and honoring it protects your domain reputation.
+
+Set `marketing: true` on a send and Retransmit handles all of it:
+
+1. **A link in your body** — the `{{{unsubscribe_url}}}` placeholder anywhere
+   in your `html` or `text` is replaced with a hosted unsubscribe link. Put it
+   in your footer.
+2. **One-click unsubscribe at the top** — the message is sent with
+   `List-Unsubscribe` and `List-Unsubscribe-Post` headers (RFC 8058), so Gmail,
+   Yahoo, and others show their own **Unsubscribe** action next to the sender
+   name. No body markup needed; this happens automatically.
+3. **Suppression** — recipients who unsubscribe land on your organization's
+   suppression list, and later marketing sends to them are skipped
+   automatically.
+
+## Sending a marketing email
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+import { Retransmit } from "retransmit.dev";
+
+const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);
+
+const { data, error } = await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "prospect@example.com",
+  subject: "A quicker way to handle invoices",
+  marketing: true,
+  html: `
+    <p>Hi — saw you're hiring ops folks and thought this might help...</p>
+    <p style="color:#888;font-size:12px">
+      Don't want these emails? <a href="{{{unsubscribe_url}}}">Unsubscribe</a>.
+    </p>
+  `,
+  text: "Hi — saw you're hiring ops folks...\n\nUnsubscribe: {{{unsubscribe_url}}}",
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "prospect@example.com",
+    "subject": "A quicker way to handle invoices",
+    "marketing": true,
+    "html": "<p>Hi...</p><p><a href=\"{{{unsubscribe_url}}}\">Unsubscribe</a></p>"
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+The placeholder must be written exactly as `{{{unsubscribe_url}}}` (triple
+braces, lowercase). It works in both `html` and `text`, as many times as you
+like. On non-marketing sends the placeholder is left untouched and no headers
+are added.
+
+> [!IMPORTANT]
+>
+> Send marketing email to **one recipient per email** (use
+> [Send Batch](/api-reference/send-batch) for volume). The unsubscribe link is
+> per-email, so an email with several `to` recipients would unsubscribe all of
+> them at once — and every recipient could see the others.
+
+## What the recipient sees
+
+The body link opens a confirmation page showing their address and an
+**Unsubscribe** button; the unsubscribe only happens when they press it, so
+corporate link scanners that follow every URL in an email can't unsubscribe
+people by accident. The provider's one-click action (the top-of-message
+unsubscribe) skips the page and takes effect immediately, as RFC 8058
+requires.
+
+## After an unsubscribe
+
+- The address is added to your suppression list with reason `unsubscribe`.
+- Future sends with `marketing: true` to that address are skipped. If every
+  recipient of an email is suppressed, the email gets status `suppressed`
+  instead of being sent.
+- **Transactional sends are not blocked.** Someone who opts out of your
+  campaigns still gets their receipts and password resets. Bounce, complaint,
+  and manual suppressions block everything.
+- An `email.unsubscribed` [webhook](/webhooks) fires with the unsubscribed
+  addresses in `data.data.addresses`, so you can sync opt-outs back to your
+  CRM.
+
+## Deliverability checklist for cold outreach
+
+- Verify your sending domain and keep DMARC aligned ([Domains](/domains)).
+- Always include the `{{{unsubscribe_url}}}` link in the body, even though the
+  headers are added for you — many recipients look for it in the footer, and
+  regulations like CAN-SPAM and GDPR expect a visible opt-out.
+- Identify yourself honestly: real sender name, real reply address, and your
+  postal address in the footer where the law you operate under requires it.
+- Warm up new domains slowly and keep an eye on `email.bounced` and
+  `email.complained` webhooks — spikes there tank deliverability fast.

@@ -12,7 +12,7 @@ import {
 
 import { organization, user } from "./auth";
 
-export const SUPPRESSION_REASONS = ["bounce", "complaint", "manual"] as const;
+export const SUPPRESSION_REASONS = ["bounce", "complaint", "manual", "unsubscribe"] as const;
 export type SuppressionReason = (typeof SUPPRESSION_REASONS)[number];
 
 export const DOMAIN_STATUSES = ["pending", "verified", "failed", "temporary_failure"] as const;
@@ -45,6 +45,7 @@ export const WEBHOOK_EVENT_TYPES = [
   "email.complained",
   "email.rejected",
   "email.failed",
+  "email.unsubscribed",
 ] as const;
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 
@@ -138,6 +139,12 @@ export const email = pgTable(
     subject: text("subject").notNull(),
     html: text("html"),
     text: text("text"),
+    /**
+     * Marketing sends get an unsubscribe link (`{{{unsubscribe_url}}}` in the
+     * body) plus one-click List-Unsubscribe headers, and are blocked to
+     * addresses that unsubscribed. Transactional sends ignore unsubscribes.
+     */
+    marketing: boolean("marketing").default(false).notNull(),
     /** Message id assigned by the upstream provider (SES). */
     providerMessageId: text("provider_message_id"),
     status: text("status").$type<EmailStatus>().default("queued").notNull(),

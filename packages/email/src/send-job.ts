@@ -1,10 +1,11 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { email, emailEvent, suppression } from "@retransmit/db/schema/email";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 
 import { extractEmailAddress } from "./address";
 import { sendEmail } from "./ses";
+import { UNSUBSCRIBE_URL_PLACEHOLDER, unsubscribeUrl } from "./unsubscribe";
 import { dispatchEmailEvent } from "./webhooks";
 
 function bareAddress(value: string): string {
@@ -14,7 +15,8 @@ function bareAddress(value: string): string {
 /**
  * Drops recipients that are on the organization's suppression list. Returns
  * null when every `to` recipient is suppressed, meaning nothing should be
- * sent at all.
+ * sent at all. Unsubscribes only block marketing sends; bounces, complaints
+ * and manual entries block everything.
  */
 async function filterSuppressedRecipients(row: typeof email.$inferSelect): Promise<{
   to: string[];
@@ -38,6 +40,7 @@ async function filterSuppressedRecipients(row: typeof email.$inferSelect): Promi
       and(
         eq(suppression.organizationId, row.organizationId),
         inArray(suppression.email, addresses),
+        row.marketing ? undefined : ne(suppression.reason, "unsubscribe"),
       ),
     );
   if (rows.length === 0) return asIs;
@@ -82,6 +85,22 @@ export async function processEmailSend(emailId: string): Promise<void> {
     return;
   }
 
+  // Marketing sends carry an unsubscribe link: the `{{{unsubscribe_url}}}`
+  // placeholder in the body plus RFC 8058 one-click headers, which providers
+  // like Gmail surface as an "Unsubscribe" action at the top of the message.
+  let html = row.html ?? undefined;
+  let text = row.text ?? undefined;
+  let headers: { name: string; value: string }[] | undefined;
+  if (row.marketing) {
+    const url = unsubscribeUrl(row.id);
+    html = html?.replaceAll(UNSUBSCRIBE_URL_PLACEHOLDER, url);
+    text = text?.replaceAll(UNSUBSCRIBE_URL_PLACEHOLDER, url);
+    headers = [
+      { name: "List-Unsubscribe", value: `<${url}>` },
+      { name: "List-Unsubscribe-Post", value: "List-Unsubscribe=One-Click" },
+    ];
+  }
+
   try {
     const { messageId } = await sendEmail({
       from: row.from,
@@ -90,8 +109,9 @@ export async function processEmailSend(emailId: string): Promise<void> {
       bcc: recipients.bcc,
       replyTo: row.replyTo ?? undefined,
       subject: row.subject,
-      html: row.html ?? undefined,
-      text: row.text ?? undefined,
+      html,
+      text,
+      headers,
     });
 
     await db

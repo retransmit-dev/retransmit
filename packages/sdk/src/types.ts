@@ -46,6 +46,12 @@ export interface SendEmailOptions {
   html?: string;
   /** Plain-text body. At least one of `html` or `text` is required. */
   text?: string;
+  /**
+   * Mark this as a marketing email. Retransmit replaces `{{{unsubscribe_url}}}`
+   * in the body with a hosted unsubscribe link, adds one-click List-Unsubscribe
+   * headers, and skips recipients who already unsubscribed.
+   */
+  marketing?: boolean;
 }
 
 export interface SendEmailResponse {
@@ -68,6 +74,7 @@ export interface GetEmailResponse {
   bcc: string[] | null;
   reply_to: string[] | null;
   subject: string;
+  marketing: boolean;
   status: EmailStatus;
   error: string | null;
   created_at: string;

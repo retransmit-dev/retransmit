@@ -1,6 +1,7 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { suppression, SUPPRESSION_REASONS } from "@retransmit/db/schema/email";
+import type { SuppressionReason } from "@retransmit/db/schema/email";
 import { extractEmailAddress } from "@retransmit/email/address";
 import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, ilike, inArray } from "drizzle-orm";
@@ -27,7 +28,7 @@ function searchCondition(search: string) {
 async function insertEntries(
   organizationId: string,
   createdByUserId: string,
-  entries: { email: string; reason: "bounce" | "complaint" | "manual" }[],
+  entries: { email: string; reason: SuppressionReason }[],
 ): Promise<{ added: number; skipped: number }> {
   const seen = new Set<string>();
   const rows: (typeof suppression.$inferInsert)[] = [];
@@ -101,7 +102,7 @@ export const suppressionRouter = router({
       .where(eq(suppression.organizationId, ctx.org.id))
       .groupBy(suppression.reason);
 
-    const stats = { total: 0, bounce: 0, complaint: 0, manual: 0 };
+    const stats = { total: 0, bounce: 0, complaint: 0, manual: 0, unsubscribe: 0 };
     for (const row of grouped) {
       stats[row.reason] = row.count;
       stats.total += row.count;
