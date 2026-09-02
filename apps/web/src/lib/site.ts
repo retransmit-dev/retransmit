@@ -1,8 +1,8 @@
 export const siteConfig = {
   name: "Retransmit",
-  tagline: "Email API for developers",
+  tagline: "Messaging API for developers",
   description:
-    "Transactional email for developers: a simple API with a typed Node.js SDK, batch sending up to 10,000 emails, and signed webhooks. Use the cloud with prepaid credits, or self-host the whole stack.",
+    "Transactional email and SMS for developers: one API, one typed Node.js SDK, one prepaid balance. Batch sending, signed webhooks, WhatsApp next. Use the cloud or self-host the whole stack.",
   url: "https://retransmit.dev",
   links: {
     docs: "https://docs.retransmit.dev",

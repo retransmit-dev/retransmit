@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 
 import {
   Check,
+  Fingerprint,
   KeyRound,
+  Mail,
   MailCheck,
+  MessageCircle,
+  MessageSquareText,
   RefreshCw,
   ScrollText,
   ShieldCheck,
@@ -22,6 +26,8 @@ import {
   sendCurl,
   sendNode,
   sendResponse,
+  smsNode,
+  smsResponse,
   webhookPayload,
 } from "@/components/marketing/snippets";
 import { siteConfig } from "@/lib/site";
@@ -48,6 +54,41 @@ function CheckItem({ children }: { children: React.ReactNode }) {
   );
 }
 
+/* The channel roadmap. Flip a status here when a channel ships; the cards
+   and the JSON-LD stay in sync by hand, see structured-data.tsx. */
+const CHANNELS = [
+  {
+    icon: Mail,
+    title: "Email",
+    status: "live",
+    body: "Transactional email with domain verification, batch sending, and full event history.",
+  },
+  {
+    icon: MessageSquareText,
+    title: "SMS",
+    status: "live",
+    body: "Text messages routed per country to the cheapest provider, with delivery receipts.",
+  },
+  {
+    icon: MessageCircle,
+    title: "WhatsApp",
+    status: "soon",
+    body: "Template and session messages through the same API and balance.",
+  },
+  {
+    icon: Fingerprint,
+    title: "OTP",
+    status: "planned",
+    body: "One-time codes with generation, delivery, and verification handled for you.",
+  },
+] as const;
+
+const CHANNEL_BADGE = {
+  live: { label: "Live", className: "bg-primary/10 text-primary" },
+  soon: { label: "Coming soon", className: "bg-muted text-muted-foreground" },
+  planned: { label: "Planned", className: "bg-muted text-muted-foreground" },
+} as const;
+
 const FEATURES = [
   {
     icon: ShieldCheck,
@@ -71,8 +112,8 @@ const FEATURES = [
   },
   {
     icon: ScrollText,
-    title: "Email logs & status",
-    body: "Fetch any email by id and read its full event history, from queued to delivered, opened, or bounced.",
+    title: "Logs & status",
+    body: "Fetch any message by id and read its full event history, from queued to delivered, opened, or bounced.",
   },
   {
     icon: KeyRound,
@@ -88,10 +129,11 @@ export default function Home() {
       <section className="px-4 pt-14 pb-12 sm:pt-20">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-4xl text-balance md:text-6xl">
-            Email, anywhere.
+            One API. Every message.
           </h1>
-          <p className="mx-auto mt-5 max-w-[38ch] text-lg leading-relaxed text-balance text-muted-foreground">
-            Send transactional email from our cloud or yours.
+          <p className="mx-auto mt-5 max-w-[42ch] text-lg leading-relaxed text-balance text-muted-foreground">
+            Send transactional email and SMS from one API and one prepaid
+            balance. WhatsApp is next.
           </p>
           <div className="mt-9 flex justify-center">
             <CtaButton href={siteConfig.links.quickstart}>Get started</CtaButton>
@@ -99,10 +141,42 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Channels */}
+      <Section id="channels">
+        <SectionHeading
+          eyebrow="Channels"
+          title="Integrate once. Add channels, not vendors."
+          lead="Every channel shares the same key, SDK, webhooks, and balance. New ones arrive as an SDK update, not another account."
+        />
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {CHANNELS.map((channel) => {
+            const badge = CHANNEL_BADGE[channel.status];
+            return (
+              <Card key={channel.title} className="p-6">
+                <div className="flex items-center justify-between">
+                  <channel.icon className="size-5 text-primary" aria-hidden />
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
+                  >
+                    {badge.label}
+                  </span>
+                </div>
+                <h3 className="mt-4 text-base font-semibold tracking-tight">
+                  {channel.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {channel.body}
+                </p>
+              </Card>
+            );
+          })}
+        </div>
+      </Section>
+
       {/* Send */}
       <Section>
         <SectionHeading
-          eyebrow="Send"
+          eyebrow="Email"
           title="One request. Email delivered."
           lead="Verify a domain, grab an API key, and send your first email in under five minutes."
         />
@@ -187,12 +261,56 @@ export default function Home() {
         </div>
       </Section>
 
+      {/* SMS */}
+      <Section>
+        <SectionHeading
+          eyebrow="SMS"
+          title="Text the same way you email."
+          lead="Same SDK, same response shape, same balance. Pass a number in international format and Retransmit routes the rest."
+        />
+        <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
+          <div>
+            <ul className="flex flex-col gap-4 text-base leading-relaxed">
+              <CheckItem>
+                The destination country is detected from the number and each
+                message is routed to the cheapest configured provider.
+              </CheckItem>
+              <CheckItem>
+                Set your own sender id, up to 11 characters, or use the
+                route&apos;s default.
+              </CheckItem>
+              <CheckItem>
+                Delivery receipts come back as{" "}
+                <code className="font-mono text-sm text-foreground">
+                  sms.delivered
+                </code>{" "}
+                webhooks and in the message&apos;s event history.
+              </CheckItem>
+            </ul>
+            <a
+              href={siteConfig.links.docs}
+              className="mt-6 inline-block text-sm font-medium text-primary hover:underline"
+            >
+              Read the docs →
+            </a>
+          </div>
+          <CardTray>
+            <CodeWindow
+              tabs={[
+                { label: "send-sms.ts", code: smsNode },
+                { label: "response", code: smsResponse },
+              ]}
+            />
+          </CardTray>
+        </div>
+      </Section>
+
       {/* Webhooks */}
       <Section>
         <SectionHeading
           eyebrow="Webhooks"
-          title="Know what happens to every email."
-          lead="Nine event types, signed and timestamped, delivered to your endpoint as they happen."
+          title="Know what happens to every message."
+          lead="Email and SMS events, signed and timestamped, delivered to your endpoint as they happen."
         />
         <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
           <CardTray>
@@ -328,8 +446,8 @@ export default function Home() {
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-3xl text-balance md:text-5xl">Ready to send?</h2>
           <p className="mx-auto mt-5 max-w-[46ch] text-lg leading-relaxed text-balance text-muted-foreground">
-            Verify a domain, grab an API key, and send your first email in
-            under five minutes.
+            Grab an API key and send your first email or SMS in under five
+            minutes.
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <CtaButton href={siteConfig.links.quickstart}>Get started</CtaButton>

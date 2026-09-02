@@ -2,7 +2,7 @@ import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { suppression, SUPPRESSION_REASONS } from "@retransmit/db/schema/email";
 import type { SuppressionReason } from "@retransmit/db/schema/email";
-import { extractEmailAddress } from "@retransmit/email/address";
+import { DOMAIN_NAME_REGEX, extractEmailAddress } from "@retransmit/email/address";
 import { TRPCError } from "@trpc/server";
 import { and, count, desc, eq, ilike, inArray } from "drizzle-orm";
 import z from "zod";
@@ -14,10 +14,17 @@ const reasonSchema = z.enum(SUPPRESSION_REASONS);
 const IMPORT_MAX = 10_000;
 const INSERT_CHUNK = 1_000;
 
-/** Normalizes to a bare, lowercased address; null if invalid. */
-function normalizeAddress(value: string): string | null {
+/**
+ * Normalizes a suppression entry to its stored form; null if invalid.
+ * Accepts an email address (stored as the bare, lowercased address) or a
+ * domain — `@example.com` or `example.com` — stored as `@example.com`, which
+ * the send path treats as suppressing every address at that domain.
+ */
+function normalizeEntry(value: string): string | null {
   const address = extractEmailAddress(value.trim());
-  return address ? address.toLowerCase() : null;
+  if (address) return address.toLowerCase();
+  const domain = value.trim().replace(/^@/, "").toLowerCase();
+  return DOMAIN_NAME_REGEX.test(domain) ? `@${domain}` : null;
 }
 
 function searchCondition(search: string) {
@@ -33,7 +40,7 @@ async function insertEntries(
   const seen = new Set<string>();
   const rows: (typeof suppression.$inferInsert)[] = [];
   for (const entry of entries) {
-    const address = normalizeAddress(entry.email);
+    const address = normalizeEntry(entry.email);
     if (!address) continue;
     if (seen.has(address)) continue;
     seen.add(address);
@@ -114,11 +121,11 @@ export const suppressionRouter = router({
     .input(z.object({ emails: z.array(z.string().trim().min(3).max(320)).min(1).max(100) }))
     .mutation(async ({ ctx, input }) => {
       assertOrgAdmin(ctx.org);
-      const invalid = input.emails.filter((value) => normalizeAddress(value) === null);
+      const invalid = input.emails.filter((value) => normalizeEntry(value) === null);
       if (invalid.length > 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Not a valid email address: ${invalid[0]}`,
+          message: `Not a valid email address or domain: ${invalid[0]}`,
         });
       }
       return await insertEntries(

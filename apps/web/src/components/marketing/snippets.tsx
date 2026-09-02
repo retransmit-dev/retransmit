@@ -76,6 +76,27 @@ export const batchResponse = (
   </code>
 );
 
+export const smsNode = (
+  <code>
+    <Kw>const</Kw> {"{ data, error }"} = <Kw>await</Kw> retransmit.sms.send({"{"}{"\n"}
+    {"  "}from: <Str>"Acme"</Str>,{"\n"}
+    {"  "}to: <Str>"+237670000000"</Str>,{"\n"}
+    {"  "}text: <Str>"Your code is 493 021"</Str>,{"\n"}
+    {"}"});{"\n\n"}
+    console.log(data.id); <Cm>{"// sms_xxxxxxxxxxxx"}</Cm>
+  </code>
+);
+
+export const smsResponse = (
+  <code>
+    {"{"}{"\n"}
+    {"  "}<Kw>"id"</Kw>: <Str>"sms_xxxxxxxxxxxx"</Str>,{"\n"}
+    {"  "}<Kw>"status"</Kw>: <Str>"queued"</Str>,{"\n"}
+    {"  "}<Kw>"created_at"</Kw>: <Str>"2026-09-01T12:00:00.000Z"</Str>{"\n"}
+    {"}"}
+  </code>
+);
+
 export const webhookPayload = (
   <code>
     {"{"}{"\n"}

@@ -29,6 +29,10 @@ export const metadata: Metadata = {
   keywords: [
     "email API",
     "transactional email",
+    "SMS API",
+    "transactional SMS",
+    "messaging API",
+    "WhatsApp API",
     "open source email API",
     "self-hosted email",
     "batch email API",

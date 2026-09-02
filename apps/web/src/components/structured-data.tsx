@@ -46,10 +46,11 @@ export function SiteStructuredData() {
         description: siteConfig.description,
         featureList: [
           "Transactional email API",
+          "Transactional SMS API with per-country routing",
           "Batch sending up to 10,000 emails per request",
           "Signed webhooks with automatic retries",
           "Domain verification with SPF and DKIM",
-          "Email logs with full event history",
+          "Message logs with full event history",
           "Self-hostable open source stack",
         ],
         provider: { "@id": organizationId },

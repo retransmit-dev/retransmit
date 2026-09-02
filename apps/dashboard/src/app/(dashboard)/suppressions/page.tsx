@@ -433,7 +433,8 @@ export default function SuppressionsPage() {
             <SheetTitle>Add addresses to the suppression list</SheetTitle>
             <SheetDescription>
               These addresses will not receive email from this organization
-              until they are removed from the list.
+              until they are removed from the list. A domain entry like
+              @example.com suppresses every address at that domain.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleAdd} className="flex flex-col gap-3">
@@ -441,7 +442,7 @@ export default function SuppressionsPage() {
               <Label htmlFor="suppress-addresses">Addresses</Label>
               <Textarea
                 id="suppress-addresses"
-                placeholder={"user@example.com\nother@example.com"}
+                placeholder={"user@example.com\n@example.com"}
                 rows={6}
                 value={addValue}
                 onChange={(e) => setAddValue(e.target.value)}

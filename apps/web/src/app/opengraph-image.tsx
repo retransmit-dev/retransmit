@@ -7,8 +7,8 @@ export const contentType = "image/png";
 
 export default function Image() {
   return renderOgImage({
-    title: "Email, anywhere.",
+    title: "One API. Every message.",
     description:
-      "Send transactional email from our cloud or yours. Batch up to 10,000, signed webhooks, self-hostable.",
+      "Transactional email and SMS from one API and one prepaid balance. Signed webhooks, self-hostable. WhatsApp next.",
   });
 }

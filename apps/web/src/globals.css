@@ -235,7 +235,7 @@
 }
 
 .animate-event-feed {
-  animation: event-feed 28s linear infinite;
+  animation: event-feed 37s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -35,12 +35,30 @@ const EVENT_TYPES = [
   "email.failed",
 ] as const;
 
+const SMS_STATUSES = [
+  "queued",
+  "sent",
+  "delivered",
+  "undelivered",
+  "expired",
+  "rejected",
+  "failed",
+] as const;
+
+const SMS_EVENT_TYPES = [
+  "sms.sent",
+  "sms.delivered",
+  "sms.undelivered",
+  "sms.failed",
+] as const;
+
 const ERROR_CODES = [
   "invalid_json",
   "validation_error",
   "unauthorized",
   "domain_not_found",
   "domain_not_verified",
+  "no_route",
   "not_found",
   "internal_error",
 ] as const;
@@ -75,7 +93,7 @@ export const OPENAPI_DOCUMENT = {
     version: "1.0.0",
     summary: siteConfig.tagline,
     description:
-      "Transactional email API. Queue single emails or batches of up to 10,000, then track delivery through per-email event logs and signed webhooks. Authenticate every /v1 request with an API key from the dashboard. Errors are always JSON with a stable `error.code`. Self-hosted deployments serve this same API at their own base URL.",
+      "Transactional email and SMS API. Queue single emails, batches of up to 10,000, or SMS routed per destination country, then track delivery through per-message event logs and signed webhooks. Authenticate every /v1 request with an API key from the dashboard. Errors are always JSON with a stable `error.code`. Self-hosted deployments serve this same API at their own base URL.",
     contact: { name: siteConfig.name, url: siteConfig.url },
     license: {
       name: "AGPL-3.0",
@@ -90,6 +108,7 @@ export const OPENAPI_DOCUMENT = {
   security: [{ bearerAuth: [] }],
   tags: [
     { name: "Emails", description: "Send email and read delivery state." },
+    { name: "Sms", description: "Send SMS and read delivery state." },
     { name: "Service", description: "Unauthenticated service endpoints." },
   ],
   paths: {
@@ -252,6 +271,68 @@ export const OPENAPI_DOCUMENT = {
         },
       },
     },
+    "/v1/sms": {
+      post: {
+        operationId: "sendSms",
+        tags: ["Sms"],
+        summary: "Queue one SMS",
+        description:
+          "Returns 202 immediately; a worker sends it with retries and a dead-letter queue. The destination country is detected from the number prefix and the message is routed to the cheapest configured provider for that country. All recipients in one request must be in the same country. Poll GET /v1/sms/{id} or subscribe to webhooks for the outcome.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/SendSmsRequest" },
+            },
+          },
+        },
+        responses: {
+          "202": {
+            description: "SMS accepted and queued.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/QueuedSms" },
+              },
+            },
+          },
+          "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "422": errorResponse(
+            "Schema validation failed (`validation_error`), recipients span countries (`validation_error`), or no provider is configured for the destination (`no_route`).",
+          ),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
+    "/v1/sms/{id}": {
+      get: {
+        operationId: "getSms",
+        tags: ["Sms"],
+        summary: "Get one SMS with its event history",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            description: "SMS id, e.g. `sms_...`.",
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "The SMS and its events, oldest first.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Sms" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "404": errorResponse("No SMS with this id on your account."),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -366,6 +447,95 @@ export const OPENAPI_DOCUMENT = {
         required: ["type", "created_at"],
         properties: {
           type: { type: "string", enum: [...EVENT_TYPES] },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
+      SendSmsRequest: {
+        type: "object",
+        required: ["to", "text"],
+        properties: {
+          from: {
+            type: "string",
+            minLength: 1,
+            maxLength: 11,
+            pattern: "^[a-zA-Z0-9 _-]+$",
+            description:
+              "Sender id shown on the device. Falls back to the routed provider's default.",
+          },
+          to: {
+            description:
+              "One recipient or up to 50, in international format, e.g. +237670000000. All recipients must be in the same country.",
+            oneOf: [
+              { type: "string" },
+              {
+                type: "array",
+                items: { type: "string" },
+                minItems: 1,
+                maxItems: 50,
+              },
+            ],
+          },
+          text: { type: "string", minLength: 1, maxLength: 1600 },
+        },
+      },
+      QueuedSms: {
+        type: "object",
+        required: ["id", "status", "country", "segments", "created_at"],
+        properties: {
+          id: { type: "string" },
+          status: { type: "string", const: "queued" },
+          country: {
+            type: ["string", "null"],
+            description: "ISO 3166-1 alpha-2 country detected from the number prefix.",
+          },
+          segments: {
+            type: "integer",
+            description: "GSM-7 or UCS-2 segments the text splits into; billing is per segment.",
+          },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
+      Sms: {
+        type: "object",
+        required: [
+          "id",
+          "to",
+          "text",
+          "country",
+          "segments",
+          "status",
+          "created_at",
+          "events",
+        ],
+        properties: {
+          id: { type: "string" },
+          from: { type: ["string", "null"] },
+          to: { type: "array", items: { type: "string" } },
+          text: { type: "string" },
+          country: { type: ["string", "null"] },
+          segments: { type: "integer" },
+          provider: {
+            type: ["string", "null"],
+            description: "Provider the message was routed to, set at send time.",
+          },
+          status: { type: "string", enum: [...SMS_STATUSES] },
+          error: {
+            type: ["string", "null"],
+            description: "Failure detail when status is a failure state.",
+          },
+          created_at: { type: "string", format: "date-time" },
+          last_event_at: { type: ["string", "null"], format: "date-time" },
+          events: {
+            type: "array",
+            items: { $ref: "#/components/schemas/SmsEvent" },
+          },
+        },
+      },
+      SmsEvent: {
+        type: "object",
+        required: ["type", "created_at"],
+        properties: {
+          type: { type: "string", enum: [...SMS_EVENT_TYPES] },
           created_at: { type: "string", format: "date-time" },
         },
       },

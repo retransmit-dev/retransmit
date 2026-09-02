@@ -37,7 +37,8 @@ export function SiteFooter() {
               retransmit<span className="text-primary">.</span>
             </p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              One API. One balance. Every message. Starting with email.
+              One API. One balance. Every message. Email and SMS today,
+              WhatsApp next.
             </p>
           </div>
           <div className="flex flex-wrap gap-x-16 gap-y-10">
