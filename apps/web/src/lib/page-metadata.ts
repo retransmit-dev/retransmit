@@ -19,6 +19,9 @@ export function pageMetadata(href: Route): Metadata {
     description: page.description,
     alternates: {
       canonical: page.href,
+      /* .md sibling for agents that follow rel=alternate rather than
+         sending Accept: text/markdown. */
+      types: { "text/markdown": `${page.href}.md` },
     },
     openGraph: {
       type: "website",

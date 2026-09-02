@@ -29,7 +29,12 @@ import { siteConfig } from "@/lib/site";
 /* The canonical lives here, not in the root layout: root metadata is
    inherited, so a canonical there would make every page claim "/". */
 export const metadata: Metadata = {
-  alternates: { canonical: "/" },
+  alternates: {
+    canonical: "/",
+    /* .md sibling for agents that follow rel=alternate rather than
+       sending Accept: text/markdown. */
+    types: { "text/markdown": "/index.md" },
+  },
 };
 
 function CheckItem({ children }: { children: React.ReactNode }) {
