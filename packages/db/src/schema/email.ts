@@ -10,7 +10,10 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { user } from "./auth";
+import { organization, user } from "./auth";
+
+export const SUPPRESSION_REASONS = ["bounce", "complaint", "manual"] as const;
+export type SuppressionReason = (typeof SUPPRESSION_REASONS)[number];
 
 export const DOMAIN_STATUSES = ["pending", "verified", "failed", "temporary_failure"] as const;
 export type DomainStatus = (typeof DOMAIN_STATUSES)[number];
@@ -52,6 +55,10 @@ export const apiKey = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    /** Owning organization. Nullable only for rows that predate organizations. */
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
     name: text("name").notNull(),
     /** SHA-256 hex digest of the full key. The full key is never stored. */
     keyHash: text("key_hash").notNull().unique(),
@@ -71,6 +78,10 @@ export const domain = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    /** Owning organization. Nullable only for rows that predate organizations. */
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
     name: text("name").notNull(),
     status: text("status").$type<DomainStatus>().default("pending").notNull(),
     region: text("region").notNull(),
@@ -86,6 +97,7 @@ export const domain = pgTable(
   (table) => [
     uniqueIndex("domain_name_uidx").on(table.name),
     index("domain_userId_idx").on(table.userId),
+    index("domain_organizationId_idx").on(table.organizationId),
   ],
 );
 
@@ -111,6 +123,10 @@ export const email = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    /** Owning organization. Nullable only for rows that predate organizations. */
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
     apiKeyId: text("api_key_id").references(() => apiKey.id, { onDelete: "set null" }),
     domainId: text("domain_id").references(() => domain.id, { onDelete: "set null" }),
     batchId: text("batch_id").references(() => emailBatch.id, { onDelete: "set null" }),
@@ -154,6 +170,36 @@ export const emailEvent = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [index("emailEvent_emailId_idx").on(table.emailId)],
+);
+
+/**
+ * Addresses an organization will not send to. Hard bounces and spam
+ * complaints are added automatically by the SES callback; members can add or
+ * import addresses manually. Shared by every member of the organization.
+ */
+export const suppression = pgTable(
+  "suppression",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** Bare address, lowercased. */
+    email: text("email").notNull(),
+    reason: text("reason").$type<SuppressionReason>().notNull(),
+    /** Who added it, for manual/imported entries. */
+    createdByUserId: text("created_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    /** The email whose bounce/complaint triggered an automatic entry. */
+    sourceEmailId: text("source_email_id").references(() => email.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("suppression_organizationId_email_uidx").on(table.organizationId, table.email),
+    index("suppression_organizationId_reason_idx").on(table.organizationId, table.reason),
+    index("suppression_organizationId_createdAt_idx").on(table.organizationId, table.createdAt),
+  ],
 );
 
 export const webhookEndpoint = pgTable(
@@ -218,6 +264,15 @@ export const emailBatchRelations = relations(emailBatch, ({ one, many }) => ({
 
 export const emailEventRelations = relations(emailEvent, ({ one }) => ({
   email: one(email, { fields: [emailEvent.emailId], references: [email.id] }),
+}));
+
+export const suppressionRelations = relations(suppression, ({ one }) => ({
+  organization: one(organization, {
+    fields: [suppression.organizationId],
+    references: [organization.id],
+  }),
+  createdBy: one(user, { fields: [suppression.createdByUserId], references: [user.id] }),
+  sourceEmail: one(email, { fields: [suppression.sourceEmailId], references: [email.id] }),
 }));
 
 export const webhookEndpointRelations = relations(webhookEndpoint, ({ one, many }) => ({

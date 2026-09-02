@@ -2,6 +2,8 @@ import { protectedProcedure, publicProcedure, router } from "../index";
 import { apiKeyRouter } from "./api-keys";
 import { domainRouter } from "./domains";
 import { emailRouter } from "./emails";
+import { organizationRouter } from "./organizations";
+import { suppressionRouter } from "./suppressions";
 import { todoRouter } from "./todo";
 import { webhookRouter } from "./webhooks";
 
@@ -18,6 +20,8 @@ export const appRouter = router({
   apiKey: apiKeyRouter,
   domain: domainRouter,
   email: emailRouter,
+  organization: organizationRouter,
+  suppression: suppressionRouter,
   webhook: webhookRouter,
   todo: todoRouter,
 });

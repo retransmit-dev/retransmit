@@ -1,3 +1,4 @@
+import { ensureOrganizationForUser } from "@retransmit/auth/organization";
 import { db } from "@retransmit/db";
 import { apiKey } from "@retransmit/db/schema/email";
 import { hashApiKey } from "@retransmit/email/api-keys";
@@ -8,6 +9,7 @@ export interface ApiKeyEnv {
   Variables: {
     userId: string;
     apiKeyId: string;
+    organizationId: string;
   };
 }
 
@@ -35,8 +37,17 @@ export const apiKeyAuth = createMiddleware<ApiKeyEnv>(async (c, next) => {
     );
   }
 
+  // Keys created before organizations existed get one resolved (and
+  // stamped) on first use.
+  let organizationId = row.organizationId;
+  if (!organizationId) {
+    organizationId = (await ensureOrganizationForUser(row.userId)).id;
+    await db.update(apiKey).set({ organizationId }).where(eq(apiKey.id, row.id));
+  }
+
   c.set("userId", row.userId);
   c.set("apiKeyId", row.id);
+  c.set("organizationId", organizationId);
 
   db.update(apiKey)
     .set({ lastUsedAt: new Date() })

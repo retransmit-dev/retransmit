@@ -103,6 +103,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@retransmit/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@retransmit/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -429,12 +432,18 @@ importers:
       '@retransmit/db':
         specifier: workspace:*
         version: link:../db
+      '@retransmit/email':
+        specifier: workspace:*
+        version: link:../email
       better-auth:
         specifier: 'catalog:'
         version: 1.7.1(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0))(next@16.3.4(@types/node@26.4.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)))
       dotenv:
         specifier: 'catalog:'
         version: 17.4.2
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0)
       zod:
         specifier: 'catalog:'
         version: 4.5.4

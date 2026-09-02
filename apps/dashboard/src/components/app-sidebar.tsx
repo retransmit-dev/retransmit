@@ -16,11 +16,13 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import {
+  BanIcon,
   GlobeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
   MailIcon,
   SendIcon,
+  Settings2Icon,
   WebhookIcon,
 } from "lucide-react"
 
@@ -49,6 +51,16 @@ const navMain = [
     title: "Webhooks",
     url: "/webhooks",
     icon: <WebhookIcon />,
+  },
+  {
+    title: "Suppressions",
+    url: "/suppressions",
+    icon: <BanIcon />,
+  },
+  {
+    title: "Settings",
+    url: "/settings/team",
+    icon: <Settings2Icon />,
   },
 ]
 

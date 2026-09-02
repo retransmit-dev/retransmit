@@ -1,7 +1,9 @@
+import { ensureOrganizationForUser } from "@retransmit/auth/organization";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { email, emailEvent } from "@retransmit/db/schema/email";
-import type { EmailStatus, WebhookEventType } from "@retransmit/db/schema/email";
+import { email, emailEvent, suppression } from "@retransmit/db/schema/email";
+import type { EmailStatus, SuppressionReason, WebhookEventType } from "@retransmit/db/schema/email";
+import { extractEmailAddress } from "@retransmit/email/address";
 import { dispatchEmailEvent } from "@retransmit/email/webhooks";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -47,6 +49,65 @@ const STATUS_RANK: Record<EmailStatus, number> = {
   bounced: 80,
   complained: 90,
 };
+
+/**
+ * Adds the affected recipients to the organization's suppression list.
+ * Hard (permanent) bounces and complaints only; transient bounces are just
+ * status updates.
+ */
+async function recordSuppressions(
+  row: typeof email.$inferSelect,
+  sesEvent: Record<string, unknown>,
+  eventType: string,
+): Promise<void> {
+  let reason: SuppressionReason;
+  let recipients: unknown;
+  if (eventType === "Bounce") {
+    const bounce = sesEvent.bounce as
+      | { bounceType?: string; bouncedRecipients?: { emailAddress?: string }[] }
+      | undefined;
+    if (bounce?.bounceType !== "Permanent") return;
+    reason = "bounce";
+    recipients = bounce.bouncedRecipients;
+  } else {
+    const complaint = sesEvent.complaint as
+      | { complainedRecipients?: { emailAddress?: string }[] }
+      | undefined;
+    reason = "complaint";
+    recipients = complaint?.complainedRecipients;
+  }
+
+  const fromEvent = Array.isArray(recipients)
+    ? (recipients as { emailAddress?: string }[])
+        .map((recipient) => recipient.emailAddress)
+        .filter((address): address is string => typeof address === "string")
+    : [];
+  const addresses = [
+    ...new Set(
+      (fromEvent.length > 0 ? fromEvent : row.to)
+        .map((value) => extractEmailAddress(value)?.toLowerCase())
+        .filter((address): address is string => Boolean(address)),
+    ),
+  ];
+  if (addresses.length === 0) return;
+
+  // Emails sent before organizations existed carry no organizationId.
+  const organizationId =
+    row.organizationId ?? (await ensureOrganizationForUser(row.userId)).id;
+
+  await db
+    .insert(suppression)
+    .values(
+      addresses.map((address) => ({
+        id: createId("sup"),
+        organizationId,
+        email: address,
+        reason,
+        sourceEmailId: row.id,
+      })),
+    )
+    .onConflictDoNothing({ target: [suppression.organizationId, suppression.email] });
+}
 
 /**
  * Receives SES event notifications through SNS (bounces, complaints,
@@ -113,6 +174,10 @@ callbackRoutes.post("/ses", async (c) => {
     type: mapping.webhook,
     data: sesEvent as Record<string, unknown>,
   });
+
+  if (eventType === "Bounce" || eventType === "Complaint") {
+    await recordSuppressions(row, sesEvent as Record<string, unknown>, eventType);
+  }
 
   if (STATUS_RANK[mapping.status] >= STATUS_RANK[row.status]) {
     await db

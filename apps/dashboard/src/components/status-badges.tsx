@@ -55,3 +55,21 @@ export function DomainStatusBadge({ status }: { status: string }) {
     </Badge>
   );
 }
+
+const SUPPRESSION_REASON: Record<string, { label: string; dot: string }> = {
+  bounce: { label: "Bounced", dot: "bg-red-500" },
+  complaint: { label: "Complained", dot: "bg-amber-500" },
+  manual: { label: "Manual", dot: "bg-zinc-400" },
+};
+
+export function SuppressionReasonBadge({ reason }: { reason: string }) {
+  const option = SUPPRESSION_REASON[reason];
+  return (
+    <Badge variant="outline">
+      <span
+        className={cn("size-1.5 rounded-full", option?.dot ?? "bg-muted-foreground")}
+      />
+      {option?.label ?? reason}
+    </Badge>
+  );
+}

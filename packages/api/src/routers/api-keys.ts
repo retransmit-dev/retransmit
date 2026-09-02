@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import z from "zod";
 
-import { protectedProcedure, router } from "../index";
+import { orgProcedure, protectedProcedure, router } from "../index";
 
 export const apiKeyRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
@@ -24,7 +24,7 @@ export const apiKeyRouter = router({
       .orderBy(desc(apiKey.createdAt));
   }),
 
-  create: protectedProcedure
+  create: orgProcedure
     .input(z.object({ name: z.string().min(1).max(100) }))
     .mutation(async ({ ctx, input }) => {
       const generated = generateApiKey();
@@ -33,6 +33,7 @@ export const apiKeyRouter = router({
         .values({
           id: createId("key"),
           userId: ctx.session.user.id,
+          organizationId: ctx.org.id,
           name: input.name,
           keyHash: generated.keyHash,
           keyHint: generated.keyHint,

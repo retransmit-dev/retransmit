@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@retransmit/auth": "workspace:*",
     "@retransmit/db": "workspace:*",
     "@retransmit/email": "workspace:*",
     "@retransmit/queue": "workspace:*",

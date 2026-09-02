@@ -43,16 +43,16 @@ const batchSchema = z.object({
 type SendEmailInput = z.infer<typeof sendEmailSchema>;
 
 /**
- * Loads the caller's registered domains for the given `from` addresses and
- * returns a name → domain map, or an error response body if any domain is
- * missing or unverified.
+ * Loads the organization's registered domains for the given `from` addresses
+ * and returns a name → domain map, or an error response body if any domain
+ * is missing or unverified.
  */
-async function resolveSenderDomains(userId: string, froms: string[]) {
+async function resolveSenderDomains(organizationId: string, froms: string[]) {
   const names = [...new Set(froms.map((from) => extractEmailDomain(from) ?? ""))];
   const rows = await db
     .select()
     .from(domain)
-    .where(and(inArray(domain.name, names), eq(domain.userId, userId)));
+    .where(and(inArray(domain.name, names), eq(domain.organizationId, organizationId)));
   const byName = new Map(rows.map((row) => [row.name, row]));
 
   for (const name of names) {
@@ -64,7 +64,7 @@ async function resolveSenderDomains(userId: string, froms: string[]) {
           body: {
             error: {
               code: "domain_not_found",
-              message: `The domain \`${name}\` is not registered on your account. Add and verify it first.`,
+              message: `The domain \`${name}\` is not registered on your organization. Add and verify it first.`,
             },
           },
         },
@@ -89,11 +89,18 @@ async function resolveSenderDomains(userId: string, froms: string[]) {
 
 function toEmailRow(
   input: SendEmailInput,
-  ctx: { userId: string; apiKeyId: string; domainId: string; batchId?: string },
+  ctx: {
+    userId: string;
+    organizationId: string;
+    apiKeyId: string;
+    domainId: string;
+    batchId?: string;
+  },
 ) {
   return {
     id: createId("em"),
     userId: ctx.userId,
+    organizationId: ctx.organizationId,
     apiKeyId: ctx.apiKeyId,
     domainId: ctx.domainId,
     batchId: ctx.batchId,
@@ -140,9 +147,10 @@ emailRoutes.post("/batch", async (c) => {
   }
   const inputs = parsed.data.emails;
   const userId = c.get("userId");
+  const organizationId = c.get("organizationId");
   const apiKeyId = c.get("apiKeyId");
 
-  const resolved = await resolveSenderDomains(userId, inputs.map((input) => input.from));
+  const resolved = await resolveSenderDomains(organizationId, inputs.map((input) => input.from));
   if (resolved.error) return c.json(resolved.error.body, resolved.error.status);
 
   const batchId = createId("bt");
@@ -158,6 +166,7 @@ emailRoutes.post("/batch", async (c) => {
     const name = extractEmailDomain(input.from) ?? "";
     return toEmailRow(input, {
       userId,
+      organizationId,
       apiKeyId,
       domainId: resolved.byName.get(name)!.id,
       batchId,
@@ -235,13 +244,15 @@ emailRoutes.post("/", async (c) => {
   }
   const input = parsed.data;
   const userId = c.get("userId");
+  const organizationId = c.get("organizationId");
 
-  const resolved = await resolveSenderDomains(userId, [input.from]);
+  const resolved = await resolveSenderDomains(organizationId, [input.from]);
   if (resolved.error) return c.json(resolved.error.body, resolved.error.status);
   const name = extractEmailDomain(input.from) ?? "";
 
   const row = toEmailRow(input, {
     userId,
+    organizationId,
     apiKeyId: c.get("apiKeyId"),
     domainId: resolved.byName.get(name)!.id,
   });
