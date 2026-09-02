@@ -1,0 +1,44 @@
+# Domains
+
+Retransmit only sends email from domains that are registered on your account
+**and** verified. This protects deliverability and proves you own the domain
+you send from.
+
+## Adding a domain
+
+1. Open the dashboard and go to **Domains**.
+2. Add your domain (e.g. `yourdomain.com`).
+3. Publish the DNS records shown (SPF / DKIM) at your DNS provider.
+4. Wait for verification to complete.
+
+## Domain statuses
+
+| Status | Meaning |
+| --- | --- |
+| `pending` | DNS records not yet detected. Propagation can take up to a few hours. |
+| `verified` | Ready to send. |
+| `failed` | Verification failed — re-check the DNS records. |
+| `temporary_failure` | Verification hit a transient issue and will be retried. |
+
+## What happens if the domain isn't ready
+
+Requests to `POST /v1/emails` are rejected before anything is sent:
+
+- The `from` domain is not on your account → `403` with error code `domain_not_found`.
+- The domain exists but isn't `verified` → `403` with error code `domain_not_verified`
+  (the message includes the current status).
+
+```json
+{
+  "error": {
+    "code": "domain_not_verified",
+    "message": "The domain `yourdomain.com` is not verified yet (status: pending)."
+  }
+}
+```
+
+> [!TIP]
+>
+> The `from` field accepts either a bare address (`hello@yourdomain.com`) or a
+> display name form (`Acme <hello@yourdomain.com>`). The domain is extracted
+> from the address part.

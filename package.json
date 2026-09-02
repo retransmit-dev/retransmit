@@ -14,6 +14,7 @@
     "dev:web": "pnpm with-env turbo run dev -F web --",
     "dev:dashboard": "pnpm with-env turbo run dev -F dashboard --",
     "dev:api": "pnpm with-env turbo run dev -F api --",
+    "dev:docs": "pnpm with-env turbo run dev -F docs --",
     "db:push": "pnpm with-env turbo run db:push -F @retransmit/db --",
     "db:studio": "pnpm with-env turbo run db:studio -F @retransmit/db --",
     "db:generate": "pnpm with-env turbo run db:generate -F @retransmit/db --",
@@ -30,5 +31,11 @@
     "turbo": "^2.10.12",
     "typescript": "catalog:"
   },
-  "packageManager": "pnpm@10.27.0"
+  "packageManager": "pnpm@10.27.0",
+  "pnpm": {
+    "overrides": {
+      "nextra>zod": "4.3.6",
+      "nextra-theme-docs>zod": "4.3.6"
+    }
+  }
 }

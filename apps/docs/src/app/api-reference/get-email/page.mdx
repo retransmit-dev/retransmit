@@ -1,0 +1,64 @@
+# Get Email
+
+```http
+GET /v1/emails/:id
+```
+
+Retrieves a previously sent email, including its current status and the full
+event timeline.
+
+## Example
+
+```sh
+curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+```
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "id": "em_xxxxxxxxxxxx",
+  "from": "Acme <hello@yourdomain.com>",
+  "to": ["user@example.com"],
+  "cc": null,
+  "bcc": null,
+  "reply_to": null,
+  "subject": "Your receipt",
+  "status": "delivered",
+  "error": null,
+  "created_at": "2026-09-01T12:00:00.000Z",
+  "last_event_at": "2026-09-01T12:00:03.000Z",
+  "events": [
+    { "type": "email.sent", "created_at": "2026-09-01T12:00:01.000Z" },
+    { "type": "email.delivered", "created_at": "2026-09-01T12:00:03.000Z" }
+  ]
+}
+```
+
+## Email statuses
+
+| Status | Meaning |
+| --- | --- |
+| `queued` | Accepted, not yet handed to the provider. |
+| `scheduled` | Scheduled for a later send. |
+| `sent` | Handed to the upstream provider. |
+| `delivery_delayed` | The receiving server temporarily deferred delivery. |
+| `delivered` | Accepted by the recipient's mail server. |
+| `opened` | The recipient opened the email. |
+| `clicked` | The recipient clicked a link. |
+| `bounced` | The recipient's server permanently rejected it. |
+| `complained` | The recipient marked it as spam. |
+| `suppressed` | Not sent — the address is on a suppression list. |
+| `canceled` | A scheduled send was canceled. |
+| `rejected` | Rejected before sending. |
+| `failed` | The provider send failed; `error` contains the reason. |
+
+## Errors
+
+| Status | Code | Cause |
+| --- | --- | --- |
+| `404` | `not_found` | No email with this id on your account. |
+| `401` | `unauthorized` | Missing, malformed, or revoked API key. |

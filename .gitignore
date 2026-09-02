@@ -59,3 +59,6 @@ coverage
 .cache
 tmp
 temp
+
+# Nextra / Pagefind search index (generated at build)
+apps/docs/public/_pagefind/

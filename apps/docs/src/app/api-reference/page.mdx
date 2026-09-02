@@ -1,0 +1,53 @@
+# API Reference
+
+## Base URL
+
+| Environment | Base URL |
+| --- | --- |
+| Production | `https://api.retransmit.dev` |
+| Local development | `http://localhost:3002` |
+
+All endpoints are versioned under `/v1`.
+
+## Authentication
+
+Every request must include your API key as a Bearer token:
+
+```sh
+Authorization: Bearer rt_xxxxxxxxxxxxxxxx
+```
+
+Keys are created in the dashboard and shown once. A missing, malformed, or
+revoked key returns `401 unauthorized`:
+
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Provide your API key as `Authorization: Bearer rt_...`"
+  }
+}
+```
+
+## Response format
+
+Responses are JSON. Errors always have the shape:
+
+```json
+{
+  "error": {
+    "code": "some_error_code",
+    "message": "Human-readable explanation"
+  }
+}
+```
+
+See [Errors](/api-reference/errors) for the full list of codes.
+
+## Endpoints
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | [`/v1/emails`](/api-reference/send-email) | Send a transactional email |
+| `GET` | [`/v1/emails/:id`](/api-reference/get-email) | Retrieve an email and its event history |
+| `GET` | `/health` | Health check (no auth required) |

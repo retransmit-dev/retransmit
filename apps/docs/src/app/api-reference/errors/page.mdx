@@ -1,0 +1,35 @@
+# Errors
+
+All errors share one shape:
+
+```json
+{
+  "error": {
+    "code": "some_error_code",
+    "message": "Human-readable explanation"
+  }
+}
+```
+
+## Error codes
+
+| HTTP status | Code | Meaning |
+| --- | --- | --- |
+| `400` | `invalid_json` | The request body could not be parsed as JSON. |
+| `401` | `unauthorized` | Missing, malformed, invalid, or revoked API key. |
+| `403` | `domain_not_found` | The `from` domain is not registered on your account. |
+| `403` | `domain_not_verified` | The `from` domain is registered but not verified. |
+| `404` | `not_found` | The resource (or route) does not exist. |
+| `422` | `validation_error` | A request field failed validation. The message names the field, e.g. `subject: String must contain at least 1 character(s)`. |
+| `500` | `internal_error` | Something went wrong on Retransmit's side. Safe to retry. |
+| `502` | `send_failed` | The upstream provider rejected the send. The email is stored with status `failed` and the provider's message in `error`. |
+
+## Handling errors
+
+- Treat any non-2xx response as a failure and read `error.code` — the codes are
+  stable; the messages are for humans and may change.
+- `500` responses are retryable. `502 send_failed` means the email row exists —
+  check it with [Get Email](/api-reference/get-email) before retrying to avoid
+  duplicates.
+- `403` domain errors are configuration problems: fix them in the dashboard
+  rather than retrying.

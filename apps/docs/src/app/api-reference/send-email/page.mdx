@@ -1,0 +1,64 @@
+# Send Email
+
+```http
+POST /v1/emails
+```
+
+Sends a transactional email from one of your verified domains.
+
+## Request body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `from` | string | Yes | Sender. Either `address@domain.com` or `Name <address@domain.com>`. The domain must be registered and verified on your account. |
+| `to` | string \| string[] | Yes | Recipient(s). 1–50 addresses. |
+| `cc` | string \| string[] | No | CC recipient(s). 1–50 addresses. |
+| `bcc` | string \| string[] | No | BCC recipient(s). 1–50 addresses. |
+| `reply_to` | string \| string[] | No | Reply-To address(es). |
+| `subject` | string | Yes | 1–998 characters. |
+| `html` | string | Yes* | HTML body, up to 1,000,000 characters. |
+| `text` | string | Yes* | Plain-text body, up to 1,000,000 characters. |
+
+\* At least one of `html` or `text` is required; you can provide both.
+
+## Example
+
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": ["user@example.com"],
+    "reply_to": "support@yourdomain.com",
+    "subject": "Your receipt",
+    "html": "<p>Thanks for your order!</p>",
+    "text": "Thanks for your order!"
+  }'
+```
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "id": "em_xxxxxxxxxxxx",
+  "status": "sent",
+  "created_at": "2026-09-01T12:00:00.000Z"
+}
+```
+
+Keep the `id` — it's how you [look the email up](/api-reference/get-email) and
+how webhook events reference it (`emailId`).
+
+## Errors
+
+| Status | Code | Cause |
+| --- | --- | --- |
+| `400` | `invalid_json` | Body is not valid JSON. |
+| `422` | `validation_error` | A field failed validation; the message names the field. |
+| `403` | `domain_not_found` | The `from` domain is not registered on your account. |
+| `403` | `domain_not_verified` | The `from` domain exists but is not verified yet. |
+| `401` | `unauthorized` | Missing, malformed, or revoked API key. |
+| `502` | `send_failed` | The upstream provider rejected the send. The email is recorded with status `failed`. |

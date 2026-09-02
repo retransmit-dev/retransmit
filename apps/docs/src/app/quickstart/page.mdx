@@ -1,0 +1,87 @@
+import { Steps } from "nextra/components";
+
+# Quickstart
+
+Send your first email through Retransmit.
+
+<Steps>
+## Get an API key
+
+Create an API key from the dashboard. Keys look like `rt_...` and are shown once —
+store the value in your app's environment:
+
+```sh
+RETRANSMIT_API_KEY=rt_xxxxxxxxxxxxxxxx
+```
+
+## Add and verify a sending domain
+
+You can only send from domains registered **and verified** on your account.
+Add your domain in the dashboard and publish the DNS records it gives you
+(SPF / DKIM). See [Domains](/domains) for details.
+
+Sending from an unregistered domain returns `403 domain_not_found`; from an
+unverified one, `403 domain_not_verified`.
+
+## Send an email
+
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "user@example.com",
+    "subject": "Welcome!",
+    "html": "<h1>Welcome!</h1>"
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": "em_xxxxxxxxxxxx",
+  "status": "sent",
+  "created_at": "2026-09-01T12:00:00.000Z"
+}
+```
+
+Or with plain `fetch` from any JavaScript/TypeScript app:
+
+```ts
+const response = await fetch("https://api.retransmit.dev/v1/emails", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.RETRANSMIT_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    from: "Acme <hello@yourdomain.com>",
+    to: "user@example.com",
+    subject: "Welcome!",
+    html: "<h1>Welcome!</h1>",
+  }),
+});
+
+const email = await response.json();
+```
+
+## Check delivery status
+
+Every send returns an email `id`. Fetch it at any time to see its status and
+event history:
+
+```sh
+curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+```
+
+For push-based delivery updates (bounces, complaints, deliveries), set up
+[Webhooks](/webhooks).
+</Steps>
+
+> [!NOTE]
+>
+> A TypeScript SDK (`npm install retransmit`) is planned. Until it ships, the
+> HTTP API above is the integration surface.

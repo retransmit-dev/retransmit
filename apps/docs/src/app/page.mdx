@@ -1,0 +1,50 @@
+# Introduction
+
+**Retransmit** is a developer-first messaging platform: a single API and one balance for
+sending **Email, SMS, WhatsApp, OTP**, and other transactional communications.
+
+> One API. One balance. Every message.
+
+You don't create AWS, Twilio, or Meta accounts. You integrate Retransmit once, load credit,
+and start sending — Retransmit manages the underlying providers, routing, delivery, and
+infrastructure.
+
+## What's available today
+
+The first product is **Retransmit Email**:
+
+- Transactional email API (`POST /v1/emails`)
+- API keys
+- Domain verification (SPF / DKIM)
+- Email logs and delivery status
+- Bounce and complaint handling
+- Webhooks with signed payloads
+
+## How the pieces fit
+
+```text
+Your application
+      │  Authorization: Bearer rt_...
+      ▼
+Retransmit API  ──►  Email / SMS / WhatsApp / OTP
+      │
+      ▼
+Retransmit infrastructure (SES, Twilio, Meta, ...)
+```
+
+## Where to go next
+
+- [Quickstart](/quickstart) — send your first email in a few minutes.
+- [Domains](/domains) — add and verify a sending domain.
+- [API Reference](/api-reference) — endpoints, authentication, and errors.
+- [Webhooks](/webhooks) — get notified about delivery events and verify signatures.
+
+## Environments
+
+| Environment | Base URL |
+| --- | --- |
+| Production | `https://api.retransmit.dev` |
+| Local development (this monorepo) | `http://localhost:3002` |
+
+In local development, run the API with `pnpm dev:api` from the repository root
+(it starts on port 3002). The dashboard runs on port 3001 (`pnpm dev:dashboard`).

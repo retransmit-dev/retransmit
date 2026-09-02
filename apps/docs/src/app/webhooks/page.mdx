@@ -1,0 +1,107 @@
+# Webhooks
+
+Webhooks push email events to your application as they happen — no polling.
+Create endpoints in the dashboard, choose which event types each one receives,
+and Retransmit POSTs a signed JSON payload to your URL.
+
+## Event types
+
+| Event | Fired when |
+| --- | --- |
+| `email.sent` | The email was handed to the upstream provider. |
+| `email.delivered` | The recipient's mail server accepted it. |
+| `email.delivery_delayed` | Delivery was temporarily deferred. |
+| `email.opened` | The recipient opened the email. |
+| `email.clicked` | The recipient clicked a link. |
+| `email.bounced` | The recipient's server permanently rejected it. |
+| `email.complained` | The recipient marked it as spam. |
+| `email.rejected` | The email was rejected before sending. |
+| `email.failed` | The provider send failed. |
+
+## Payload
+
+```json
+{
+  "id": "whd_xxxxxxxxxxxx",
+  "type": "email.delivered",
+  "created_at": "2026-09-01T12:00:03.000Z",
+  "data": {
+    "emailId": "em_xxxxxxxxxxxx",
+    "from": "Acme <hello@yourdomain.com>",
+    "to": ["user@example.com"],
+    "subject": "Your receipt",
+    "createdAt": "2026-09-01T12:00:00.000Z"
+  }
+}
+```
+
+Some events carry extra context in `data.data` — for example `email.failed`
+includes `{ "message": "..." }` with the provider error.
+
+## Delivery behavior
+
+- Requests are `POST` with `Content-Type: application/json`.
+- Your endpoint should respond with a `2xx` within **10 seconds**; anything
+  else is recorded as a failed delivery.
+- Respond quickly and process asynchronously — do the real work after you've
+  returned `200`.
+- Deliveries (including failures) are visible per-endpoint in the dashboard.
+
+## Verifying signatures
+
+Every delivery is signed so you can confirm it came from Retransmit. Two
+headers accompany each request:
+
+| Header | Value |
+| --- | --- |
+| `retransmit-timestamp` | Unix timestamp (seconds) when the delivery was signed. |
+| `retransmit-signature` | `v1=<hex>` — HMAC-SHA256 of `` `${timestamp}.${body}` `` using your endpoint's secret (`whsec_...`). |
+
+The secret is shown once when you create the endpoint. Verify like this:
+
+```ts filename="verify-webhook.ts"
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verifyWebhookSignature(
+  secret: string,
+  timestamp: string,
+  body: string, // the raw request body, exactly as received
+  signature: string, // the header value without the `v1=` prefix
+): boolean {
+  const expected = createHmac("sha256", secret)
+    .update(`${timestamp}.${body}`)
+    .digest("hex");
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(signature, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+```
+
+Example handler (Hono, but the shape is the same anywhere):
+
+```ts filename="webhook-handler.ts"
+app.post("/webhooks/retransmit", async (c) => {
+  const body = await c.req.text(); // raw body — don't parse first
+  const timestamp = c.req.header("retransmit-timestamp") ?? "";
+  const signature = (c.req.header("retransmit-signature") ?? "").replace(/^v1=/, "");
+
+  if (!verifyWebhookSignature(process.env.RETRANSMIT_WEBHOOK_SECRET!, timestamp, body, signature)) {
+    return c.json({ error: "invalid signature" }, 401);
+  }
+
+  const event = JSON.parse(body);
+  // handle event.type / event.data ...
+  return c.json({ received: true });
+});
+```
+
+> [!IMPORTANT]
+>
+> Compute the HMAC over the **raw** request body. If your framework parses and
+> re-serializes JSON before you sign, key order or whitespace changes will make
+> verification fail.
+
+> [!TIP]
+>
+> Reject deliveries whose `retransmit-timestamp` is more than a few minutes old
+> to defend against replay attacks.
