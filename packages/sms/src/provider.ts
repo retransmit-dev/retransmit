@@ -1,4 +1,5 @@
 import { createMtnProvider } from "./providers/mtn";
+import { createOrangeProvider } from "./providers/orange";
 
 export interface SmsMessage {
   /** Our row id; doubles as the provider-side correlation/idempotency id. */
@@ -37,8 +38,9 @@ export interface SmsProvider {
 
 /**
  * Every provider we know how to talk to. Order is irrelevant — routing picks
- * by override flags first, then price. To add a provider (Orange, Twilio, an
- * MTN opco in another country), implement `SmsProvider` and register it here.
+ * by override flags first, then price. To add a provider (Twilio, an MTN or
+ * Orange opco in another country), implement `SmsProvider` and register it
+ * here.
  */
 const registry: SmsProvider[] = [
   createMtnProvider({
@@ -47,6 +49,16 @@ const registry: SmsProvider[] = [
     envPrefix: "MTN_CM",
     countries: ["CM"],
     defaultCostUsd: 0.01,
+  }),
+  createOrangeProvider({
+    key: "orange_cm",
+    name: "Orange Cameroon",
+    envPrefix: "ORANGE_CM",
+    countries: ["CM"],
+    defaultSenderAddress: "+2370000",
+    // Orange sells prepaid bundles in XAF; set ORANGE_CM_COST_PER_SMS once the
+    // per-unit price of the purchased bundle is known.
+    defaultCostUsd: 0.02,
   }),
 ];
 
