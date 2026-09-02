@@ -73,6 +73,26 @@ export async function renderOgImage({
         }}
       >
         <div style={{ display: "flex", alignItems: "center" }}>
+          {/* The favicon glyph (src/app/icon.svg) cropped to its bounds; the
+             plane path is pre-rotated because satori ignores transforms. */}
+          <svg
+            width={52}
+            height={52}
+            viewBox="190 160 660 660"
+            style={{ marginRight: 18 }}
+          >
+            <path
+              d="M 736.1 452.0 A 232 232 0 1 1 532.2 280.9"
+              fill="none"
+              stroke={CORAL}
+              strokeWidth={92}
+              strokeLinecap="round"
+            />
+            <path
+              d="M 791.0 195.9 L 589.4 298.4 L 670.7 316.1 L 688.4 397.4 Z"
+              fill={CORAL}
+            />
+          </svg>
           <span
             style={{
               fontSize: 36,
