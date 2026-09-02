@@ -97,6 +97,6 @@ export const selfHostTerminal = (
     <Kw>$</Kw> cd retransmit && pnpm install{"\n"}
     <Kw>$</Kw> pnpm db:push{"\n"}
     <Kw>$</Kw> pnpm dev{"\n\n"}
-    <Cm>{"# api on :3002, dashboard on :3001 — your keys, your data"}</Cm>
+    <Cm>{"# api on :3002, dashboard on :3001. your keys, your data"}</Cm>
   </code>
 );

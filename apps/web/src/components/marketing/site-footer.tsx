@@ -14,7 +14,7 @@ const COLUMNS = [
     title: "Open source",
     links: [
       { label: "GitHub", href: siteConfig.links.github },
-      { label: "npm — retransmit.dev", href: siteConfig.links.npm },
+      { label: "npm: retransmit.dev", href: siteConfig.links.npm },
     ],
   },
 ] as const;

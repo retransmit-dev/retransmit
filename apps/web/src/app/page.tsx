@@ -12,7 +12,7 @@ import { Card, CardTray } from "@/components/marketing/card";
 import { CodeWindow } from "@/components/marketing/code-window";
 import { CtaButton } from "@/components/marketing/cta-button";
 import { EventFeed } from "@/components/marketing/event-feed";
-import { Highlight, Section, SectionHeading } from "@/components/marketing/section";
+import { Section, SectionHeading } from "@/components/marketing/section";
 import {
   batchNode,
   batchResponse,
@@ -47,17 +47,17 @@ const FEATURES = [
   {
     icon: ShieldCheck,
     title: "Domain verification",
-    body: "Verify your sending domain with SPF and DKIM records the dashboard hands you — exact values, copy-paste ready.",
+    body: "Verify your sending domain with SPF and DKIM. The dashboard gives you exact records to copy.",
   },
   {
     icon: MailCheck,
     title: "Bounce & complaint handling",
-    body: "Hard bounces and complaints are caught automatically, so your sender reputation is protected without extra code.",
+    body: "Hard bounces and complaints are caught automatically. Your sender reputation is protected without extra code.",
   },
   {
     icon: RefreshCw,
     title: "Queue with retries",
-    body: "Every send is queued, rate-limit aware, and retried with exponential backoff. Dead-lettered as failed only when it truly fails.",
+    body: "Every send is queued, rate aware, and retried with exponential backoff.",
   },
   {
     icon: Webhook,
@@ -67,7 +67,7 @@ const FEATURES = [
   {
     icon: ScrollText,
     title: "Email logs & status",
-    body: "Fetch any email by id and read its full event history — queued, sent, delivered, opened, clicked, bounced.",
+    body: "Fetch any email by id and read its full event history, from queued to delivered, opened, or bounced.",
   },
   {
     icon: KeyRound,
@@ -84,15 +84,14 @@ export default function Home() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm text-muted-foreground">
             <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-            Open source · Email first, more channels next
+            Open source. Email first.
           </p>
           <h1 className="mt-6 text-4xl text-balance md:text-6xl">
-            The email API you can <Highlight>run anywhere</Highlight>
+            The email API you can run anywhere
           </h1>
           <p className="mx-auto mt-5 max-w-[46ch] text-lg leading-relaxed text-balance text-muted-foreground">
-            Transactional email with a typed SDK, batch sending up to 10,000
-            emails, and signed webhooks. Use our cloud — or self-host the whole
-            stack.
+            Transactional email with a typed SDK, batches up to 10,000, and
+            signed webhooks. Use our cloud or run the whole stack yourself.
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <CtaButton href={siteConfig.links.quickstart}>Get started</CtaButton>
@@ -120,16 +119,16 @@ export default function Home() {
           <div>
             <ul className="flex flex-col gap-4 text-base leading-relaxed">
               <CheckItem>
-                Typed responses everywhere — every call returns{" "}
+                Every call returns{" "}
                 <code className="font-mono text-sm text-foreground">
                   {"{ data, error }"}
                 </code>
-                , never a thrown surprise.
+                . No thrown surprises.
               </CheckItem>
               <CheckItem>
-                Accepted in milliseconds: sends are queued with a{" "}
+                Sends return a{" "}
                 <code className="font-mono text-sm text-foreground">202</code>{" "}
-                and delivered by a rate-limit-aware worker.
+                in milliseconds and are delivered by a rate-aware worker.
               </CheckItem>
               <CheckItem>
                 Zero-dependency SDK on npm as{" "}
@@ -179,15 +178,15 @@ export default function Home() {
           </CardTray>
           <ul className="flex flex-col gap-4 text-base leading-relaxed">
             <CheckItem>
-              One HTTP call, thousands of messages — no loops, no client-side
-              rate limiting, no partial-failure guesswork.
+              One HTTP call for thousands of messages. No loops, no client-side
+              rate limiting.
             </CheckItem>
             <CheckItem>
               Track progress with{" "}
               <code className="font-mono text-sm text-foreground">
                 GET /v1/emails/batch/:id
-              </code>{" "}
-              — counts per status, updated live.
+              </code>
+              . Counts per status, updated live.
             </CheckItem>
             <CheckItem>
               Every message in the batch still gets its own id, log entry, and
@@ -202,7 +201,7 @@ export default function Home() {
         <SectionHeading
           eyebrow="Webhooks"
           title="Know what happens to every email."
-          lead="Nine event types, delivered to your endpoint as they happen — signed, timestamped, and retried until you acknowledge them."
+          lead="Nine event types, signed and timestamped, delivered to your endpoint as they happen."
         />
         <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
           <CardTray>
@@ -238,7 +237,7 @@ export default function Home() {
         <SectionHeading
           eyebrow="Deliverability"
           title="Reach the inbox, not the spam folder."
-          lead="The unglamorous parts of email — authentication, suppression, retries — handled the boring, correct way."
+          lead="Authentication, suppression, and retries handled correctly by default."
         />
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feature) => (
@@ -260,7 +259,7 @@ export default function Home() {
         <SectionHeading
           eyebrow="Open source"
           title="Run it yourself. Read every line."
-          lead="The API, dashboard, queue, and SDK are all in one repository. Same API either way — switching between cloud and self-hosted is a base-URL change, not a rewrite."
+          lead="The API, dashboard, queue, and SDK live in one repository. Moving between cloud and self-hosted is a base URL change."
         />
         <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
           <CardTray>
@@ -272,9 +271,9 @@ export default function Home() {
                 Retransmit Cloud
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Managed sending on our infrastructure. Prepaid credits, one
-                balance — fund it in local currencies, by bank transfer or
-                mobile money. No international card required.
+                Managed sending on our infrastructure. Fund one prepaid balance
+                by bank transfer or mobile money. No international card
+                required.
               </p>
             </Card>
             <Card className="p-6">
@@ -323,8 +322,8 @@ export default function Home() {
               Prepaid credits
             </p>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              One balance across every channel. Fund it in your local currency —
-              bank transfer and mobile money included.
+              One balance across every channel. Fund it in your local currency,
+              including bank transfer and mobile money.
             </p>
             <CtaButton href={siteConfig.links.quickstart} size="sm" className="mt-6">
               Get started
