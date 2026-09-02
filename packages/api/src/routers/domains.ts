@@ -61,6 +61,12 @@ export const domainRouter = router({
       }
 
       const { dkimTokens } = await createDomainIdentity(input.name);
+      // The identity may already be verified in SES (e.g. re-adding a
+      // known domain) — pick that up right away instead of waiting for
+      // a manual verify.
+      const { status } = await getDomainIdentity(input.name).catch(() => ({
+        status: "pending" as const,
+      }));
       const [created] = await db
         .insert(domain)
         .values({
@@ -69,6 +75,8 @@ export const domainRouter = router({
           name: input.name,
           region: sesRegion,
           dkimTokens,
+          status,
+          verifiedAt: status === "verified" ? new Date() : null,
         })
         .returning();
       if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });

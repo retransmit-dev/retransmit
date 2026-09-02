@@ -81,7 +81,7 @@ fi
 DESTINATION=$(cat <<JSON
 {
   "Enabled": true,
-  "MatchingEventTypes": ["DELIVERY", "BOUNCE", "COMPLAINT", "REJECT", "RENDERING_FAILURE"],
+  "MatchingEventTypes": ["DELIVERY", "DELIVERY_DELAY", "OPEN", "CLICK", "BOUNCE", "COMPLAINT", "REJECT", "RENDERING_FAILURE"],
   "SnsDestination": { "TopicArn": "${TOPIC_ARN}" }
 }
 JSON

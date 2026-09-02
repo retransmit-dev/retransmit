@@ -18,14 +18,35 @@ interface SnsEnvelope {
 /** SES event types (via configuration set → SNS) we translate into our model. */
 const SES_EVENT_MAP: Record<string, { status: EmailStatus; webhook: WebhookEventType }> = {
   Delivery: { status: "delivered", webhook: "email.delivered" },
+  DeliveryDelay: { status: "delivery_delayed", webhook: "email.delivery_delayed" },
+  Open: { status: "opened", webhook: "email.opened" },
+  Click: { status: "clicked", webhook: "email.clicked" },
   Bounce: { status: "bounced", webhook: "email.bounced" },
   Complaint: { status: "complained", webhook: "email.complained" },
   Reject: { status: "rejected", webhook: "email.rejected" },
   "Rendering Failure": { status: "failed", webhook: "email.failed" },
 };
 
-/** Terminal statuses a late "Delivery"/"Send" event must not overwrite. */
-const TERMINAL_STATUSES: EmailStatus[] = ["bounced", "complained", "rejected", "failed"];
+/**
+ * Events can arrive out of order; a status only moves forward. Statuses of
+ * equal or higher rank win, and the terminal ranks (>= 80) always beat the
+ * progression ranks.
+ */
+const STATUS_RANK: Record<EmailStatus, number> = {
+  queued: 0,
+  scheduled: 5,
+  sent: 10,
+  delivery_delayed: 20,
+  delivered: 30,
+  opened: 40,
+  clicked: 50,
+  canceled: 80,
+  suppressed: 80,
+  rejected: 80,
+  failed: 80,
+  bounced: 80,
+  complained: 90,
+};
 
 /**
  * Receives SES event notifications through SNS (bounces, complaints,
@@ -93,9 +114,7 @@ callbackRoutes.post("/ses", async (c) => {
     data: sesEvent as Record<string, unknown>,
   });
 
-  const overwrite =
-    !TERMINAL_STATUSES.includes(row.status) || TERMINAL_STATUSES.includes(mapping.status);
-  if (overwrite) {
+  if (STATUS_RANK[mapping.status] >= STATUS_RANK[row.status]) {
     await db
       .update(email)
       .set({ status: mapping.status, lastEventAt: new Date() })

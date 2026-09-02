@@ -17,10 +17,16 @@ export type DomainStatus = (typeof DOMAIN_STATUSES)[number];
 
 export const EMAIL_STATUSES = [
   "queued",
+  "scheduled",
   "sent",
+  "delivery_delayed",
   "delivered",
+  "opened",
+  "clicked",
   "bounced",
   "complained",
+  "suppressed",
+  "canceled",
   "rejected",
   "failed",
 ] as const;
@@ -29,6 +35,9 @@ export type EmailStatus = (typeof EMAIL_STATUSES)[number];
 export const WEBHOOK_EVENT_TYPES = [
   "email.sent",
   "email.delivered",
+  "email.delivery_delayed",
+  "email.opened",
+  "email.clicked",
   "email.bounced",
   "email.complained",
   "email.rejected",
