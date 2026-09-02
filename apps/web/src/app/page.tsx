@@ -35,14 +35,6 @@ function CheckItem({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex h-6 items-center rounded-full border border-border px-2.5 text-xs font-medium text-muted-foreground">
-      {children}
-    </span>
-  );
-}
-
 const FEATURES = [
   {
     icon: ShieldCheck,
@@ -82,28 +74,14 @@ export default function Home() {
       {/* Hero */}
       <section className="px-4 pt-14 pb-12 sm:pt-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-            Open source. Email first.
-          </p>
-          <h1 className="mt-6 text-4xl text-balance md:text-6xl">
-            The email API you can run anywhere
+          <h1 className="text-4xl text-balance md:text-6xl">
+            Email, anywhere.
           </h1>
-          <p className="mx-auto mt-5 max-w-[46ch] text-lg leading-relaxed text-balance text-muted-foreground">
-            Transactional email with a typed SDK, batches up to 10,000, and
-            signed webhooks. Use our cloud or run the whole stack yourself.
+          <p className="mx-auto mt-5 max-w-[38ch] text-lg leading-relaxed text-balance text-muted-foreground">
+            Send transactional email from our cloud or yours.
           </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
+          <div className="mt-9 flex justify-center">
             <CtaButton href={siteConfig.links.quickstart}>Get started</CtaButton>
-            <CtaButton href={siteConfig.links.github} tone="quiet" external>
-              Star on GitHub
-            </CtaButton>
-          </div>
-          <div className="mt-8 flex flex-wrap justify-center gap-2">
-            <Chip>Open source</Chip>
-            <Chip>Batch up to 10,000</Chip>
-            <Chip>Signed webhooks</Chip>
-            <Chip>Typed Node.js SDK</Chip>
           </div>
         </div>
       </section>
