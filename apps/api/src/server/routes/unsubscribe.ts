@@ -3,7 +3,7 @@ import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { email, emailEvent, suppression } from "@retransmit/db/schema/email";
 import { extractEmailAddress } from "@retransmit/email/address";
-import { verifyUnsubscribeToken } from "@retransmit/email/unsubscribe";
+import { legacyEmailIdForToken, verifyUnsubscribeToken } from "@retransmit/email/unsubscribe";
 import { dispatchEmailEvent } from "@retransmit/email/webhooks";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -48,7 +48,9 @@ function notFoundPage(): string {
 }
 
 async function loadEmailForToken(token: string) {
-  const emailId = verifyUnsubscribeToken(token);
+  // Legacy tokens come from bidpilot-era outreach links that app.captivaq.com
+  // forwards here; they resolve to emails created by the one-time import.
+  const emailId = verifyUnsubscribeToken(token) ?? legacyEmailIdForToken(token);
   if (!emailId) return null;
   const [row] = await db.select().from(email).where(eq(email.id, emailId));
   return row ?? null;

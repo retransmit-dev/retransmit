@@ -12,11 +12,17 @@ function bareAddress(value: string): string {
   return extractEmailAddress(value)?.toLowerCase() ?? "";
 }
 
+/** `user@example.com` -> `@example.com`. */
+function domainEntry(address: string): string {
+  return address.slice(address.lastIndexOf("@"));
+}
+
 /**
  * Drops recipients that are on the organization's suppression list. Returns
  * null when every `to` recipient is suppressed, meaning nothing should be
  * sent at all. Unsubscribes only block marketing sends; bounces, complaints
- * and manual entries block everything.
+ * and manual entries block everything. A suppression entry of the bare form
+ * `@example.com` suppresses every address at that domain.
  */
 async function filterSuppressedRecipients(row: typeof email.$inferSelect): Promise<{
   to: string[];
@@ -33,20 +39,24 @@ async function filterSuppressedRecipients(row: typeof email.$inferSelect): Promi
   ];
   if (addresses.length === 0) return asIs;
 
+  const domains = [...new Set(addresses.map(domainEntry))];
   const rows = await db
     .select({ email: suppression.email })
     .from(suppression)
     .where(
       and(
         eq(suppression.organizationId, row.organizationId),
-        inArray(suppression.email, addresses),
+        inArray(suppression.email, [...addresses, ...domains]),
         row.marketing ? undefined : ne(suppression.reason, "unsubscribe"),
       ),
     );
   if (rows.length === 0) return asIs;
 
   const suppressed = new Set(rows.map((entry) => entry.email));
-  const keep = (value: string) => !suppressed.has(bareAddress(value));
+  const keep = (value: string) => {
+    const address = bareAddress(value);
+    return !suppressed.has(address) && !suppressed.has(domainEntry(address));
+  };
   const to = row.to.filter(keep);
   if (to.length === 0) return null;
   const cc = row.cc?.filter(keep);

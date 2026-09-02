@@ -24,7 +24,8 @@
     "db:studio": "pnpm with-env turbo run db:studio -F @retransmit/db --",
     "db:generate": "pnpm with-env turbo run db:generate -F @retransmit/db --",
     "db:migrate": "pnpm with-env turbo run db:migrate -F @retransmit/db --",
-    "db:migrate:deploy": "pnpm with-env turbo run db:migrate:deploy -F @retransmit/db --"
+    "db:migrate:deploy": "pnpm with-env turbo run db:migrate:deploy -F @retransmit/db --",
+    "import:bidpilot": "pnpm with-env pnpm --filter api run import:bidpilot"
   },
   "dependencies": {
     "dotenv": "catalog:",

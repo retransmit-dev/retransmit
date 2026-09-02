@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 /**
  * Unsubscribe links are `${baseUrl}/unsubscribe/${emailId}.${signature}`.
@@ -34,6 +34,20 @@ export function verifyUnsubscribeToken(token: string): string | null {
   const given = Buffer.from(token.slice(dot + 1), "base64url");
   const expected = Buffer.from(sign(emailId), "base64url");
   return given.length === expected.length && timingSafeEqual(given, expected) ? emailId : null;
+}
+
+/**
+ * Bidpilot-era outreach links carry a random 64-hex token instead of a signed
+ * one. Emails imported by scripts/import-bidpilot.ts (apps/api) get their id
+ * derived from that token, so the token alone locates the row — an id for a
+ * token that was never imported simply matches nothing. Remove once
+ * app.captivaq.com stops forwarding /unsubscribe/:token here.
+ */
+const LEGACY_TOKEN_REGEX = /^[0-9a-f]{64}$/;
+
+export function legacyEmailIdForToken(token: string): string | null {
+  if (!LEGACY_TOKEN_REGEX.test(token)) return null;
+  return `em_leg_${createHash("sha256").update(token).digest("hex").slice(0, 32)}`;
 }
 
 /** Public base under which the API serves GET/POST /unsubscribe/:token. */
