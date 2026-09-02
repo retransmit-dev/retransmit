@@ -21,6 +21,7 @@ All errors share one shape:
 | `403` | `domain_not_verified` | The `from` domain is registered but not verified. |
 | `404` | `not_found` | The resource (or route) does not exist. |
 | `422` | `validation_error` | A request field failed validation. The message names the field, e.g. `subject: String must contain at least 1 character(s)`. For batches it includes the index: `emails.42.subject: ...`. |
+| `422` | `no_route` | No SMS provider is configured for the destination country. |
 | `500` | `internal_error` | Something went wrong on Retransmit's side. Safe to retry. |
 
 ## Handling errors
@@ -30,12 +31,15 @@ All errors share one shape:
 - `500` responses are retryable.
 - `403` domain errors are configuration problems: fix them in the dashboard
   rather than retrying.
+- `422 no_route` is a channel availability problem: use a supported SMS
+  destination or wait until a provider is configured for that country.
 
 ## Send failures are asynchronous
 
-Sending is queued, so a provider rejection never surfaces as an HTTP error on
+Sending is queued, so most provider rejections do not surface as HTTP errors on
 submit. Retransmit retries transient provider failures automatically with
-exponential backoff; an email that exhausts its retries is dead-lettered and
-marked `failed` with the provider's message in `error`. Detect failures via
-[Get Email](/api-reference/get-email) / [Get Batch](/api-reference/get-batch),
-or subscribe to the `email.failed` [webhook](/webhooks).
+exponential backoff; a message that exhausts its retries is marked `failed`
+with the provider's message in `error`. Detect failures through
+[Get Email](/api-reference/get-email), [Get Batch](/api-reference/get-batch), or
+[Get SMS](/api-reference/get-sms), or subscribe to `email.failed` and
+`sms.failed` [webhooks](/webhooks).

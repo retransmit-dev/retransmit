@@ -1,0 +1,26 @@
+# WhatsApp
+
+> [!NOTE]
+>
+> WhatsApp support is coming soon. It is not available in the production API
+> or the current `retransmit.dev` SDK release yet.
+
+WhatsApp will join Email and SMS under the same Retransmit API key, prepaid
+balance, delivery tracking, and webhook workflow.
+
+## Planned SDK shape
+
+The channel will use a dedicated `retransmit.whatsapp` namespace, consistent
+with `retransmit.emails` and `retransmit.sms`. The endpoint, message types, and
+final request fields will be published here when the production contract is
+ready.
+
+```ts
+// Preview only — this method is not exported by the current SDK.
+await retransmit.whatsapp.send({
+  // WhatsApp message fields will be documented before launch.
+});
+```
+
+This page is the documentation placeholder for the launch. Until then, use
+[Email](/quickstart#send-an-email) or [SMS](/sms) for production messages.

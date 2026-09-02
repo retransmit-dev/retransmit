@@ -2,7 +2,7 @@ import { Steps, Tabs } from "nextra/components";
 
 # Quickstart
 
-Send your first email through Retransmit.
+Send your first email or SMS through Retransmit.
 
 <Steps>
 ## Get an API key
@@ -13,15 +13,6 @@ store the value in your app's environment:
 ```sh
 RETRANSMIT_API_KEY=rt_xxxxxxxxxxxxxxxx
 ```
-
-## Add and verify a sending domain
-
-You can only send from domains registered **and verified** on your account.
-Add your domain in the dashboard and publish the DNS records it gives you
-(SPF / DKIM). See [Domains](/domains) for details.
-
-Sending from an unregistered domain returns `403 domain_not_found`; from an
-unverified one, `403 domain_not_verified`.
 
 ## Install the SDK (optional)
 
@@ -38,6 +29,14 @@ Prefer plain HTTP? Every example below also shows the equivalent `curl` —
 the API works from any language.
 
 ## Send an email
+
+Email requires a verified sending domain. Add your domain in the dashboard and
+publish the DNS records it gives you (SPF / DKIM). See [Domains](/domains) for
+details.
+
+You can only send from domains registered **and verified** on your account.
+Sending from an unregistered domain returns `403 domain_not_found`; from an
+unverified one, `403 domain_not_verified`.
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
@@ -86,26 +85,66 @@ worker, which respects provider rate limits and retries transient failures):
 Sending thousands at once? [Send Batch](/api-reference/send-batch) queues up
 to 10,000 emails in a single request — `retransmit.batch.send([...])` in the SDK.
 
+## Send an SMS
+
+SMS recipients use international E.164 format, including the leading `+` and
+country code. Recipients in one request must all be in the same country.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.sms.send({
+  from: "Acme",
+  to: "+237670000000",
+  text: "Your verification code is 482913",
+});
+
+if (error) console.error(error.code, error.message);
+else console.log(data.id, data.segments); // sms_xxxxxxxxxxxx 1
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/sms \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme",
+    "to": "+237670000000",
+    "text": "Your verification code is 482913"
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+See [SMS](/sms) for sender IDs, routing, segment billing, and status details.
+
 ## Check delivery status
 
-Every send returns an email `id`. Fetch it at any time to see its status and
-event history:
+Every send returns a message `id`. Fetch it at any time from the matching
+channel to see its status and event history:
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
 ```ts
 const { data } = await retransmit.emails.get("em_xxxxxxxxxxxx");
 console.log(data?.status); // "delivered"
+
+const { data: sms } = await retransmit.sms.get("sms_xxxxxxxxxxxx");
+console.log(sms?.status); // "delivered"
 ```
 </Tabs.Tab>
 <Tabs.Tab>
 ```sh
 curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+
+curl https://api.retransmit.dev/v1/sms/sms_xxxxxxxxxxxx \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
 ```
 </Tabs.Tab>
 </Tabs>
 
-For push-based delivery updates (bounces, complaints, deliveries), set up
+For push-based email and SMS delivery updates, set up
 [Webhooks](/webhooks).
 </Steps>

@@ -1,6 +1,6 @@
 # Webhooks
 
-Webhooks push email events to your application as they happen — no polling.
+Webhooks push email and SMS events to your application as they happen — no polling.
 Create endpoints in the dashboard, choose which event types each one receives,
 and Retransmit POSTs a signed JSON payload to your URL.
 
@@ -18,6 +18,10 @@ and Retransmit POSTs a signed JSON payload to your URL.
 | `email.rejected` | The email was rejected before sending. |
 | `email.failed` | The provider send failed. |
 | `email.unsubscribed` | The recipient unsubscribed from a [marketing email](/marketing-email); `data.data.addresses` lists the addresses. |
+| `sms.sent` | The SMS was handed to the upstream provider. |
+| `sms.delivered` | The carrier reported successful delivery. |
+| `sms.undelivered` | The carrier reported the SMS as undelivered, expired, or rejected. |
+| `sms.failed` | The provider send failed after retries, or no route was available. |
 
 ## Payload
 
@@ -37,7 +41,7 @@ and Retransmit POSTs a signed JSON payload to your URL.
 ```
 
 Some events carry extra context in `data.data` — for example `email.failed`
-includes `{ "message": "..." }` with the provider error.
+and `sms.failed` include `{ "message": "..." }` with the provider error.
 
 ## Delivery behavior
 

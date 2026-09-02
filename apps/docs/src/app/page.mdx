@@ -11,15 +11,17 @@ infrastructure.
 
 ## What's available today
 
-The first product is **Retransmit Email**:
+Retransmit currently supports **Email** and **SMS** through the same API key,
+SDK, balance, and delivery workflow:
 
-- Transactional email API (`POST /v1/emails`)
-- Official Node.js SDK — [`retransmit.dev` on npm](https://www.npmjs.com/package/retransmit.dev)
-- API keys
-- Domain verification (SPF / DKIM)
-- Email logs and delivery status
-- Bounce and complaint handling
-- Webhooks with signed payloads
+- Transactional email, including batches of up to 10,000 messages
+- SMS with destination-aware provider routing and segment counts
+- Typed Node.js SDK — [`retransmit.dev` on npm](https://www.npmjs.com/package/retransmit.dev)
+- Per-message status and event history
+- Signed delivery webhooks
+
+[WhatsApp](/whatsapp) is the next channel and is not yet available in the
+production API or SDK.
 
 ## How the pieces fit
 
@@ -27,7 +29,9 @@ The first product is **Retransmit Email**:
 Your application
       │  Authorization: Bearer rt_...
       ▼
-Retransmit API  ──►  Email / SMS / WhatsApp / OTP
+Retransmit API  ──►  Email / SMS
+                         │
+                         └── WhatsApp (coming soon)
       │
       ▼
 Retransmit infrastructure (SES, Twilio, Meta, ...)
@@ -35,8 +39,10 @@ Retransmit infrastructure (SES, Twilio, Meta, ...)
 
 ## Where to go next
 
-- [Quickstart](/quickstart) — send your first email in a few minutes.
-- [Domains](/domains) — add and verify a sending domain.
+- [Quickstart](/quickstart) — send your first email or SMS in a few minutes.
+- [SMS](/sms) — learn about phone numbers, routing, segments, and delivery states.
+- [WhatsApp](/whatsapp) — see what is planned for the next channel.
+- [Domains](/domains) — add and verify an email sending domain.
 - [API Reference](/api-reference) — endpoints, authentication, and errors.
 - [Webhooks](/webhooks) — get notified about delivery events and verify signatures.
 
