@@ -22,9 +22,13 @@ export interface MtnProviderOptions {
   defaultCostUsd: number;
 }
 
-const DEFAULT_TOKEN_URL =
-  "https://api.mtn.com/v1/oauth/access_token/accesstoken?grant_type=client_credentials";
-const SEND_URL = "https://api.mtn.com/v3/sms/messages/sms/outbound";
+// MTN_API_BASE_URL swaps the whole MADAPI host (local mock, future sandbox);
+// MTN_TOKEN_URL overrides just the token endpoint on top of that.
+const baseUrl = () => process.env.MTN_API_BASE_URL ?? "https://api.mtn.com";
+const tokenUrl = () =>
+  process.env.MTN_TOKEN_URL ??
+  `${baseUrl()}/v1/oauth/access_token/accesstoken?grant_type=client_credentials`;
+const sendUrl = () => `${baseUrl()}/v3/sms/messages/sms/outbound`;
 const TOKEN_EXPIRY_SKEW_MS = 60_000;
 
 interface MtnErrorBody {
@@ -41,7 +45,7 @@ export function createMtnProvider(options: MtnProviderOptions): SmsProvider {
   async function getAccessToken(): Promise<string> {
     if (cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.value;
 
-    const response = await fetch(process.env.MTN_TOKEN_URL ?? DEFAULT_TOKEN_URL, {
+    const response = await fetch(tokenUrl(), {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -83,7 +87,7 @@ export function createMtnProvider(options: MtnProviderOptions): SmsProvider {
     }
 
     const token = await getAccessToken();
-    const response = await fetch(SEND_URL, {
+    const response = await fetch(sendUrl(), {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
