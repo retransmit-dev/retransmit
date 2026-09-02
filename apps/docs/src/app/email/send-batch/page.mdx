@@ -12,7 +12,7 @@ nothing is queued. The worker then sends them at the platform's provider rate,
 retrying transient failures with exponential backoff. Emails that exhaust all
 retries are marked `failed` (dead-lettered).
 
-Track progress with [Get Batch](/api-reference/get-batch), watch the live
+Track progress with [Get Batch](/email/get-batch), watch the live
 stats on the dashboard's Emails page, or subscribe to
 [Webhooks](/webhooks) for per-email events.
 
@@ -20,7 +20,7 @@ stats on the dashboard's Emails page, or subscribe to
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `emails` | object[] | Yes | 1–10,000 email objects, each with the same fields as [Send Email](/api-reference/send-email). |
+| `emails` | object[] | Yes | 1–10,000 email objects, each with the same fields as [Send Email](/email/send). |
 
 Every `from` domain used in the batch must be registered and verified on your
 account (a batch may mix multiple verified domains).

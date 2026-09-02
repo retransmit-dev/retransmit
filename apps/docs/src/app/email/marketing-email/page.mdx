@@ -67,7 +67,7 @@ are added.
 > [!IMPORTANT]
 >
 > Send marketing email to **one recipient per email** (use
-> [Send Batch](/api-reference/send-batch) for volume). The unsubscribe link is
+> [Send Batch](/email/send-batch) for volume). The unsubscribe link is
 > per-email, so an email with several `to` recipients would unsubscribe all of
 > them at once — and every recipient could see the others.
 
@@ -95,7 +95,7 @@ requires.
 
 ## Deliverability checklist for cold outreach
 
-- Verify your sending domain and keep DMARC aligned ([Domains](/domains)).
+- Verify your sending domain and keep DMARC aligned ([Domains](/email/domains)).
 - Always include the `{{{unsubscribe_url}}}` link in the body, even though the
   headers are added for you — many recipients look for it in the footer, and
   regulations like CAN-SPAM and GDPR expect a visible opt-out.

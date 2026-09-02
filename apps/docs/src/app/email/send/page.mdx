@@ -10,7 +10,7 @@ Queues a transactional email from one of your verified domains. The request
 returns as soon as the email is validated and stored; a worker sends it
 moments later, respecting the platform's provider rate limit and retrying
 transient failures automatically. For many emails at once, use
-[Send Batch](/api-reference/send-batch).
+[Send Batch](/email/send-batch).
 
 ## Request body
 
@@ -24,7 +24,7 @@ transient failures automatically. For many emails at once, use
 | `subject` | string | Yes | 1–998 characters. |
 | `html` | string | Yes* | HTML body, up to 1,000,000 characters. |
 | `text` | string | Yes* | Plain-text body, up to 1,000,000 characters. |
-| `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, one-click `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/marketing-email). Defaults to `false`. |
+| `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, one-click `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
 
 \* At least one of `html` or `text` is required; you can provide both.
 
@@ -79,7 +79,7 @@ curl -X POST https://api.retransmit.dev/v1/emails \
 }
 ```
 
-Keep the `id` — it's how you [look the email up](/api-reference/get-email) and
+Keep the `id` — it's how you [look the email up](/email/get) and
 how webhook events reference it (`emailId`). The status moves from `queued` to
 `sent` once the worker hands it to the provider (usually within seconds), then
 onward as delivery events arrive. If every send retry fails, it ends up as

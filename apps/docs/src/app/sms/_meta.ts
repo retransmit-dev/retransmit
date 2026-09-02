@@ -1,4 +1,5 @@
 export default {
   index: "Overview",
-  errors: "Errors",
+  send: "Send SMS",
+  get: "Get SMS",
 };

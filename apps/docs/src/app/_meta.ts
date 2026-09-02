@@ -1,10 +1,9 @@
 export default {
   index: "Introduction",
   quickstart: "Quickstart",
+  email: "Email",
   sms: "SMS",
-  whatsapp: "WhatsApp (Coming Soon)",
-  domains: "Domains",
-  "marketing-email": "Marketing Email",
+  whatsapp: "WhatsApp",
   "api-reference": "API Reference",
   webhooks: "Webhooks",
 };

@@ -60,12 +60,12 @@ See [Errors](/api-reference/errors) for the full list of codes.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | [`/v1/emails`](/api-reference/send-email) | Queue a transactional email |
-| `POST` | [`/v1/emails/batch`](/api-reference/send-batch) | Queue up to 10,000 emails in one request |
-| `GET` | [`/v1/emails/:id`](/api-reference/get-email) | Retrieve an email and its event history |
-| `GET` | [`/v1/emails/batch/:id`](/api-reference/get-batch) | Batch progress: counts per status |
-| `POST` | [`/v1/sms`](/api-reference/send-sms) | Queue an SMS |
-| `GET` | [`/v1/sms/:id`](/api-reference/get-sms) | Retrieve an SMS and its event history |
+| `POST` | [`/v1/emails`](/email/send) | Queue a transactional email |
+| `POST` | [`/v1/emails/batch`](/email/send-batch) | Queue up to 10,000 emails in one request |
+| `GET` | [`/v1/emails/:id`](/email/get) | Retrieve an email and its event history |
+| `GET` | [`/v1/emails/batch/:id`](/email/get-batch) | Batch progress: counts per status |
+| `POST` | [`/v1/sms`](/sms/send) | Queue an SMS |
+| `GET` | [`/v1/sms/:id`](/sms/get) | Retrieve an SMS and its event history |
 | `GET` | `/health` | Health check (no auth required) |
 
 ## Asynchronous sending

@@ -40,6 +40,6 @@ Sending is queued, so most provider rejections do not surface as HTTP errors on
 submit. Retransmit retries transient provider failures automatically with
 exponential backoff; a message that exhausts its retries is marked `failed`
 with the provider's message in `error`. Detect failures through
-[Get Email](/api-reference/get-email), [Get Batch](/api-reference/get-batch), or
-[Get SMS](/api-reference/get-sms), or subscribe to `email.failed` and
+[Get Email](/email/get), [Get Batch](/email/get-batch), or
+[Get SMS](/sms/get), or subscribe to `email.failed` and
 `sms.failed` [webhooks](/webhooks).
