@@ -1,10 +1,8 @@
 {
   "extends": "@retransmit/config/tsconfig.base.json",
   "compilerOptions": {
-    /* @retransmit/transactional exports .tsx sources, so checking this
-       package reaches JSX. */
-    "jsx": "react-jsx",
     "lib": ["ESNext", "DOM"],
+    "jsx": "react-jsx",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

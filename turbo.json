@@ -17,7 +17,8 @@
     "GOOGLE_CLIENT_SECRET",
     "SES_MAX_SEND_RATE",
     "GITHUB_CLIENT_ID",
-    "GITHUB_CLIENT_SECRET"
+    "GITHUB_CLIENT_SECRET",
+    "TRANSACTIONAL_EMAIL_FROM"
   ],
   "tasks": {
     "build": {

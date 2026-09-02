@@ -1,26 +1,23 @@
 import { createDb } from "@retransmit/db";
 import * as schema from "@retransmit/db/schema/auth";
-import { sendEmail } from "@retransmit/email/ses";
+import {
+  renderMagicLinkEmail,
+  renderOrganizationInvitationEmail,
+} from "@retransmit/transactional";
+import { sendTransactionalEmail } from "@retransmit/transactional/send";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
+import { magicLink } from "better-auth/plugins/magic-link";
 
 import { resolveActiveOrganization } from "./organization";
-
-/** Names and org titles are user input; never interpolate them raw into HTML. */
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 export function createAuth() {
   const db = createDb();
 
   return betterAuth({
+    appName: "Retransmit",
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: schema,
@@ -32,10 +29,6 @@ export function createAuth() {
       },
     },
     trustedOrigins: [process.env.BETTER_AUTH_URL as string],
-    emailAndPassword: {
-      enabled: true,
-      requireEmailVerification: false,
-    },
     user: {
       deleteUser: {
         enabled: true,
@@ -49,6 +42,16 @@ export function createAuth() {
       github: {
         clientId: process.env.GITHUB_CLIENT_ID as string,
         clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      },
+    },
+    /**
+     * Better Auth's default rule for magic-link sign-in (3 per 10 seconds)
+     * still allows 18 emails a minute per IP, and every request there sends
+     * one. Tighten it; the other default rules stand.
+     */
+    rateLimit: {
+      customRules: {
+        "/sign-in/magic-link": { window: 60, max: 5 },
       },
     },
     databaseHooks: {
@@ -66,25 +69,38 @@ export function createAuth() {
     secret: process.env.BETTER_AUTH_SECRET as string,
     baseURL: process.env.BETTER_AUTH_URL as string,
     plugins: [
+      magicLink({
+        expiresIn: 60 * 5,
+        storeToken: "hashed",
+        sendMagicLink: async ({ email, url }) => {
+          const { html, text } = await renderMagicLinkEmail(url);
+          await sendTransactionalEmail({
+            email,
+            subject: "Sign in to Retransmit",
+            html,
+            text,
+            failureMessage: "Unable to send the Retransmit sign-in email.",
+          });
+        },
+      }),
       organization({
         invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
         cancelPendingInvitationsOnReInvite: true,
         sendInvitationEmail: async (data) => {
           const inviteUrl = `${process.env.BETTER_AUTH_URL}/accept-invitation/${data.id}`;
-          const from = process.env.INVITATION_EMAIL_FROM;
-          if (!from) {
-            console.warn(
-              `INVITATION_EMAIL_FROM is not set; share this invite link with ${data.email} manually: ${inviteUrl}`,
-            );
-            return;
-          }
           try {
-            await sendEmail({
-              from,
-              to: [data.email],
+            const { html, text } = await renderOrganizationInvitationEmail({
+              url: inviteUrl,
+              organizationName: data.organization.name,
+              inviterName: data.inviter.user.name || data.inviter.user.email,
+              inviterEmail: data.inviter.user.email,
+            });
+            await sendTransactionalEmail({
+              email: data.email,
               subject: `${data.inviter.user.name} invited you to ${data.organization.name} on Retransmit`,
-              text: `${data.inviter.user.name} (${data.inviter.user.email}) invited you to join ${data.organization.name} on Retransmit.\n\nAccept the invitation: ${inviteUrl}\n\nThe link expires in 7 days. If you were not expecting this, you can ignore this email.`,
-              html: `<p>${escapeHtml(data.inviter.user.name)} (${escapeHtml(data.inviter.user.email)}) invited you to join <strong>${escapeHtml(data.organization.name)}</strong> on Retransmit.</p><p><a href="${inviteUrl}">Accept the invitation</a></p><p>The link expires in 7 days. If you were not expecting this, you can ignore this email.</p>`,
+              html,
+              text,
+              failureMessage: "Unable to send the Retransmit invitation email.",
             });
           } catch (error) {
             // Invitations still work via a copied link; never fail the

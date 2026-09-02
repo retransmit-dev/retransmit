@@ -13,6 +13,7 @@
   "dependencies": {
     "@retransmit/db": "workspace:*",
     "@retransmit/email": "workspace:*",
+    "@retransmit/transactional": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
