@@ -4,19 +4,27 @@
 # These live in RETRANSMIT's AWS account — customers never touch SES/SNS,
 # they only publish the DKIM DNS records for their own domain.
 #
-#   ./infra/setup-ses.sh                                   # create topic + config set
-#   ./infra/setup-ses.sh https://api.retransmit.dev/v1/callbacks/ses
-#                                                          # ...and subscribe the callback
+#   ./infra/setup-ses.sh                  # topic + config set + subscribe prod callback
+#   ./infra/setup-ses.sh https://staging.example/v1/callbacks/ses
+#                                         # ...subscribe a different callback
+#   SES_SKIP_CALLBACK=1 ./infra/setup-ses.sh
+#                                         # ...create resources only (API not deployed yet)
 #
-# The callback subscription only succeeds once apps/api is deployed and
-# reachable at that URL (it auto-confirms the SNS subscription), so run
-# the script again with the URL after the first deploy.
+# The callback subscription only confirms once apps/api is deployed and
+# reachable at that URL (the route auto-confirms the SNS subscription).
+# Without a confirmed subscription SES publishes delivery/bounce events
+# into the void and every email stays at "sent" forever, so the script
+# probes the endpoint, subscribes, then waits for confirmation and exits
+# non-zero if it does not happen.
+#
+# Safe to re-run: every step is idempotent.
 set -euo pipefail
 
 REGION="${AWS_REGION:-us-east-1}"
 CONFIG_SET="${SES_CONFIGURATION_SET:-retransmit-events}"
 TOPIC_NAME="${SES_TOPIC_NAME:-retransmit-ses-events}"
-CALLBACK_URL="${1:-}"
+CALLBACK_URL="${1:-${SES_CALLBACK_URL:-https://api.retransmit.dev/v1/callbacks/ses}}"
+if [ "${SES_SKIP_CALLBACK:-}" = "1" ]; then CALLBACK_URL=""; fi
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
@@ -103,12 +111,44 @@ fi
 
 # 5. Subscribe the API callback (needs the deployed endpoint to confirm)
 if [ -n "$CALLBACK_URL" ]; then
+  # Preflight: the route answers 200 {"status":"ignored"} to an empty
+  # notification for its own topic. Anything else means the API is not
+  # deployed there (or SES_SNS_TOPIC_ARN is wrong on the server) and the
+  # subscription would sit in PendingConfirmation.
+  PROBE_STATUS=$(curl -sS -m 15 -o /dev/null -w '%{http_code}' -X POST "$CALLBACK_URL" \
+    -H 'content-type: application/json' \
+    -d "{\"Type\":\"Notification\",\"TopicArn\":\"${TOPIC_ARN}\",\"Message\":\"{}\"}" || echo 000)
+  if [ "$PROBE_STATUS" != "200" ]; then
+    echo "ERROR: $CALLBACK_URL answered HTTP $PROBE_STATUS to a test notification." >&2
+    echo "       Deploy apps/api with SES_SNS_TOPIC_ARN=$TOPIC_ARN, then re-run." >&2
+    exit 1
+  fi
+
+  # subscribe is idempotent for the same protocol+endpoint; it returns the
+  # existing ARN, or "pending confirmation" while SNS waits for the callback.
   aws sns subscribe --topic-arn "$TOPIC_ARN" --region "$REGION" \
     --protocol https --notification-endpoint "$CALLBACK_URL" \
-    --query SubscriptionArn --output text
-  echo "Subscription requested; the callback confirms it automatically."
+    --query SubscriptionArn --output text >/dev/null
+
+  # The callback fetches SubscribeURL as soon as SNS calls it; give it a
+  # few seconds and then insist on a confirmed subscription.
+  SUB_ARN=""
+  for _ in $(seq 1 12); do
+    SUB_ARN=$(aws sns list-subscriptions-by-topic --topic-arn "$TOPIC_ARN" --region "$REGION" \
+      --query "Subscriptions[?Endpoint=='${CALLBACK_URL}' && Protocol=='https' && SubscriptionArn!='PendingConfirmation'].SubscriptionArn | [0]" \
+      --output text)
+    if [ -n "$SUB_ARN" ] && [ "$SUB_ARN" != "None" ]; then break; fi
+    sleep 5
+  done
+  if [ -z "$SUB_ARN" ] || [ "$SUB_ARN" = "None" ]; then
+    echo "ERROR: subscription for $CALLBACK_URL is still pending confirmation." >&2
+    echo "       Check the API logs for the SubscriptionConfirmation request." >&2
+    exit 1
+  fi
+  echo "Callback subscribed and confirmed: $SUB_ARN"
 else
-  echo "Skipped callback subscription (pass the URL once apps/api is deployed)."
+  echo "Skipped callback subscription (SES_SKIP_CALLBACK=1)."
+  echo "WARNING: without it, delivery/bounce events are dropped. Re-run without the flag once apps/api is deployed."
 fi
 
 echo
