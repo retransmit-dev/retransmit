@@ -15,7 +15,9 @@
     "SES_SNS_TOPIC_ARN",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
-    "SES_MAX_SEND_RATE"
+    "SES_MAX_SEND_RATE",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET"
   ],
   "tasks": {
     "build": {

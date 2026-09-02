@@ -51,10 +51,10 @@ describe("markdownForPath", () => {
     expect(markdown).toMatch(/### .+\?/);
   });
 
-  it("lists every published page on the compare hub", () => {
+  it("lists every published compare page on the compare hub", () => {
     const markdown = markdownForPath("/compare");
     for (const page of publishedPages()) {
-      if (page.href === "/compare") continue;
+      if (page.group !== "compare" || page.href === "/compare") continue;
       expect(markdown).toContain(`${siteConfig.url}${page.href}`);
     }
   });

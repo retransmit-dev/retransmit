@@ -5,7 +5,7 @@ import type { Route } from "next";
    route's metadata (title, description, canonical), and the compare hub.
    `typedRoutes` checks `href`, so a deleted page.tsx fails the build. */
 
-export type PageGroup = "compare";
+export type PageGroup = "compare" | "legal";
 
 export type SitePage = {
   href: Route;
@@ -99,6 +99,28 @@ export const SITE_PAGES: readonly SitePage[] = [
     published: true,
     priority: 0.7,
     changeFrequency: "monthly",
+  },
+  {
+    href: "/privacy",
+    label: "Privacy policy",
+    title: "Privacy policy",
+    description:
+      "What Retransmit collects, why, and what you can do about it. Covers account data from Google and GitHub sign-in, email logs, retention, and deletion.",
+    group: "legal",
+    published: true,
+    priority: 0.3,
+    changeFrequency: "yearly",
+  },
+  {
+    href: "/terms",
+    label: "Terms of service",
+    title: "Terms of service",
+    description:
+      "The terms that govern the Retransmit hosted service: accounts, acceptable use, prepaid credits, suspension, and liability.",
+    group: "legal",
+    published: true,
+    priority: 0.3,
+    changeFrequency: "yearly",
   },
 ] as const;
 

@@ -19,6 +19,8 @@ Site map for agents:
 - https://retransmit.dev/compare/retransmit-vs-usesend : Retransmit vs useSend
 - https://retransmit.dev/compare/retransmit-vs-plunk : Retransmit vs Plunk
 - https://retransmit.dev/compare/retransmit-vs-eusend : Retransmit vs eusend
+- https://retransmit.dev/privacy : privacy policy
+- https://retransmit.dev/terms : terms of service
 - https://docs.retransmit.dev/ : documentation and API reference
 - https://retransmit.dev/openapi.json : OpenAPI 3.1 specification of the REST API
 - https://github.com/jpainam/retransmit : source code

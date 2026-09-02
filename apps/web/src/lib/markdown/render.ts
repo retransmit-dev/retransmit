@@ -4,6 +4,7 @@ import type {
   TableCell,
 } from "@/components/marketing/seo-content-page";
 import { COMPARE_CONTENT } from "@/lib/compare-content";
+import { LEGAL_DOCS, type LegalDoc } from "@/lib/legal-content";
 import { getPage, publishedPages } from "@/lib/pages";
 import { absoluteUrl, siteConfig } from "@/lib/site";
 
@@ -167,6 +168,26 @@ export function compareHubMarkdown(): string {
   ].join("\n");
 }
 
+export function legalMarkdown(doc: LegalDoc): string {
+  const parts: string[] = [
+    `# ${doc.title}`,
+    "",
+    `_Last updated ${doc.updatedLabel}._`,
+    "",
+    doc.intro,
+    "",
+  ];
+  for (const section of doc.sections) {
+    parts.push(`## ${section.title}`, "");
+    for (const paragraph of section.body) parts.push(paragraph, "");
+    if (section.points?.length) {
+      parts.push(...section.points.map((point) => `- ${point}`), "");
+    }
+  }
+  parts.push(footer(doc.href));
+  return parts.join("\n");
+}
+
 export function notFoundMarkdown(pathname: string): string {
   return [
     "# 404: page not found",
@@ -194,6 +215,9 @@ const RENDERERS = new Map<string, () => string>([
   ...Object.values(COMPARE_CONTENT).map(
     (content) =>
       [content.href as string, () => seoPageMarkdown(content)] as const,
+  ),
+  ...LEGAL_DOCS.map(
+    (doc) => [doc.href as string, () => legalMarkdown(doc)] as const,
   ),
 ]);
 

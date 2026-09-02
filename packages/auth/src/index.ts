@@ -46,6 +46,10 @@ export function createAuth() {
         clientId: process.env.GOOGLE_CLIENT_ID as string,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       },
+      github: {
+        clientId: process.env.GITHUB_CLIENT_ID as string,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      },
     },
     databaseHooks: {
       session: {
@@ -85,7 +89,10 @@ export function createAuth() {
           } catch (error) {
             // Invitations still work via a copied link; never fail the
             // invite because the email could not be sent.
-            console.error(`Failed to send invitation email to ${data.email}`, error);
+            console.error(
+              `Failed to send invitation email to ${data.email}`,
+              error,
+            );
           }
         },
       }),

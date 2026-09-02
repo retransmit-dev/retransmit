@@ -22,9 +22,10 @@ const COLUMNS = [
   },
 ] as const;
 
-/* The compare column reads the page registry, so adding a registry row
-   adds a footer link, a sitemap entry, and metadata at once. */
+/* These columns read the page registry, so adding a registry row adds a
+   footer link, a sitemap entry, and metadata at once. */
 const COMPARE_PAGES = pagesInGroup("compare");
+const LEGAL_PAGES = pagesInGroup("legal");
 
 export function SiteFooter() {
   return (
@@ -61,6 +62,21 @@ export function SiteFooter() {
               <p className="text-sm font-medium">Compare</p>
               <ul className="mt-3 flex flex-col gap-2">
                 {COMPARE_PAGES.map((page) => (
+                  <li key={page.href}>
+                    <Link
+                      href={page.href}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {page.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Legal</p>
+              <ul className="mt-3 flex flex-col gap-2">
+                {LEGAL_PAGES.map((page) => (
                   <li key={page.href}>
                     <Link
                       href={page.href}
