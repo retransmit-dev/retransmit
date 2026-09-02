@@ -1,3 +1,5 @@
+import { Tabs } from "nextra/components";
+
 # Get Email
 
 ```http
@@ -9,10 +11,19 @@ event timeline.
 
 ## Example
 
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.emails.get("em_xxxxxxxxxxxx");
+```
+</Tabs.Tab>
+<Tabs.Tab>
 ```sh
 curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY"
 ```
+</Tabs.Tab>
+</Tabs>
 
 ## Response
 

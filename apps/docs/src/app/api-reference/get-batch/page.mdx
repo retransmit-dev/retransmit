@@ -1,3 +1,5 @@
+import { Tabs } from "nextra/components";
+
 # Get Batch
 
 ```http
@@ -10,10 +12,19 @@ counts every email that has left the queue (sent, delivered, failed, …).
 
 ## Example
 
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.batch.get("bt_xxxxxxxxxxxx");
+```
+</Tabs.Tab>
+<Tabs.Tab>
 ```sh
 curl https://api.retransmit.dev/v1/emails/batch/bt_xxxxxxxxxxxx \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY"
 ```
+</Tabs.Tab>
+</Tabs>
 
 ## Response
 

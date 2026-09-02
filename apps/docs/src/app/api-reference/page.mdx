@@ -1,5 +1,16 @@
 # API Reference
 
+## SDKs
+
+| Language | Package | Install |
+| --- | --- | --- |
+| Node.js / TypeScript | [`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev) | `npm install retransmit.dev` |
+
+The SDK wraps every endpoint below with typed methods (`emails.send`,
+`emails.get`, `batch.send`, `batch.get`) and returns `{ data, error }` instead
+of throwing on API errors. Each endpoint page shows the SDK call alongside the
+raw HTTP request. Other languages can call the HTTP API directly.
+
 ## Base URL
 
 | Environment | Base URL |

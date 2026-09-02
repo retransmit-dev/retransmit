@@ -1,3 +1,5 @@
+import { Tabs } from "nextra/components";
+
 # Send Batch
 
 ```http
@@ -25,6 +27,30 @@ account (a batch may mix multiple verified domains).
 
 ## Example
 
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+import { Retransmit } from "retransmit.dev";
+
+const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);
+
+const { data, error } = await retransmit.batch.send([
+  {
+    from: "Acme <hello@yourdomain.com>",
+    to: "one@example.com",
+    subject: "Hello",
+    html: "<p>Hi one</p>",
+  },
+  {
+    from: "Acme <hello@yourdomain.com>",
+    to: "two@example.com",
+    subject: "Hello",
+    html: "<p>Hi two</p>",
+  },
+]);
+```
+</Tabs.Tab>
+<Tabs.Tab>
 ```sh
 curl -X POST https://api.retransmit.dev/v1/emails/batch \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
@@ -46,6 +72,8 @@ curl -X POST https://api.retransmit.dev/v1/emails/batch \
     ]
   }'
 ```
+</Tabs.Tab>
+</Tabs>
 
 ## Response
 

@@ -1,3 +1,5 @@
+import { Tabs } from "nextra/components";
+
 # Send Email
 
 ```http
@@ -27,6 +29,27 @@ transient failures automatically. For many emails at once, use
 
 ## Example
 
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+import { Retransmit } from "retransmit.dev";
+
+const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);
+
+const { data, error } = await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: ["user@example.com"],
+  replyTo: "support@yourdomain.com",
+  subject: "Your receipt",
+  html: "<p>Thanks for your order!</p>",
+  text: "Thanks for your order!",
+});
+```
+
+The [SDK](https://www.npmjs.com/package/retransmit.dev) uses camelCase field
+names (`replyTo`); the raw HTTP API uses `reply_to`.
+</Tabs.Tab>
+<Tabs.Tab>
 ```sh
 curl -X POST https://api.retransmit.dev/v1/emails \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
@@ -40,6 +63,8 @@ curl -X POST https://api.retransmit.dev/v1/emails \
     "text": "Thanks for your order!"
   }'
 ```
+</Tabs.Tab>
+</Tabs>
 
 ## Response
 
