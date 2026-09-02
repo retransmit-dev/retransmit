@@ -51,6 +51,13 @@
       "cache": false,
       "persistent": true
     },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:migrate:deploy": {
+      "cache": false
+    },
     "db:push": {
       "cache": false,
       "interactive": true

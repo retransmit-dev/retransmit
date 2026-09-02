@@ -11,6 +11,10 @@
     "with-env": "dotenv -e .env --",
     "dev": "pnpm with-env turbo run dev",
     "build": "pnpm with-env turbo run build",
+    "build:dashboard": "pnpm with-env turbo run build -F dashboard",
+    "start:dashboard": "pnpm with-env turbo run start -F dashboard",
+    "build:api": "pnpm with-env turbo run build -F api",
+    "start:api": "pnpm with-env turbo run start -F api",
     "check-types": "pnpm with-env turbo run check-types",
     "dev:web": "pnpm with-env turbo run dev -F web --",
     "dev:dashboard": "pnpm with-env turbo run dev -F dashboard --",
@@ -19,7 +23,8 @@
     "db:push": "pnpm with-env turbo run db:push -F @retransmit/db --",
     "db:studio": "pnpm with-env turbo run db:studio -F @retransmit/db --",
     "db:generate": "pnpm with-env turbo run db:generate -F @retransmit/db --",
-    "db:migrate": "pnpm with-env turbo run db:migrate -F @retransmit/db --"
+    "db:migrate": "pnpm with-env turbo run db:migrate -F @retransmit/db --",
+    "db:migrate:deploy": "pnpm with-env turbo run db:migrate:deploy -F @retransmit/db --"
   },
   "dependencies": {
     "dotenv": "catalog:",
