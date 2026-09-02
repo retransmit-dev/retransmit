@@ -20,6 +20,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -43,6 +51,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   BanIcon,
   DownloadIcon,
+  InfoIcon,
   PlusIcon,
   SearchIcon,
   Trash2Icon,
@@ -294,6 +303,37 @@ export default function SuppressionsPage() {
                 <UploadIcon />
                 Import CSV
               </Button>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Expected CSV format for imports"
+                    />
+                  }
+                >
+                  <InfoIcon className="size-4" />
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80">
+                  <PopoverHeader>
+                    <PopoverTitle>CSV import format</PopoverTitle>
+                    <PopoverDescription>
+                      A .csv or .txt file with one address per line. An
+                      optional second column sets the reason: bounce,
+                      complaint, or manual. A header row is fine, it gets
+                      skipped.
+                    </PopoverDescription>
+                  </PopoverHeader>
+                  <pre className="rounded-md bg-muted p-2 font-mono text-xs leading-relaxed">
+                    {"email,reason\nuser@example.com,bounce\nother@example.com,complaint\nplain@example.com"}
+                  </pre>
+                  <p className="text-xs text-muted-foreground">
+                    Rows without a recognized reason import as manual, and
+                    exports from another provider usually work as-is.
+                  </p>
+                </PopoverContent>
+              </Popover>
               <input
                 ref={fileInputRef}
                 type="file"

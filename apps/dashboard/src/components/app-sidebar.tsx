@@ -17,6 +17,7 @@ import {
 import Link from "next/link"
 import {
   BanIcon,
+  ChartLineIcon,
   GlobeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
@@ -36,6 +37,11 @@ const navMain = [
     title: "Emails",
     url: "/emails",
     icon: <MailIcon />,
+  },
+  {
+    title: "Analytics",
+    url: "/analytics",
+    icon: <ChartLineIcon />,
   },
   {
     title: "Domains",

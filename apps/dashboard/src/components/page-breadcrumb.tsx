@@ -14,6 +14,7 @@ import {
 const TITLES: Record<string, string> = {
   "/": "Overview",
   "/emails": "Emails",
+  "/analytics": "Analytics",
   "/domains": "Domains",
   "/api-keys": "API Keys",
   "/webhooks": "Webhooks",

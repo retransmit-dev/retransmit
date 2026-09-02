@@ -26,6 +26,14 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /* Analytics series colors, one per metric. CVD-validated as the sets that
+     share a chart (sent | delivered+opened+clicked | bounced+complained). */
+  --chart-sent: #2a78d6;
+  --chart-delivered: #199e70;
+  --chart-opened: #eb6834;
+  --chart-clicked: #4a3aa7;
+  --chart-bounced: #e34948;
+  --chart-complained: #c98500;
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -63,6 +71,12 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --chart-sent: #3987e5;
+  --chart-delivered: #199e70;
+  --chart-opened: #d95926;
+  --chart-clicked: #9085e9;
+  --chart-bounced: #d03b3b;
+  --chart-complained: #c98500;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
