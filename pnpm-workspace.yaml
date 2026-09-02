@@ -5,6 +5,8 @@ allowBuilds:
   esbuild: true
   sharp: true
 catalog:
+  "@aws-sdk/client-sesv2": ^3.900.0
+  hono: ^4.9.0
   dotenv: ^17.4.2
   zod: ^4.4.3
   typescript: ^6.0.3

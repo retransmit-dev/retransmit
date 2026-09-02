@@ -12,6 +12,8 @@
     "build": "pnpm with-env turbo run build",
     "check-types": "pnpm with-env turbo run check-types",
     "dev:web": "pnpm with-env turbo run dev -F web --",
+    "dev:dashboard": "pnpm with-env turbo run dev -F dashboard --",
+    "dev:api": "pnpm with-env turbo run dev -F api --",
     "db:push": "pnpm with-env turbo run db:push -F @retransmit/db --",
     "db:studio": "pnpm with-env turbo run db:studio -F @retransmit/db --",
     "db:generate": "pnpm with-env turbo run db:generate -F @retransmit/db --",

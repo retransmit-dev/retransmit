@@ -1,5 +1,5 @@
 {
-  "name": "@retransmit/api",
+  "name": "@retransmit/email",
   "type": "module",
   "exports": {
     ".": {
@@ -11,19 +11,14 @@
   },
   "scripts": {},
   "dependencies": {
-    "@retransmit/auth": "workspace:*",
+    "@aws-sdk/client-sesv2": "catalog:",
     "@retransmit/db": "workspace:*",
-    "@retransmit/email": "workspace:*",
-    "@trpc/client": "catalog:",
-    "@trpc/server": "catalog:",
-    "@types/pg": "catalog:",
-    "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
-    "next": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@retransmit/config": "workspace:*",
+    "@types/node": "catalog:",
     "typescript": "catalog:"
   }
 }

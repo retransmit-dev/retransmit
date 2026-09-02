@@ -5,7 +5,12 @@
   "globalEnv": [
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
-    "DATABASE_URL"
+    "DATABASE_URL",
+    "AWS_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "SES_CONFIGURATION_SET",
+    "SES_SNS_TOPIC_ARN"
   ],
   "tasks": {
     "build": {
