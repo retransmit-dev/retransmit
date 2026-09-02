@@ -48,6 +48,17 @@ See [Errors](/api-reference/errors) for the full list of codes.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | [`/v1/emails`](/api-reference/send-email) | Send a transactional email |
+| `POST` | [`/v1/emails`](/api-reference/send-email) | Queue a transactional email |
+| `POST` | [`/v1/emails/batch`](/api-reference/send-batch) | Queue up to 10,000 emails in one request |
 | `GET` | [`/v1/emails/:id`](/api-reference/get-email) | Retrieve an email and its event history |
+| `GET` | [`/v1/emails/batch/:id`](/api-reference/get-batch) | Batch progress: counts per status |
 | `GET` | `/health` | Health check (no auth required) |
+
+## Asynchronous sending
+
+Submitting an email returns `202 Accepted` immediately with status `queued`.
+A worker drains the queue at the platform's provider rate, retries transient
+failures with exponential backoff, and dead-letters an email as `failed` only
+after all retries are exhausted. Track outcomes by polling
+[Get Email](/api-reference/get-email) / [Get Batch](/api-reference/get-batch),
+or push-based via [Webhooks](/webhooks).

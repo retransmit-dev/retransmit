@@ -37,15 +37,19 @@ curl -X POST https://api.retransmit.dev/v1/emails \
   }'
 ```
 
-Response:
+Response (`202 Accepted` — the email is queued and sent moments later by the
+worker, which respects provider rate limits and retries transient failures):
 
 ```json
 {
   "id": "em_xxxxxxxxxxxx",
-  "status": "sent",
+  "status": "queued",
   "created_at": "2026-09-01T12:00:00.000Z"
 }
 ```
+
+Sending thousands at once? [Send Batch](/api-reference/send-batch) queues up
+to 10,000 emails in a single request.
 
 Or with plain `fetch` from any JavaScript/TypeScript app:
 

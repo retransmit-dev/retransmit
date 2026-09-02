@@ -43,9 +43,15 @@ includes `{ "message": "..." }` with the provider error.
 - Requests are `POST` with `Content-Type: application/json`.
 - Your endpoint should respond with a `2xx` within **10 seconds**; anything
   else is recorded as a failed delivery.
+- Failed deliveries are **retried up to 8 times with exponential backoff**
+  (roughly 10s, 20s, 40s … capped at 1 hour). Each retry is re-signed with a
+  fresh timestamp. After all retries the delivery is dropped (dead-lettered).
+- Because of retries, deliveries can arrive more than once and out of order —
+  key on the payload `id` for idempotency and on `type`/`created_at` for
+  ordering.
 - Respond quickly and process asynchronously — do the real work after you've
   returned `200`.
-- Deliveries (including failures) are visible per-endpoint in the dashboard.
+- Every attempt (including failures) is visible per-endpoint in the dashboard.
 
 ## Verifying signatures
 

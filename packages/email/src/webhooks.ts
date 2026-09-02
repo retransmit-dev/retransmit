@@ -4,6 +4,8 @@ import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { webhookDelivery, webhookEndpoint } from "@retransmit/db/schema/email";
 import type { WebhookEventType } from "@retransmit/db/schema/email";
+import { enqueueWebhookDispatch } from "@retransmit/queue";
+import type { WebhookDispatchJob } from "@retransmit/queue";
 import { and, eq } from "drizzle-orm";
 
 const DELIVERY_TIMEOUT_MS = 10_000;
@@ -40,9 +42,9 @@ export interface EmailEventPayload {
 }
 
 /**
- * Delivers an email event to every enabled endpoint of the user that
- * subscribes to it. Failures are recorded on the delivery row and never
- * thrown — webhook problems must not fail the send or callback path.
+ * Fans an email event out as one `webhook-dispatch` job per subscribed
+ * endpoint. Delivery happens in the worker with retries and a dead-letter
+ * queue; this never blocks or fails the caller beyond the enqueue itself.
  */
 export async function dispatchEmailEvent(
   userId: string,
@@ -50,26 +52,40 @@ export async function dispatchEmailEvent(
   payload: EmailEventPayload,
 ): Promise<void> {
   const endpoints = await db
-    .select()
+    .select({ id: webhookEndpoint.id, eventTypes: webhookEndpoint.eventTypes })
     .from(webhookEndpoint)
     .where(and(eq(webhookEndpoint.userId, userId), eq(webhookEndpoint.enabled, true)));
 
   const subscribed = endpoints.filter((endpoint) => endpoint.eventTypes.includes(type));
   if (subscribed.length === 0) return;
 
-  const deliveryId = createId("whd");
-  const body = JSON.stringify({ id: deliveryId, type, created_at: new Date().toISOString(), data: payload });
+  const body = JSON.stringify({
+    id: createId("whd"),
+    type,
+    created_at: new Date().toISOString(),
+    data: payload,
+  });
 
-  await Promise.allSettled(subscribed.map((endpoint) => deliver(endpoint, type, body)));
+  await enqueueWebhookDispatch(
+    subscribed.map((endpoint) => ({ endpointId: endpoint.id, eventType: type, body })),
+  );
 }
 
-async function deliver(
-  endpoint: typeof webhookEndpoint.$inferSelect,
-  type: WebhookEventType,
-  body: string,
-): Promise<void> {
+/**
+ * Delivers one webhook job to its endpoint (run by the worker). Every attempt
+ * is recorded as a `webhook_delivery` row. Throws on failure so pg-boss
+ * retries with backoff and eventually dead-letters the job.
+ */
+export async function deliverWebhookJob(job: WebhookDispatchJob): Promise<void> {
+  const [endpoint] = await db
+    .select()
+    .from(webhookEndpoint)
+    .where(eq(webhookEndpoint.id, job.endpointId));
+  // Endpoint deleted or disabled since the event was enqueued: drop silently.
+  if (!endpoint || !endpoint.enabled) return;
+
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const signature = signWebhookPayload(endpoint.secret, timestamp, body);
+  const signature = signWebhookPayload(endpoint.secret, timestamp, job.body);
 
   let responseStatus: number | null = null;
   let error: string | null = null;
@@ -81,7 +97,7 @@ async function deliver(
         "retransmit-timestamp": timestamp,
         "retransmit-signature": `v1=${signature}`,
       },
-      body,
+      body: job.body,
       signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
     });
     responseStatus = response.status;
@@ -93,10 +109,12 @@ async function deliver(
   await db.insert(webhookDelivery).values({
     id: createId("whd"),
     endpointId: endpoint.id,
-    eventType: type,
-    payload: JSON.parse(body) as Record<string, unknown>,
+    eventType: job.eventType as WebhookEventType,
+    payload: JSON.parse(job.body) as Record<string, unknown>,
     responseStatus,
     success: responseStatus !== null && responseStatus >= 200 && responseStatus < 300,
     error,
   });
+
+  if (error) throw new Error(`Webhook delivery to ${endpoint.url} failed: ${error}`);
 }

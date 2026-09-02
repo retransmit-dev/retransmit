@@ -21,6 +21,7 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
 ```json
 {
   "id": "em_xxxxxxxxxxxx",
+  "batch_id": null,
   "from": "Acme <hello@yourdomain.com>",
   "to": ["user@example.com"],
   "cc": null,
@@ -42,7 +43,7 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
 
 | Status | Meaning |
 | --- | --- |
-| `queued` | Accepted, not yet handed to the provider. |
+| `queued` | Accepted and waiting for the worker; also the state while sends are being retried. |
 | `scheduled` | Scheduled for a later send. |
 | `sent` | Handed to the upstream provider. |
 | `delivery_delayed` | The receiving server temporarily deferred delivery. |
@@ -54,7 +55,7 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
 | `suppressed` | Not sent — the address is on a suppression list. |
 | `canceled` | A scheduled send was canceled. |
 | `rejected` | Rejected before sending. |
-| `failed` | The provider send failed; `error` contains the reason. |
+| `failed` | The send failed after all retries (dead-lettered); `error` contains the reason. |
 
 ## Errors
 

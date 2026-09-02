@@ -4,7 +4,11 @@
 POST /v1/emails
 ```
 
-Sends a transactional email from one of your verified domains.
+Queues a transactional email from one of your verified domains. The request
+returns as soon as the email is validated and stored; a worker sends it
+moments later, respecting the platform's provider rate limit and retrying
+transient failures automatically. For many emails at once, use
+[Send Batch](/api-reference/send-batch).
 
 ## Request body
 
@@ -39,18 +43,22 @@ curl -X POST https://api.retransmit.dev/v1/emails \
 
 ## Response
 
-`200 OK`
+`202 Accepted`
 
 ```json
 {
   "id": "em_xxxxxxxxxxxx",
-  "status": "sent",
+  "status": "queued",
   "created_at": "2026-09-01T12:00:00.000Z"
 }
 ```
 
 Keep the `id` — it's how you [look the email up](/api-reference/get-email) and
-how webhook events reference it (`emailId`).
+how webhook events reference it (`emailId`). The status moves from `queued` to
+`sent` once the worker hands it to the provider (usually within seconds), then
+onward as delivery events arrive. If every send retry fails, it ends up as
+`failed` with the provider error recorded — you'll get an `email.failed`
+webhook if you subscribe to it.
 
 ## Errors
 
@@ -61,4 +69,3 @@ how webhook events reference it (`emailId`).
 | `403` | `domain_not_found` | The `from` domain is not registered on your account. |
 | `403` | `domain_not_verified` | The `from` domain exists but is not verified yet. |
 | `401` | `unauthorized` | Missing, malformed, or revoked API key. |
-| `502` | `send_failed` | The upstream provider rejected the send. The email is recorded with status `failed`. |

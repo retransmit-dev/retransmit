@@ -1,0 +1,70 @@
+# Send Batch
+
+```http
+POST /v1/emails/batch
+```
+
+Queues up to **10,000 emails** in one request. All emails are validated and
+stored first; the request is all-or-nothing — if any email fails validation,
+nothing is queued. The worker then sends them at the platform's provider rate,
+retrying transient failures with exponential backoff. Emails that exhaust all
+retries are marked `failed` (dead-lettered).
+
+Track progress with [Get Batch](/api-reference/get-batch), watch the live
+stats on the dashboard's Emails page, or subscribe to
+[Webhooks](/webhooks) for per-email events.
+
+## Request body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `emails` | object[] | Yes | 1–10,000 email objects, each with the same fields as [Send Email](/api-reference/send-email). |
+
+Every `from` domain used in the batch must be registered and verified on your
+account (a batch may mix multiple verified domains).
+
+## Example
+
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails/batch \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "emails": [
+      {
+        "from": "Acme <hello@yourdomain.com>",
+        "to": "one@example.com",
+        "subject": "Hello",
+        "html": "<p>Hi one</p>"
+      },
+      {
+        "from": "Acme <hello@yourdomain.com>",
+        "to": "two@example.com",
+        "subject": "Hello",
+        "html": "<p>Hi two</p>"
+      }
+    ]
+  }'
+```
+
+## Response
+
+`202 Accepted`
+
+```json
+{
+  "id": "bt_xxxxxxxxxxxx",
+  "total": 2,
+  "status": "queued",
+  "created_at": "2026-09-01T12:00:00.000Z"
+}
+```
+
+## Errors
+
+| Status | Code | Cause |
+| --- | --- | --- |
+| `400` | `invalid_json` | Body is not valid JSON. |
+| `422` | `validation_error` | An email failed validation. The message includes its index, e.g. `emails.42.subject: ...`. Nothing is queued. |
+| `403` | `domain_not_found` / `domain_not_verified` | A `from` domain in the batch is missing or unverified. Nothing is queued. |
+| `401` | `unauthorized` | Missing, malformed, or revoked API key. |

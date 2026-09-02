@@ -15,6 +15,13 @@
       "when": 1788311433311,
       "tag": "0001_email",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788316126668,
+      "tag": "0002_cute_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

@@ -89,6 +89,21 @@ export const domain = pgTable(
   ],
 );
 
+export const emailBatch = pgTable(
+  "email_batch",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    apiKeyId: text("api_key_id").references(() => apiKey.id, { onDelete: "set null" }),
+    /** Number of emails submitted with this batch. */
+    total: integer("total").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("emailBatch_userId_createdAt_idx").on(table.userId, table.createdAt)],
+);
+
 export const email = pgTable(
   "email",
   {
@@ -98,6 +113,7 @@ export const email = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     apiKeyId: text("api_key_id").references(() => apiKey.id, { onDelete: "set null" }),
     domainId: text("domain_id").references(() => domain.id, { onDelete: "set null" }),
+    batchId: text("batch_id").references(() => emailBatch.id, { onDelete: "set null" }),
     from: text("from").notNull(),
     to: jsonb("to").$type<string[]>().notNull(),
     cc: jsonb("cc").$type<string[]>(),
@@ -120,6 +136,8 @@ export const email = pgTable(
   (table) => [
     index("email_userId_createdAt_idx").on(table.userId, table.createdAt),
     index("email_providerMessageId_idx").on(table.providerMessageId),
+    index("email_batchId_idx").on(table.batchId),
+    index("email_userId_status_idx").on(table.userId, table.status),
   ],
 );
 
@@ -189,7 +207,13 @@ export const emailRelations = relations(email, ({ one, many }) => ({
   user: one(user, { fields: [email.userId], references: [user.id] }),
   apiKey: one(apiKey, { fields: [email.apiKeyId], references: [apiKey.id] }),
   domain: one(domain, { fields: [email.domainId], references: [domain.id] }),
+  batch: one(emailBatch, { fields: [email.batchId], references: [emailBatch.id] }),
   events: many(emailEvent),
+}));
+
+export const emailBatchRelations = relations(emailBatch, ({ one, many }) => ({
+  user: one(user, { fields: [emailBatch.userId], references: [user.id] }),
+  emails: many(email),
 }));
 
 export const emailEventRelations = relations(emailEvent, ({ one }) => ({

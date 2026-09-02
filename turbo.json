@@ -14,7 +14,8 @@
     "SES_CONFIGURATION_SET",
     "SES_SNS_TOPIC_ARN",
     "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET"
+    "GOOGLE_CLIENT_SECRET",
+    "SES_MAX_SEND_RATE"
   ],
   "tasks": {
     "build": {

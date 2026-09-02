@@ -1,21 +1,14 @@
 {
-  "name": "@retransmit/email",
+  "name": "@retransmit/queue",
   "type": "module",
   "exports": {
     ".": {
       "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
     }
   },
   "scripts": {},
   "dependencies": {
-    "@aws-sdk/client-sesv2": "catalog:",
-    "@retransmit/db": "workspace:*",
-    "@retransmit/queue": "workspace:*",
-    "drizzle-orm": "catalog:",
-    "zod": "catalog:"
+    "pg-boss": "^12.29.0"
   },
   "devDependencies": {
     "@retransmit/config": "workspace:*",

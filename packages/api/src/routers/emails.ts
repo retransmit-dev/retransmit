@@ -1,13 +1,70 @@
 import { db } from "@retransmit/db";
-import { email, emailEvent } from "@retransmit/db/schema/email";
+import { email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
 import { EMAIL_STATUSES } from "@retransmit/db/schema/email";
+import type { EmailStatus } from "@retransmit/db/schema/email";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, lt } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, lt } from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, router } from "../index";
 
 export const emailRouter = router({
+  /** Live counts of the user's emails per status (drives the stats header). */
+  stats: protectedProcedure.query(async ({ ctx }) => {
+    const grouped = await db
+      .select({ status: email.status, count: count() })
+      .from(email)
+      .where(eq(email.userId, ctx.session.user.id))
+      .groupBy(email.status);
+
+    const counts = Object.fromEntries(EMAIL_STATUSES.map((status) => [status, 0])) as Record<
+      EmailStatus,
+      number
+    >;
+    let total = 0;
+    for (const row of grouped) {
+      counts[row.status] = row.count;
+      total += row.count;
+    }
+    return { counts, total };
+  }),
+
+  /** Recent batches with per-status progress. */
+  batches: protectedProcedure
+    .input(z.object({ limit: z.number().int().min(1).max(50).default(10) }).default({ limit: 10 }))
+    .query(async ({ ctx, input }) => {
+      const rows = await db
+        .select()
+        .from(emailBatch)
+        .where(eq(emailBatch.userId, ctx.session.user.id))
+        .orderBy(desc(emailBatch.createdAt))
+        .limit(input.limit);
+      if (rows.length === 0) return [];
+
+      const grouped = await db
+        .select({ batchId: email.batchId, status: email.status, count: count() })
+        .from(email)
+        .where(
+          inArray(
+            email.batchId,
+            rows.map((row) => row.id),
+          ),
+        )
+        .groupBy(email.batchId, email.status);
+
+      return rows.map((batch) => {
+        const counts: Partial<Record<EmailStatus, number>> = {};
+        let processed = 0;
+        for (const group of grouped) {
+          if (group.batchId !== batch.id) continue;
+          counts[group.status] = group.count;
+          if (group.status !== "queued" && group.status !== "scheduled") {
+            processed += group.count;
+          }
+        }
+        return { id: batch.id, total: batch.total, createdAt: batch.createdAt, processed, counts };
+      });
+    }),
   /** Email logs, newest first, cursor-paginated by createdAt. */
   list: protectedProcedure
     .input(

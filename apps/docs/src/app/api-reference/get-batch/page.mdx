@@ -1,0 +1,47 @@
+# Get Batch
+
+```http
+GET /v1/emails/batch/:id
+```
+
+Returns live progress for a [batch](/api-reference/send-batch): how many of
+its emails are in each status. Poll it to drive a progress bar — `processed`
+counts every email that has left the queue (sent, delivered, failed, …).
+
+## Example
+
+```sh
+curl https://api.retransmit.dev/v1/emails/batch/bt_xxxxxxxxxxxx \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+```
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "id": "bt_xxxxxxxxxxxx",
+  "total": 5000,
+  "processed": 3217,
+  "counts": {
+    "queued": 1783,
+    "sent": 802,
+    "delivered": 2379,
+    "bounced": 31,
+    "failed": 5
+  },
+  "created_at": "2026-09-01T12:00:00.000Z"
+}
+```
+
+`counts` only includes statuses with at least one email. The batch is finished
+when `processed` equals `total`; individual emails keep updating afterwards as
+delivery events arrive (`sent` → `delivered` / `bounced` / …).
+
+## Errors
+
+| Status | Code | Cause |
+| --- | --- | --- |
+| `404` | `not_found` | No batch with this id on your account. |
+| `401` | `unauthorized` | Missing, malformed, or revoked API key. |
