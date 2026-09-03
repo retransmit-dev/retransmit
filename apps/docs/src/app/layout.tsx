@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 const navbar = (
   <Navbar
     logo={<b>Retransmit</b>}
-    projectLink="https://github.com/jpainam/retransmit"
+    projectLink="https://github.com/retransmit-dev/retransmit"
   />
 );
 

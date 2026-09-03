@@ -35,6 +35,13 @@ export const EMAIL_STATUSES = [
 ] as const;
 export type EmailStatus = (typeof EMAIL_STATUSES)[number];
 
+/**
+ * A name/value label attached to an email at send time (for example
+ * `{ name: "campaign", value: "outreach-1" }`). Tags never reach the
+ * recipient; they exist so the dashboard and API can filter sends.
+ */
+export type EmailTag = { name: string; value: string };
+
 export const WEBHOOK_EVENT_TYPES = [
   "email.sent",
   "email.delivered",
@@ -154,6 +161,8 @@ export const email = pgTable(
      * addresses that unsubscribed. Transactional sends ignore unsubscribes.
      */
     marketing: boolean("marketing").default(false).notNull(),
+    /** Caller-supplied labels, filtered with jsonb containment. */
+    tags: jsonb("tags").$type<EmailTag[]>(),
     /** Message id assigned by the upstream provider (SES). */
     providerMessageId: text("provider_message_id"),
     status: text("status").$type<EmailStatus>().default("queued").notNull(),
@@ -170,6 +179,7 @@ export const email = pgTable(
     index("email_providerMessageId_idx").on(table.providerMessageId),
     index("email_batchId_idx").on(table.batchId),
     index("email_userId_status_idx").on(table.userId, table.status),
+    index("email_tags_gin_idx").using("gin", table.tags),
   ],
 );
 

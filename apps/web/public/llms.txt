@@ -23,7 +23,7 @@ Site map for agents:
 - https://retransmit.dev/terms : terms of service
 - https://docs.retransmit.dev/ : documentation and API reference
 - https://retransmit.dev/openapi.json : OpenAPI 3.1 specification of the REST API
-- https://github.com/jpainam/retransmit : source code
+- https://github.com/retransmit-dev/retransmit : source code
 
 For agents:
 - Every page on retransmit.dev serves Markdown from the same URL: request it with `Accept: text/markdown`, or append `.md` to the path (homepage: https://retransmit.dev/index.md).

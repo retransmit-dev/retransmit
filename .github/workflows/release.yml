@@ -55,7 +55,7 @@ jobs:
 
       # Auth via npm Trusted Publishing (OIDC) — no token needed.
       # Requires the trusted publisher configured on npmjs.com for retransmit.dev
-      # (GitHub Actions, jpainam/retransmit, release.yml) and id-token: write above.
+      # (GitHub Actions, retransmit-dev/retransmit, release.yml) and id-token: write above.
       - name: Publish to npm
         if: steps.version.outputs.changed == 'true'
         working-directory: packages/sdk

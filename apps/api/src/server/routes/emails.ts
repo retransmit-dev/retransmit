@@ -17,6 +17,26 @@ const addressList = z
     message: "Contains an invalid email address",
   });
 
+/** Letters, digits, underscore and dash, like Resend and Postmark tags. */
+const TAG_PATTERN = /^[A-Za-z0-9_-]+$/;
+const TAG_MAX = 10;
+
+const tagSchema = z.object({
+  name: z.string().min(1).max(256).regex(TAG_PATTERN, {
+    message: "Tag names may only contain letters, digits, underscores and dashes",
+  }),
+  value: z.string().min(1).max(256).regex(TAG_PATTERN, {
+    message: "Tag values may only contain letters, digits, underscores and dashes",
+  }),
+});
+
+const tagList = z
+  .array(tagSchema)
+  .max(TAG_MAX)
+  .refine((tags) => new Set(tags.map((tag) => tag.name)).size === tags.length, {
+    message: "Tag names must be unique",
+  });
+
 const sendEmailSchema = z
   .object({
     from: z.string().refine((value) => extractEmailAddress(value) !== null, {
@@ -30,6 +50,7 @@ const sendEmailSchema = z
     html: z.string().max(1_000_000).optional(),
     text: z.string().max(1_000_000).optional(),
     marketing: z.boolean().optional(),
+    tags: tagList.optional(),
   })
   .refine((value) => value.html || value.text, {
     message: "Provide `html`, `text`, or both",
@@ -114,6 +135,7 @@ function toEmailRow(
     html: input.html,
     text: input.text,
     marketing: input.marketing ?? false,
+    tags: input.tags && input.tags.length > 0 ? input.tags : null,
   };
 }
 
@@ -293,6 +315,7 @@ emailRoutes.get("/:id", async (c) => {
     reply_to: row.replyTo,
     subject: row.subject,
     marketing: row.marketing,
+    tags: row.tags ?? [],
     status: row.status,
     error: row.error,
     created_at: row.createdAt.toISOString(),

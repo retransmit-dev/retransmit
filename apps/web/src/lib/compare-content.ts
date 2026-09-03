@@ -155,11 +155,7 @@ export const COMPARE_CONTENT = {
           columns: ["Feature", "Retransmit", "Resend"],
           rows: [
             ["Transactional API", "Yes", "Yes"],
-            [
-              "Batch sending",
-              "Yes, up to 10,000 emails in one request",
-              "Yes",
-            ],
+            ["Batch sending", "Yes, up to 10,000 emails in one request", "Yes"],
             ["Scheduled sending", "Not yet", "Yes"],
             ["Marketing broadcasts", "Not yet", "Yes"],
             ["Templates and editor", "Not yet", "Yes"],
@@ -303,7 +299,11 @@ export const COMPARE_CONTENT = {
               "AGPL-3.0 on GitHub",
             ],
             ["Self-hosting", "Yes, free", "Yes, Docker and Railway guides"],
-            ["Underlying infrastructure", "Amazon SES", "Amazon SES, stated openly"],
+            [
+              "Underlying infrastructure",
+              "Amazon SES",
+              "Amazon SES, stated openly",
+            ],
             [
               "Free cloud tier",
               "Prepaid credits, pay per send",
@@ -348,11 +348,7 @@ export const COMPARE_CONTENT = {
               "Prepaid, pay per send",
               "$0.40 per 1,000 emails",
             ],
-            [
-              "Marketing price",
-              "Not offered yet",
-              "$1.00 per 1,000 emails",
-            ],
+            ["Marketing price", "Not offered yet", "$1.00 per 1,000 emails"],
             [
               "Contacts",
               "No contact storage, nothing to pay for",
@@ -389,11 +385,7 @@ export const COMPARE_CONTENT = {
             ["SMTP relay", "Not yet", "Yes"],
             ["Automations", "Not yet", "No"],
             ["Inbound email", "Not yet", "No"],
-            [
-              "SDKs",
-              "Node.js, plus REST",
-              "TypeScript, Python, Go, PHP",
-            ],
+            ["SDKs", "Node.js, plus REST", "TypeScript, Python, Go, PHP"],
             [
               "Webhooks",
               "9 event types, HMAC signed, 8 retries",
@@ -505,11 +497,7 @@ export const COMPARE_CONTENT = {
               "Self-hosted, every feature",
               "1,000 emails a month with Plunk branding",
             ],
-            [
-              "SDKs",
-              "Node.js, plus REST",
-              "Node.js, plus REST and SMTP",
-            ],
+            ["SDKs", "Node.js, plus REST", "Node.js, plus REST and SMTP"],
             [
               "Best fit",
               "Backends that send receipts, alerts, and OTPs at volume",
@@ -540,7 +528,11 @@ export const COMPARE_CONTENT = {
               "$1.00 per 1,000 emails, all features",
             ],
             ["Contacts", "Not stored", "Free, unlimited"],
-            ["Spend control", "Balance runs down, never over", "Optional monthly spend cap"],
+            [
+              "Spend control",
+              "Balance runs down, never over",
+              "Optional monthly spend cap",
+            ],
             [
               "Payment methods",
               "Bank transfer, mobile money, local currency",
@@ -560,11 +552,7 @@ export const COMPARE_CONTENT = {
           columns: ["Feature", "Retransmit", "Plunk"],
           rows: [
             ["Transactional API", "Yes", "Yes"],
-            [
-              "Batch sending",
-              "Yes, 10,000 per request",
-              "Not documented",
-            ],
+            ["Batch sending", "Yes, 10,000 per request", "Not documented"],
             ["Marketing campaigns", "Not yet", "Yes, with analytics"],
             ["Automations and workflows", "Not yet", "Yes, visual canvas"],
             ["Segments", "Not yet", "Yes, live query-based"],
@@ -581,11 +569,7 @@ export const COMPARE_CONTENT = {
               "SPF and DKIM records shown in dashboard",
               "DKIM, SPF, DMARC configured automatically",
             ],
-            [
-              "Agent tooling",
-              "Not yet",
-              "MCP server with 23 tools",
-            ],
+            ["Agent tooling", "Not yet", "MCP server with 23 tools"],
           ],
           note: VERIFIED_NOTE,
         },
@@ -659,7 +643,11 @@ export const COMPARE_CONTENT = {
               "Open email API, cloud or self-hosted",
               "Transactional email built for Europe",
             ],
-            ["Source code", "AGPL-3.0 on GitHub, MIT licensed SDK", "Proprietary"],
+            [
+              "Source code",
+              "AGPL-3.0 on GitHub, MIT licensed SDK",
+              "Proprietary",
+            ],
             ["Self-hosting", "Yes, free, any region", "No"],
             [
               "Infrastructure",
@@ -676,11 +664,7 @@ export const COMPARE_CONTENT = {
               "Prepaid credits",
               "From 9 euros a month for 10,000 emails, price falls with volume",
             ],
-            [
-              "SDKs",
-              "Node.js, plus REST",
-              "Node.js, Python, Go",
-            ],
+            ["SDKs", "Node.js, plus REST", "Node.js, Python, Go"],
           ],
           note: VERIFIED_NOTE,
         },
@@ -700,11 +684,7 @@ export const COMPARE_CONTENT = {
               "Self-hosted, every feature",
               "3,000 emails a month, 100 a day",
             ],
-            [
-              "10,000 emails a month",
-              "Prepaid, pay per send",
-              "9 euros",
-            ],
+            ["10,000 emails a month", "Prepaid, pay per send", "9 euros"],
             [
               "2,000,000 emails a month",
               "Prepaid, or self-host for free",
@@ -715,11 +695,7 @@ export const COMPARE_CONTENT = {
               "None, balance runs down",
               "Opt-in, otherwise sending stops at quota",
             ],
-            [
-              "Dedicated IPs",
-              "No",
-              "Enterprise plans only",
-            ],
+            ["Dedicated IPs", "No", "Enterprise plans only"],
             [
               "Payment methods",
               "Bank transfer, mobile money, local currency",
@@ -739,11 +715,7 @@ export const COMPARE_CONTENT = {
           columns: ["Feature", "Retransmit", "eusend"],
           rows: [
             ["Transactional API", "Yes", "Yes"],
-            [
-              "Batch sending",
-              "Yes, 10,000 per request",
-              "Not documented",
-            ],
+            ["Batch sending", "Yes, 10,000 per request", "Not documented"],
             ["Broadcasts", "Not yet", "Yes, with one-click unsubscribe"],
             ["Templates", "Not yet", "Yes"],
             ["React Email", "Not yet", "Yes, rendered by the SDK"],
@@ -1017,8 +989,8 @@ export const COMPARE_CONTENT = {
             [
               "Repository",
               {
-                label: "github.com/jpainam/retransmit",
-                href: "https://github.com/jpainam/retransmit",
+                label: "github.com/retransmit-dev/retransmit",
+                href: "https://github.com/retransmit-dev/retransmit",
               },
               {
                 label: "github.com/usesend/useSend",
@@ -1041,12 +1013,7 @@ export const COMPARE_CONTENT = {
               "Full platform",
               "API, workers, and dashboard",
             ],
-            [
-              "Underlying sender",
-              "Amazon SES",
-              "Amazon SES",
-              "Not disclosed",
-            ],
+            ["Underlying sender", "Amazon SES", "Amazon SES", "Not disclosed"],
           ],
           note: VERIFIED_NOTE,
         },
@@ -1071,12 +1038,7 @@ export const COMPARE_CONTENT = {
               "$0.40 per 1,000 transactional, $10 a month minimum",
               "$1.00 per 1,000, all features",
             ],
-            [
-              "Contacts",
-              "Not stored",
-              "Unlimited on paid",
-              "Unlimited, free",
-            ],
+            ["Contacts", "Not stored", "Unlimited on paid", "Unlimited, free"],
             [
               "Payment",
               "Bank transfer, mobile money, local currency",
@@ -1109,12 +1071,7 @@ export const COMPARE_CONTENT = {
             ["Inbound email", "Not yet", "No", "Yes"],
             ["Contacts", "Not yet", "Yes", "Yes"],
             ["SMTP relay", "Not yet", "Yes", "Yes"],
-            [
-              "Webhooks",
-              "9 events, HMAC signed, 8 retries",
-              "Yes",
-              "Yes",
-            ],
+            ["Webhooks", "9 events, HMAC signed, 8 retries", "Yes", "Yes"],
             [
               "SDKs",
               "Node.js, plus REST",
@@ -1157,8 +1114,7 @@ export const COMPARE_CONTENT = {
       {
         href: "/compare/resend-alternatives",
         label: "Best Resend alternatives in 2026",
-        description:
-          "The wider roundup, including proprietary options.",
+        description: "The wider roundup, including proprietary options.",
       },
       DOCS_RESOURCE,
     ],

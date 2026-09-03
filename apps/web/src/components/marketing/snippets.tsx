@@ -114,7 +114,7 @@ export const webhookPayload = (
 
 export const selfHostTerminal = (
   <code>
-    <Kw>$</Kw> git clone https://github.com/jpainam/retransmit{"\n"}
+    <Kw>$</Kw> git clone https://github.com/retransmit-dev/retransmit{"\n"}
     <Kw>$</Kw> cd retransmit && pnpm install{"\n"}
     <Kw>$</Kw> pnpm db:push{"\n"}
     <Kw>$</Kw> pnpm dev{"\n\n"}

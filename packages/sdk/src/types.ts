@@ -52,6 +52,18 @@ export interface SendEmailOptions {
    * headers, and skips recipients who already unsubscribed.
    */
   marketing?: boolean;
+  /**
+   * Up to 10 labels for filtering in the dashboard and API, for example
+   * `[{ name: "campaign", value: "outreach-1" }]`. Names and values allow
+   * letters, digits, underscores and dashes, up to 256 characters each.
+   * Tags are never sent to the recipient.
+   */
+  tags?: EmailTag[];
+}
+
+export interface EmailTag {
+  name: string;
+  value: string;
 }
 
 export interface SendEmailResponse {
@@ -75,6 +87,7 @@ export interface GetEmailResponse {
   reply_to: string[] | null;
   subject: string;
   marketing: boolean;
+  tags: EmailTag[];
   status: EmailStatus;
   error: string | null;
   created_at: string;

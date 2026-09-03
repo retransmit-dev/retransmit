@@ -9,7 +9,7 @@ export const siteConfig = {
     quickstart: "https://docs.retransmit.dev/quickstart",
     apiReference: "https://docs.retransmit.dev/api-reference",
     webhooks: "https://docs.retransmit.dev/webhooks",
-    github: "https://github.com/jpainam/retransmit",
+    github: "https://github.com/retransmit-dev/retransmit",
     npm: "https://www.npmjs.com/package/retransmit.dev",
   },
 } as const;
