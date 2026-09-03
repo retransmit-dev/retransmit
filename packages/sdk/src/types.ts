@@ -136,6 +136,82 @@ export interface GetSmsResponse {
   events: SmsEvent[];
 }
 
+export const WHATSAPP_STATUSES = ["queued", "sent", "delivered", "read", "failed"] as const;
+export type WhatsappStatus = (typeof WHATSAPP_STATUSES)[number];
+
+export type WhatsappMessageType = "text" | "template" | "image" | "document";
+
+export interface WhatsappTemplate {
+  /** Template name as approved in WhatsApp Manager. */
+  name: string;
+  /** Language code the template was approved for, e.g. `en_US`. */
+  language: string;
+  /** Meta `components` (header/body/button parameters), passed through verbatim. */
+  components?: Record<string, unknown>[];
+}
+
+export interface WhatsappMedia {
+  /** Public HTTPS link fetched at send time. */
+  link: string;
+  caption?: string;
+}
+
+export interface WhatsappDocument extends WhatsappMedia {
+  /** File name shown to the recipient. */
+  filename?: string;
+}
+
+export interface SendWhatsappOptions {
+  /** One recipient in international format (`+237670000000`). */
+  to: string;
+  /** Defaults to `text`. */
+  type?: WhatsappMessageType;
+  /** Body for `text` messages (up to 4,096 characters), or a media caption. */
+  text?: string;
+  /** Render a preview for the first link in a `text` message. */
+  previewUrl?: boolean;
+  /** Required for `type: "template"`. Needed to start a conversation outside the 24h window. */
+  template?: WhatsappTemplate;
+  /** Required for `type: "image"`. */
+  image?: WhatsappMedia;
+  /** Required for `type: "document"`. */
+  document?: WhatsappDocument;
+}
+
+export interface SendWhatsappResponse {
+  id: string;
+  status: "queued";
+  type: WhatsappMessageType;
+  /** ISO 3166-1 alpha-2 destination country detected from the number prefix. */
+  country: string | null;
+  created_at: string;
+}
+
+export interface WhatsappEvent {
+  type: string;
+  created_at: string;
+}
+
+export interface GetWhatsappResponse {
+  id: string;
+  to: string;
+  country: string | null;
+  type: WhatsappMessageType;
+  text: string | null;
+  preview_url: boolean;
+  template: WhatsappTemplate | null;
+  media: WhatsappDocument | null;
+  /** Upstream provider that carried the message, e.g. `meta`. */
+  provider: string | null;
+  /** Provider-side message id (`wamid.…` on Meta); inbound replies reference it. */
+  provider_message_id: string | null;
+  status: WhatsappStatus;
+  error: string | null;
+  created_at: string;
+  last_event_at: string | null;
+  events: WhatsappEvent[];
+}
+
 export interface SendBatchResponse {
   id: string;
   total: number;

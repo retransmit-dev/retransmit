@@ -1,0 +1,62 @@
+# Receive messages
+
+When someone replies to a WhatsApp message you sent, Retransmit stores the
+reply and delivers it to your [webhook](/webhooks) endpoints as a
+`whatsapp.received` event. There is nothing to configure on the WhatsApp
+side: create an endpoint in the dashboard and subscribe it to
+`whatsapp.received`.
+
+## How replies are matched to your account
+
+All customers share the Retransmit WhatsApp number, so an inbound message is
+attributed by conversation:
+
+1. If the sender quoted one of your messages, the reply goes to the account
+   that sent it. `data.replyToMessageId` carries that message's `id`.
+2. Otherwise it goes to the account that most recently messaged that number.
+
+A message from a number no account has ever messaged is stored but not
+delivered to anyone.
+
+## Payload
+
+```json
+{
+  "id": "whd_xxxxxxxxxxxx",
+  "type": "whatsapp.received",
+  "created_at": "2026-09-01T12:05:00.000Z",
+  "data": {
+    "inboundId": "wai_xxxxxxxxxxxx",
+    "from": "+237670000000",
+    "to": "+15550001234",
+    "profileName": "Amina",
+    "type": "text",
+    "text": "Thanks, on my way",
+    "replyToMessageId": "wa_xxxxxxxxxxxx",
+    "providerMessageId": "wamid.HBgMMjM3Njc...",
+    "receivedAt": "2026-09-01T12:04:58.000Z",
+    "data": {
+      "from": "237670000000",
+      "id": "wamid.HBgMMjM3Njc...",
+      "timestamp": "1788350698",
+      "type": "text",
+      "text": { "body": "Thanks, on my way" }
+    }
+  }
+}
+```
+
+| Field | Description |
+| --- | --- |
+| `from` | The sender, in E.164 format. |
+| `to` | The Retransmit number that received the message. |
+| `type` | WhatsApp message type: `text`, `image`, `document`, `audio`, `video`, `sticker`, `location`, `button`, `interactive`, or `reaction`. |
+| `text` | Best-effort text: the body for `text`, the caption for media, the selected option for `button` and `interactive`, the emoji for `reaction`, and `lat,lng` for `location`. `null` when there is none. |
+| `replyToMessageId` | Your message's `id` when the sender quoted it, else `null`. |
+| `data` | The raw WhatsApp message object, for anything the fields above do not cover. |
+
+## Replying
+
+A reply from the customer opens a 24-hour customer service window. Inside it
+you can answer with free-form `text` or media through
+[Send WhatsApp](/whatsapp/send) without a template.

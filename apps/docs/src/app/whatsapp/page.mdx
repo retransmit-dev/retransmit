@@ -1,16 +1,83 @@
 # WhatsApp
 
-> [!NOTE]
->
-> WhatsApp support is coming soon. It is not available in the production API
-> or the current `retransmit.dev` SDK release yet.
+Send WhatsApp messages through the same Retransmit API key and SDK you use for
+email and SMS. Retransmit connects to the WhatsApp Business Platform directly,
+so you do not need a Meta developer account, a verified business, or a phone
+number of your own.
 
-WhatsApp will join Email and SMS under the same Retransmit API key, prepaid
-balance, delivery tracking, and webhook workflow.
+## Send a message
 
-See the [API preview](/whatsapp/api-reference) for the planned SDK namespace.
-The endpoint, supported message types, and final request fields will be added
-to this section when the production contract is ready.
+```ts
+import { Retransmit } from "retransmit.dev";
 
-This page is the documentation placeholder for the launch. Until then, use
-[Email](/email) or [SMS](/sms) for production messages.
+const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);
+
+const { data, error } = await retransmit.whatsapp.send({
+  to: "+237670000000",
+  text: "Your order is ready for pickup.",
+});
+```
+
+Recipients must be in international E.164 format. Each request targets one
+recipient, and the response carries the message `id` you use to track it.
+
+## Templates and the 24-hour window
+
+WhatsApp only lets a business start a conversation with an approved
+**template**. Once the recipient replies, a 24-hour customer service window
+opens and you can send free-form `text`, `image`, and `document` messages
+until it closes.
+
+```ts
+await retransmit.whatsapp.send({
+  to: "+237670000000",
+  type: "template",
+  template: {
+    name: "order_ready",
+    language: "en_US",
+    components: [
+      { type: "body", parameters: [{ type: "text", text: "#48213" }] },
+    ],
+  },
+});
+```
+
+Templates are created and approved on the Retransmit platform account.
+Contact support to register yours; the `name` and `language` you pass must
+match the approved template exactly.
+
+A free-form message sent outside the window is accepted by the API but comes
+back as `failed` with the provider's error once the worker sends it.
+
+## Media
+
+Images and documents are sent by public link. Retransmit passes the link to
+WhatsApp, which downloads it at send time, so the URL must be reachable
+without authentication.
+
+```ts
+await retransmit.whatsapp.send({
+  to: "+237670000000",
+  type: "document",
+  document: {
+    link: "https://files.example.com/invoices/48213.pdf",
+    filename: "invoice-48213.pdf",
+    caption: "Your invoice",
+  },
+});
+```
+
+## Track delivery
+
+Poll `retransmit.whatsapp.get(id)` or [`GET /v1/whatsapp/:id`](/whatsapp/get)
+for the current status and event history. For push updates, subscribe to
+`whatsapp.sent`, `whatsapp.delivered`, `whatsapp.read`, and `whatsapp.failed`
+[webhooks](/webhooks).
+
+## Replies
+
+WhatsApp is a two-way channel. When a recipient answers, Retransmit delivers
+the message to your webhook endpoints as `whatsapp.received`. See
+[Receive messages](/whatsapp/receive).
+
+See [Send WhatsApp](/whatsapp/send) for the complete request contract.

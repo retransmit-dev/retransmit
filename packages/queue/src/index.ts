@@ -9,6 +9,8 @@ export const QUEUES = {
   emailSendDead: "email-send-dead",
   smsSend: "sms-send",
   smsSendDead: "sms-send-dead",
+  whatsappSend: "whatsapp-send",
+  whatsappSendDead: "whatsapp-send-dead",
   webhookDispatch: "webhook-dispatch",
   webhookDispatchDead: "webhook-dispatch-dead",
 } as const;
@@ -21,6 +23,11 @@ export interface EmailSendJob {
 /** Job payload for `sms-send` (and its dead-letter queue). */
 export interface SmsSendJob {
   smsId: string;
+}
+
+/** Job payload for `whatsapp-send` (and its dead-letter queue). */
+export interface WhatsappSendJob {
+  messageId: string;
 }
 
 /** Job payload for `webhook-dispatch` (and its dead-letter queue). */
@@ -70,6 +77,11 @@ export function getBoss(): Promise<PgBoss> {
       ...SEND_RETRY,
       deadLetter: QUEUES.smsSendDead,
     });
+    await boss.createQueue(QUEUES.whatsappSendDead);
+    await boss.createQueue(QUEUES.whatsappSend, {
+      ...SEND_RETRY,
+      deadLetter: QUEUES.whatsappSendDead,
+    });
     await boss.createQueue(QUEUES.webhookDispatchDead);
     await boss.createQueue(QUEUES.webhookDispatch, {
       ...WEBHOOK_RETRY,
@@ -108,6 +120,11 @@ export async function enqueueEmailSendBatch(emailIds: string[]): Promise<void> {
 export async function enqueueSmsSend(smsId: string): Promise<void> {
   const instance = await getBoss();
   await instance.send(QUEUES.smsSend, { smsId } satisfies SmsSendJob);
+}
+
+export async function enqueueWhatsappSend(messageId: string): Promise<void> {
+  const instance = await getBoss();
+  await instance.send(QUEUES.whatsappSend, { messageId } satisfies WhatsappSendJob);
 }
 
 export async function enqueueWebhookDispatch(jobs: WebhookDispatchJob[]): Promise<void> {

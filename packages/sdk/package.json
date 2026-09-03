@@ -1,7 +1,7 @@
 {
   "name": "retransmit.dev",
-  "version": "0.1.2",
-  "description": "Node.js SDK for the Retransmit email and SMS APIs",
+  "version": "0.2.0",
+  "description": "Node.js SDK for the Retransmit email, SMS and WhatsApp APIs",
   "keywords": [
     "email",
     "sms",
@@ -9,7 +9,9 @@
     "retransmit",
     "ses",
     "transactional-email",
-    "transactional-sms"
+    "transactional-sms",
+    "whatsapp",
+    "whatsapp-cloud-api"
   ],
   "homepage": "https://docs.retransmit.dev",
   "repository": {

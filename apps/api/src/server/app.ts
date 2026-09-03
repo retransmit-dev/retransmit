@@ -5,6 +5,8 @@ import { emailRoutes } from "./routes/emails";
 import { smsRoutes } from "./routes/sms";
 import { smsCallbackRoutes } from "./routes/sms-callbacks";
 import { unsubscribeRoutes } from "./routes/unsubscribe";
+import { whatsappRoutes } from "./routes/whatsapp";
+import { whatsappCallbackRoutes } from "./routes/whatsapp-callbacks";
 
 export const app = new Hono();
 
@@ -19,8 +21,10 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 app.route("/v1/emails", emailRoutes);
 app.route("/v1/sms", smsRoutes);
+app.route("/v1/whatsapp", whatsappRoutes);
 app.route("/v1/callbacks", callbackRoutes);
 app.route("/v1/callbacks/sms", smsCallbackRoutes);
+app.route("/v1/callbacks/whatsapp", whatsappCallbackRoutes);
 // Public, token-authenticated pages linked from marketing emails.
 app.route("/unsubscribe", unsubscribeRoutes);
 

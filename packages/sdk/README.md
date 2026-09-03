@@ -1,12 +1,12 @@
 # retransmit.dev
 
-Node.js SDK for the [Retransmit](https://retransmit.dev) messaging API. Send email and SMS through one typed client; WhatsApp support is coming soon. Zero dependencies, works on Node 18+ and edge runtimes with `fetch`.
+Node.js SDK for the [Retransmit](https://retransmit.dev) messaging API. Send email, SMS, and WhatsApp through one typed client. Zero dependencies, works on Node 18+ and edge runtimes with `fetch`.
 
 | Channel | SDK namespace | Availability |
 | --- | --- | --- |
 | Email | `retransmit.emails` | Available |
 | SMS | `retransmit.sms` | Available |
-| WhatsApp | `retransmit.whatsapp` | Coming soon; not included in the current release |
+| WhatsApp | `retransmit.whatsapp` | Available |
 
 ## Install
 
@@ -93,10 +93,33 @@ console.log(progress?.processed, "/", progress?.total, progress?.counts);
 
 ## WhatsApp
 
-WhatsApp is the next planned channel. The intended SDK namespace is
-`retransmit.whatsapp`, but it is deliberately not exported yet because the
-production endpoint and request types are still being finalized. This keeps
-the current SDK honest while reserving a consistent channel-based API shape.
+One recipient per request, in E.164 format. Start a conversation with an
+approved template; once the recipient replies you can send free-form text and
+media for 24 hours.
+
+```ts
+const { data, error } = await retransmit.whatsapp.send({
+  to: "+237670000000",
+  type: "template",
+  template: {
+    name: "verification_code",
+    language: "en_US",
+    components: [{ type: "body", parameters: [{ type: "text", text: "482913" }] }],
+  },
+});
+
+// Inside the 24-hour window:
+await retransmit.whatsapp.send({ to: "+237670000000", text: "Anything else we can help with?" });
+```
+
+Check the outcome, including `read` receipts:
+
+```ts
+const { data } = await retransmit.whatsapp.get("wa_xxxxxxxxxxxx");
+console.log(data?.status); // "sent" | "delivered" | "read" | "failed"
+```
+
+Replies from recipients reach you as `whatsapp.received` webhooks.
 
 ## Error handling
 

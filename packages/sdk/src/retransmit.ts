@@ -1,6 +1,7 @@
 import { Batch } from "./batch";
 import { Emails } from "./emails";
 import { Sms } from "./sms";
+import { Whatsapp } from "./whatsapp";
 import type { Result, RetransmitError, RetransmitOptions } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.retransmit.dev";
@@ -14,6 +15,7 @@ function readEnv(name: string): string | undefined {
 export class Retransmit {
   readonly emails = new Emails(this);
   readonly sms = new Sms(this);
+  readonly whatsapp = new Whatsapp(this);
   readonly batch = new Batch(this);
 
   private readonly apiKey: string;

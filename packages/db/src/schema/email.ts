@@ -50,6 +50,11 @@ export const WEBHOOK_EVENT_TYPES = [
   "sms.delivered",
   "sms.undelivered",
   "sms.failed",
+  "whatsapp.sent",
+  "whatsapp.delivered",
+  "whatsapp.read",
+  "whatsapp.failed",
+  "whatsapp.received",
 ] as const;
 export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 

@@ -118,6 +118,9 @@ importers:
       '@retransmit/sms':
         specifier: workspace:*
         version: link:../../packages/sms
+      '@retransmit/whatsapp':
+        specifier: workspace:*
+        version: link:../../packages/whatsapp
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0)
@@ -605,6 +608,37 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  packages/whatsapp:
+    dependencies:
+      '@retransmit/db':
+        specifier: workspace:*
+        version: link:../db
+      '@retransmit/email':
+        specifier: workspace:*
+        version: link:../email
+      '@retransmit/queue':
+        specifier: workspace:*
+        version: link:../queue
+      '@retransmit/sms':
+        specifier: workspace:*
+        version: link:../sms
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0)
+      zod:
+        specifier: 'catalog:'
+        version: 4.5.4
+    devDependencies:
+      '@retransmit/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

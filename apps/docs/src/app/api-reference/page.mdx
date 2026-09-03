@@ -7,7 +7,8 @@
 | Node.js / TypeScript | [`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev) | `npm install retransmit.dev` |
 
 The SDK wraps every endpoint below with typed methods (`emails.send`,
-`emails.get`, `batch.send`, `batch.get`, `sms.send`, and `sms.get`) and returns
+`emails.get`, `batch.send`, `batch.get`, `sms.send`, `sms.get`,
+`whatsapp.send`, and `whatsapp.get`) and returns
 `{ data, error }` instead of throwing on API errors. Each endpoint page shows
 the SDK call alongside the raw HTTP request. Other languages can call the HTTP
 API directly.
@@ -66,12 +67,14 @@ See [Errors](/api-reference/errors) for the full list of codes.
 | `GET` | [`/v1/emails/batch/:id`](/email/get-batch) | Batch progress: counts per status |
 | `POST` | [`/v1/sms`](/sms/send) | Queue an SMS |
 | `GET` | [`/v1/sms/:id`](/sms/get) | Retrieve an SMS and its event history |
+| `POST` | [`/v1/whatsapp`](/whatsapp/send) | Queue a WhatsApp message |
+| `GET` | [`/v1/whatsapp/:id`](/whatsapp/get) | Retrieve a WhatsApp message and its event history |
 | `GET` | `/health` | Health check (no auth required) |
 
 ## Asynchronous sending
 
-Submitting an email or SMS returns `202 Accepted` immediately with status
+Submitting an email, SMS, or WhatsApp message returns `202 Accepted` immediately with status
 `queued`. A worker drains the queue at the provider's rate, retries transient
 failures with exponential backoff, and marks a message as `failed` only after
 all retries are exhausted. Track outcomes by polling the matching email, batch,
-or SMS endpoint, or receive push updates through [Webhooks](/webhooks).
+SMS, or WhatsApp endpoint, or receive push updates through [Webhooks](/webhooks).

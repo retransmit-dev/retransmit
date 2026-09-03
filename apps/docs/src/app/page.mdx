@@ -11,17 +11,15 @@ infrastructure.
 
 ## What's available today
 
-Retransmit currently supports **Email** and **SMS** through the same API key,
-SDK, balance, and delivery workflow:
+Retransmit currently supports **Email**, **SMS**, and **WhatsApp** through the
+same API key, SDK, balance, and delivery workflow:
 
 - Transactional email, including batches of up to 10,000 messages
 - SMS with destination-aware provider routing and segment counts
+- WhatsApp text, template, and media messages, with replies delivered to your webhooks
 - Typed Node.js SDK — [`retransmit.dev` on npm](https://www.npmjs.com/package/retransmit.dev)
 - Per-message status and event history
 - Signed delivery webhooks
-
-[WhatsApp](/whatsapp) is the next channel and is not yet available in the
-production API or SDK.
 
 ## How the pieces fit
 
@@ -29,9 +27,7 @@ production API or SDK.
 Your application
       │  Authorization: Bearer rt_...
       ▼
-Retransmit API  ──►  Email / SMS
-                         │
-                         └── WhatsApp (coming soon)
+Retransmit API  ──►  Email / SMS / WhatsApp
       │
       ▼
 Retransmit infrastructure (SES, Twilio, Meta, ...)
@@ -39,10 +35,10 @@ Retransmit infrastructure (SES, Twilio, Meta, ...)
 
 ## Where to go next
 
-- [Quickstart](/quickstart) — send your first email or SMS in a few minutes.
+- [Quickstart](/quickstart) — send your first email, SMS, or WhatsApp message in a few minutes.
 - [Email](/email) — send individual or batch email and configure deliverability.
 - [SMS](/sms) — learn about phone numbers, routing, segments, and delivery states.
-- [WhatsApp](/whatsapp) — see what is planned for the next channel.
+- [WhatsApp](/whatsapp) — send templates and free-form messages, and receive replies.
 - [Domains](/email/domains) — add and verify an email sending domain.
 - [API Reference](/api-reference) — endpoints, authentication, and errors.
 - [Webhooks](/webhooks) — get notified about delivery events and verify signatures.

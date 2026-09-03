@@ -5,7 +5,8 @@ import { randomBytes } from "node:crypto";
  * Prefixes in use: key (api key), dom (domain), em (email),
  * evt (email event), wh (webhook endpoint), whd (webhook delivery),
  * org (organization), mem (member), sup (suppression), bt (email batch),
- * sms (sms message), sev (sms event).
+ * sms (sms message), sev (sms event), wa (whatsapp message), wae (whatsapp
+ * event), wai (whatsapp inbound message).
  */
 export function createId(prefix: string): string {
   return `${prefix}_${randomBytes(16).toString("hex")}`;

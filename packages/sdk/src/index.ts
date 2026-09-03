@@ -1,6 +1,7 @@
 export { Retransmit } from "./retransmit";
 export { Emails } from "./emails";
 export { Sms } from "./sms";
+export { Whatsapp } from "./whatsapp";
 export { Batch } from "./batch";
 export type {
   EmailEvent,
@@ -18,5 +19,14 @@ export type {
   SendSmsResponse,
   SmsEvent,
   SmsStatus,
+  GetWhatsappResponse,
+  SendWhatsappOptions,
+  SendWhatsappResponse,
+  WhatsappDocument,
+  WhatsappEvent,
+  WhatsappMedia,
+  WhatsappMessageType,
+  WhatsappStatus,
+  WhatsappTemplate,
 } from "./types";
-export { EMAIL_STATUSES, SMS_STATUSES } from "./types";
+export { EMAIL_STATUSES, SMS_STATUSES, WHATSAPP_STATUSES } from "./types";

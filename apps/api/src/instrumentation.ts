@@ -10,5 +10,7 @@ export async function register() {
     await startEmailWorkers();
     const { startSmsWorkers } = await import("@retransmit/sms/worker");
     await startSmsWorkers();
+    const { startWhatsappWorkers } = await import("@retransmit/whatsapp/worker");
+    await startWhatsappWorkers();
   }
 }

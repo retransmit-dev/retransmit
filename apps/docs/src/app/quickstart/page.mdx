@@ -2,7 +2,7 @@ import { Steps, Tabs } from "nextra/components";
 
 # Quickstart
 
-Send your first email or SMS through Retransmit.
+Send your first email, SMS, or WhatsApp message through Retransmit.
 
 <Steps>
 ## Get an API key
@@ -119,6 +119,49 @@ curl -X POST https://api.retransmit.dev/v1/sms \
 
 See [SMS](/sms) for sender IDs, routing, segment billing, and status details.
 
+## Send a WhatsApp message
+
+WhatsApp uses the same E.164 numbers. To start a conversation you must send an
+approved template; once the recipient replies you can send free-form text for
+24 hours.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.whatsapp.send({
+  to: "+237670000000",
+  type: "template",
+  template: {
+    name: "verification_code",
+    language: "en_US",
+    components: [{ type: "body", parameters: [{ type: "text", text: "482913" }] }],
+  },
+});
+
+if (error) console.error(error.code, error.message);
+else console.log(data.id); // wa_xxxxxxxxxxxx
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/whatsapp \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+237670000000",
+    "type": "template",
+    "template": {
+      "name": "verification_code",
+      "language": "en_US",
+      "components": [{ "type": "body", "parameters": [{ "type": "text", "text": "482913" }] }]
+    }
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+See [WhatsApp](/whatsapp) for templates, media, and receiving replies.
+
 ## Check delivery status
 
 Every send returns a message `id`. Fetch it at any time from the matching
@@ -132,6 +175,9 @@ console.log(data?.status); // "delivered"
 
 const { data: sms } = await retransmit.sms.get("sms_xxxxxxxxxxxx");
 console.log(sms?.status); // "delivered"
+
+const { data: wa } = await retransmit.whatsapp.get("wa_xxxxxxxxxxxx");
+console.log(wa?.status); // "read"
 ```
 </Tabs.Tab>
 <Tabs.Tab>
@@ -141,10 +187,13 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
 
 curl https://api.retransmit.dev/v1/sms/sms_xxxxxxxxxxxx \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+
+curl https://api.retransmit.dev/v1/whatsapp/wa_xxxxxxxxxxxx \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
 ```
 </Tabs.Tab>
 </Tabs>
 
-For push-based email and SMS delivery updates, set up
-[Webhooks](/webhooks).
+For push-based delivery updates on every channel, and to receive WhatsApp
+replies, set up [Webhooks](/webhooks).
 </Steps>

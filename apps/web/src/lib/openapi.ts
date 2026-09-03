@@ -52,6 +52,17 @@ const SMS_EVENT_TYPES = [
   "sms.failed",
 ] as const;
 
+const WHATSAPP_STATUSES = ["queued", "sent", "delivered", "read", "failed"] as const;
+
+const WHATSAPP_MESSAGE_TYPES = ["text", "template", "image", "document"] as const;
+
+const WHATSAPP_EVENT_TYPES = [
+  "whatsapp.sent",
+  "whatsapp.delivered",
+  "whatsapp.read",
+  "whatsapp.failed",
+] as const;
+
 const ERROR_CODES = [
   "invalid_json",
   "validation_error",
@@ -93,7 +104,7 @@ export const OPENAPI_DOCUMENT = {
     version: "1.0.0",
     summary: siteConfig.tagline,
     description:
-      "Transactional email and SMS API. Queue single emails, batches of up to 10,000, or SMS routed per destination country, then track delivery through per-message event logs and signed webhooks. Authenticate every /v1 request with an API key from the dashboard. Errors are always JSON with a stable `error.code`. Self-hosted deployments serve this same API at their own base URL.",
+      "Transactional email, SMS and WhatsApp API. Queue single emails, batches of up to 10,000, SMS routed per destination country, or WhatsApp text, template and media messages, then track delivery through per-message event logs and signed webhooks. Authenticate every /v1 request with an API key from the dashboard. Errors are always JSON with a stable `error.code`. Self-hosted deployments serve this same API at their own base URL.",
     contact: { name: siteConfig.name, url: siteConfig.url },
     license: {
       name: "AGPL-3.0",
@@ -109,6 +120,7 @@ export const OPENAPI_DOCUMENT = {
   tags: [
     { name: "Emails", description: "Send email and read delivery state." },
     { name: "Sms", description: "Send SMS and read delivery state." },
+    { name: "Whatsapp", description: "Send WhatsApp messages and read delivery state." },
     { name: "Service", description: "Unauthenticated service endpoints." },
   ],
   paths: {
@@ -333,6 +345,68 @@ export const OPENAPI_DOCUMENT = {
         },
       },
     },
+    "/v1/whatsapp": {
+      post: {
+        operationId: "sendWhatsapp",
+        tags: ["Whatsapp"],
+        summary: "Queue one WhatsApp message",
+        description:
+          "Returns 202 immediately; a worker sends it with retries and a dead-letter queue. One recipient per request. Business-initiated conversations must start with an approved template; free-form text and media only deliver inside the 24-hour window opened by a reply. Replies reach you as whatsapp.received webhooks. Poll GET /v1/whatsapp/{id} or subscribe to webhooks for the outcome.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/SendWhatsappRequest" },
+            },
+          },
+        },
+        responses: {
+          "202": {
+            description: "Message accepted and queued.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/QueuedWhatsapp" },
+              },
+            },
+          },
+          "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "422": errorResponse(
+            "Schema validation failed or the object required by `type` is missing (`validation_error`), or no WhatsApp provider is configured (`no_route`).",
+          ),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
+    "/v1/whatsapp/{id}": {
+      get: {
+        operationId: "getWhatsapp",
+        tags: ["Whatsapp"],
+        summary: "Get one WhatsApp message with its event history",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            description: "Message id, e.g. `wa_...`.",
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "The message and its events, oldest first.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/Whatsapp" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "404": errorResponse("No WhatsApp message with this id on your account."),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -536,6 +610,129 @@ export const OPENAPI_DOCUMENT = {
         required: ["type", "created_at"],
         properties: {
           type: { type: "string", enum: [...SMS_EVENT_TYPES] },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
+      WhatsappTemplate: {
+        type: "object",
+        required: ["name", "language"],
+        properties: {
+          name: { type: "string", description: "Approved template name." },
+          language: { type: "string", description: "Template language code, e.g. en_US." },
+          components: {
+            type: "array",
+            items: { type: "object", additionalProperties: true },
+            description: "WhatsApp `components` (header/body/button parameters), passed through verbatim.",
+          },
+        },
+      },
+      WhatsappMedia: {
+        type: "object",
+        required: ["link"],
+        properties: {
+          link: { type: "string", format: "uri", description: "Public HTTPS URL fetched at send time." },
+          caption: { type: "string", maxLength: 1024 },
+          filename: { type: "string", description: "Documents only: file name shown to the recipient." },
+        },
+      },
+      SendWhatsappRequest: {
+        type: "object",
+        required: ["to"],
+        properties: {
+          to: {
+            type: "string",
+            description: "One recipient in international format, e.g. +237670000000.",
+          },
+          type: {
+            type: "string",
+            enum: [...WHATSAPP_MESSAGE_TYPES],
+            default: "text",
+            description: "Which content object is required: text, template, image or document.",
+          },
+          text: {
+            type: "string",
+            minLength: 1,
+            maxLength: 4096,
+            description: "Body for text messages; caption for media when the media object has none.",
+          },
+          preview_url: {
+            type: "boolean",
+            default: false,
+            description: "Render a preview for the first link in a text message.",
+          },
+          template: { $ref: "#/components/schemas/WhatsappTemplate" },
+          image: { $ref: "#/components/schemas/WhatsappMedia" },
+          document: { $ref: "#/components/schemas/WhatsappMedia" },
+        },
+      },
+      QueuedWhatsapp: {
+        type: "object",
+        required: ["id", "status", "type", "country", "created_at"],
+        properties: {
+          id: { type: "string" },
+          status: { type: "string", const: "queued" },
+          type: { type: "string", enum: [...WHATSAPP_MESSAGE_TYPES] },
+          country: {
+            type: ["string", "null"],
+            description: "ISO 3166-1 alpha-2 country detected from the number prefix.",
+          },
+          created_at: { type: "string", format: "date-time" },
+        },
+      },
+      Whatsapp: {
+        type: "object",
+        required: [
+          "id",
+          "to",
+          "country",
+          "type",
+          "text",
+          "preview_url",
+          "template",
+          "media",
+          "provider",
+          "provider_message_id",
+          "status",
+          "error",
+          "created_at",
+          "last_event_at",
+          "events",
+        ],
+        properties: {
+          id: { type: "string" },
+          to: { type: "string" },
+          country: { type: ["string", "null"] },
+          type: { type: "string", enum: [...WHATSAPP_MESSAGE_TYPES] },
+          text: { type: ["string", "null"] },
+          preview_url: { type: "boolean" },
+          template: { oneOf: [{ $ref: "#/components/schemas/WhatsappTemplate" }, { type: "null" }] },
+          media: { oneOf: [{ $ref: "#/components/schemas/WhatsappMedia" }, { type: "null" }] },
+          provider: {
+            type: ["string", "null"],
+            description: "Provider the message was routed to, set at send time (e.g. meta).",
+          },
+          provider_message_id: {
+            type: ["string", "null"],
+            description: "Provider-side message id (wamid on Meta); replies reference it.",
+          },
+          status: { type: "string", enum: [...WHATSAPP_STATUSES] },
+          error: {
+            type: ["string", "null"],
+            description: "Failure detail when status is failed.",
+          },
+          created_at: { type: "string", format: "date-time" },
+          last_event_at: { type: ["string", "null"], format: "date-time" },
+          events: {
+            type: "array",
+            items: { $ref: "#/components/schemas/WhatsappEvent" },
+          },
+        },
+      },
+      WhatsappEvent: {
+        type: "object",
+        required: ["type", "created_at"],
+        properties: {
+          type: { type: "string", enum: [...WHATSAPP_EVENT_TYPES] },
           created_at: { type: "string", format: "date-time" },
         },
       },

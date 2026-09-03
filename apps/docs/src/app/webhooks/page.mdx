@@ -1,6 +1,6 @@
 # Webhooks
 
-Webhooks push email and SMS events to your application as they happen — no polling.
+Webhooks push email, SMS, and WhatsApp events to your application as they happen — no polling.
 Create endpoints in the dashboard, choose which event types each one receives,
 and Retransmit POSTs a signed JSON payload to your URL.
 
@@ -22,6 +22,11 @@ and Retransmit POSTs a signed JSON payload to your URL.
 | `sms.delivered` | The carrier reported successful delivery. |
 | `sms.undelivered` | The carrier reported the SMS as undelivered, expired, or rejected. |
 | `sms.failed` | The provider send failed after retries, or no route was available. |
+| `whatsapp.sent` | WhatsApp accepted the message. |
+| `whatsapp.delivered` | The message reached the recipient's device. |
+| `whatsapp.read` | The recipient opened the message. |
+| `whatsapp.failed` | The send failed after retries, or WhatsApp could not deliver it. |
+| `whatsapp.received` | A recipient sent you a message. See [Receive messages](/whatsapp/receive). |
 
 ## Payload
 
@@ -40,8 +45,10 @@ and Retransmit POSTs a signed JSON payload to your URL.
 }
 ```
 
-Some events carry extra context in `data.data` — for example `email.failed`
-and `sms.failed` include `{ "message": "..." }` with the provider error.
+Some events carry extra context in `data.data` — for example `email.failed`,
+`sms.failed`, and `whatsapp.failed` include `{ "message": "..." }` with the
+provider error. WhatsApp events identify the message as `data.messageId`
+(`wa_...`).
 
 ## Delivery behavior
 

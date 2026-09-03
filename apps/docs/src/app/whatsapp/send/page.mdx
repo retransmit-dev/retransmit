@@ -1,0 +1,112 @@
+import { Tabs } from "nextra/components";
+
+# Send WhatsApp
+
+```http
+POST /v1/whatsapp
+```
+
+Validates and queues one WhatsApp message for asynchronous delivery.
+Retransmit normalizes the recipient number, detects its destination country,
+and selects an available provider. Poll [Get WhatsApp](/whatsapp/get) or
+subscribe to [Webhooks](/webhooks) for the outcome.
+
+## Request body
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `to` | string | Yes | One recipient in international E.164 format. |
+| `type` | string | No | `text` (default), `template`, `image`, or `document`. |
+| `text` | string | For `text` | Message body, from 1 to 4,096 characters. Also used as the caption for media when the media object has none. |
+| `preview_url` | boolean | No | Render a preview for the first link in a `text` message. Defaults to `false`. |
+| `template` | object | For `template` | `{ name, language, components? }`. `components` is passed to WhatsApp verbatim. |
+| `image` | object | For `image` | `{ link, caption? }`. The link must be a public HTTPS URL. |
+| `document` | object | For `document` | `{ link, caption?, filename? }`. |
+
+## Example
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.whatsapp.send({
+  to: "+237670000000",
+  text: "Your verification code is 482913",
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/whatsapp \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+237670000000",
+    "text": "Your verification code is 482913"
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+## Template example
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.whatsapp.send({
+  to: "+237670000000",
+  type: "template",
+  template: {
+    name: "verification_code",
+    language: "en_US",
+    components: [
+      { type: "body", parameters: [{ type: "text", text: "482913" }] },
+    ],
+  },
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/whatsapp \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+237670000000",
+    "type": "template",
+    "template": {
+      "name": "verification_code",
+      "language": "en_US",
+      "components": [
+        { "type": "body", "parameters": [{ "type": "text", "text": "482913" }] }
+      ]
+    }
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+## Response
+
+`202 Accepted`
+
+```json
+{
+  "id": "wa_xxxxxxxxxxxx",
+  "status": "queued",
+  "type": "text",
+  "country": "CM",
+  "created_at": "2026-09-01T12:00:00.000Z"
+}
+```
+
+`country` is the detected ISO 3166-1 alpha-2 destination.
+
+## Errors
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| `400` | `invalid_json` | The request body is not valid JSON. |
+| `401` | `unauthorized` | The API key is missing, invalid, or revoked. |
+| `422` | `validation_error` | A field is invalid, the phone number is malformed, or the object required by `type` is missing. |
+| `422` | `no_route` | No WhatsApp provider is configured. |
+| `500` | `internal_error` | The message could not be created. |

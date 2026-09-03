@@ -1,4 +1,6 @@
 export default {
   index: "Overview",
-  "api-reference": "API Reference (Coming Soon)",
+  send: "Send WhatsApp",
+  get: "Get WhatsApp",
+  receive: "Receive messages",
 };

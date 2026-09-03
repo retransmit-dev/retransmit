@@ -1,0 +1,26 @@
+{
+  "name": "@retransmit/whatsapp",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@retransmit/db": "workspace:*",
+    "@retransmit/email": "workspace:*",
+    "@retransmit/queue": "workspace:*",
+    "@retransmit/sms": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@retransmit/config": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
