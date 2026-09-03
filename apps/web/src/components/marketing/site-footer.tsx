@@ -50,6 +50,12 @@ export function SiteFooter() {
                     <li key={link.label}>
                       <a
                         href={link.href}
+                        {...(link.href === siteConfig.links.quickstart
+                          ? {
+                              "data-wa-goal": "start_quickstart",
+                              "data-wa-goal-placement": "footer",
+                            }
+                          : {})}
                         className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {link.label}

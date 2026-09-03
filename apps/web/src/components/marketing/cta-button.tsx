@@ -21,6 +21,8 @@ export function CtaButton({
   tone = "signal",
   size = "md",
   external = false,
+  goal,
+  goalPlacement,
   className,
   children,
 }: {
@@ -28,6 +30,8 @@ export function CtaButton({
   tone?: keyof typeof TONE;
   size?: keyof typeof SIZE;
   external?: boolean;
+  goal?: string;
+  goalPlacement?: string;
   className?: string;
   children: React.ReactNode;
 }) {
@@ -35,6 +39,8 @@ export function CtaButton({
     <a
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+      data-wa-goal={goal}
+      data-wa-goal-placement={goalPlacement}
       className={cn(
         "inline-flex shrink-0 items-center justify-center gap-2 font-medium transition duration-100 ease-haptic outline-none focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-[0.5px]",
         SIZE[size],

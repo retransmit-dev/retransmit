@@ -168,7 +168,12 @@ export function SeoContentPage({
           {lead}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <CtaButton href={siteConfig.links.quickstart} size="sm">
+          <CtaButton
+            href={siteConfig.links.quickstart}
+            size="sm"
+            goal="start_quickstart"
+            goalPlacement="content_header"
+          >
             Get started
           </CtaButton>
           <CtaButton href={siteConfig.links.docs} tone="quiet" size="sm">
@@ -288,7 +293,12 @@ export function SeoContentPage({
                 {cta}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
-                <CtaButton href={siteConfig.links.quickstart} size="sm">
+                <CtaButton
+                  href={siteConfig.links.quickstart}
+                  size="sm"
+                  goal="start_quickstart"
+                  goalPlacement="content_cta"
+                >
                   Get started
                 </CtaButton>
                 <CtaButton
@@ -324,6 +334,12 @@ export function SeoContentPage({
                   <a
                     key={resource.href}
                     href={resource.href}
+                    {...(resource.href === siteConfig.links.quickstart
+                      ? {
+                          "data-wa-goal": "start_quickstart",
+                          "data-wa-goal-placement": "related_resources",
+                        }
+                      : {})}
                     className="rounded-[1rem] bg-card p-5 shadow-card transition-transform hover:-translate-y-0.5 active:translate-y-0"
                   >
                     <p className="text-base font-semibold tracking-tight">

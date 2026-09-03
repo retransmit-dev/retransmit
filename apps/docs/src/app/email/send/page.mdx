@@ -6,28 +6,26 @@ import { Tabs } from "nextra/components";
 POST /v1/emails
 ```
 
-Queues a transactional email from one of your verified domains. The request
-returns as soon as the email is validated and stored; a worker sends it
-moments later, respecting the platform's provider rate limit and retrying
-transient failures automatically. For many emails at once, use
-[Send Batch](/email/send-batch).
+Queues an email from one of your verified domains. The request returns once
+the email is validated and stored. A worker sends it moments later and retries
+transient failures. For many emails at once, use [Send Batch](/email/send-batch).
 
 ## Request body
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `from` | string | Yes | Sender. Either `address@domain.com` or `Name <address@domain.com>`. The domain must be registered and verified on your account. |
-| `to` | string \| string[] | Yes | Recipient(s). 1–50 addresses. |
-| `cc` | string \| string[] | No | CC recipient(s). 1–50 addresses. |
-| `bcc` | string \| string[] | No | BCC recipient(s). 1–50 addresses. |
+| `to` | string \| string[] | Yes | 1 to 50 recipient addresses. |
+| `cc` | string \| string[] | No | 1 to 50 CC addresses. |
+| `bcc` | string \| string[] | No | 1 to 50 BCC addresses. |
 | `reply_to` | string \| string[] | No | Reply-To address(es). |
-| `subject` | string | Yes | 1–998 characters. |
+| `subject` | string | Yes | 1 to 998 characters. |
 | `html` | string | Yes* | HTML body, up to 1,000,000 characters. |
 | `text` | string | Yes* | Plain-text body, up to 1,000,000 characters. |
-| `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, one-click `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
-| `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering sends in the dashboard, for example `{ "name": "campaign", "value": "outreach-1" }`. Names and values allow letters, digits, `_` and `-`, up to 256 characters. Names must be unique within one email. Tags are never sent to the recipient. |
+| `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
+| `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering in the dashboard, e.g. `{ "name": "campaign", "value": "outreach-1" }`. Letters, digits, `_` and `-`, up to 256 characters each. Names must be unique per email. Tags are not sent to the recipient. |
 
-\* At least one of `html` or `text` is required; you can provide both.
+\* At least one of `html` or `text` is required. You can provide both.
 
 ## Example
 
@@ -49,8 +47,7 @@ const { data, error } = await retransmit.emails.send({
 });
 ```
 
-The [SDK](https://www.npmjs.com/package/retransmit.dev) uses camelCase field
-names (`replyTo`); the raw HTTP API uses `reply_to`.
+The SDK uses camelCase field names (`replyTo`). The HTTP API uses `reply_to`.
 </Tabs.Tab>
 <Tabs.Tab>
 ```sh
@@ -82,19 +79,18 @@ curl -X POST https://api.retransmit.dev/v1/emails \
 }
 ```
 
-Keep the `id` — it's how you [look the email up](/email/get) and
-how webhook events reference it (`emailId`). The status moves from `queued` to
-`sent` once the worker hands it to the provider (usually within seconds), then
-onward as delivery events arrive. If every send retry fails, it ends up as
-`failed` with the provider error recorded — you'll get an `email.failed`
-webhook if you subscribe to it.
+Keep the `id`. It identifies the email in [Get Email](/email/get) and in
+webhook events (`emailId`). The status moves from `queued` to `sent` when the
+worker hands it to the provider, then follows delivery events. If every retry
+fails, the status becomes `failed` with the provider error, and an
+`email.failed` webhook fires.
 
 ## Errors
 
 | Status | Code | Cause |
 | --- | --- | --- |
 | `400` | `invalid_json` | Body is not valid JSON. |
-| `422` | `validation_error` | A field failed validation; the message names the field. |
+| `422` | `validation_error` | A field failed validation. The message names the field. |
 | `403` | `domain_not_found` | The `from` domain is not registered on your account. |
 | `403` | `domain_not_verified` | The `from` domain exists but is not verified yet. |
 | `401` | `unauthorized` | Missing, malformed, or revoked API key. |

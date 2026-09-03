@@ -6,9 +6,8 @@ import { Tabs } from "nextra/components";
 GET /v1/emails/batch/:id
 ```
 
-Returns live progress for a [batch](/email/send-batch): how many of
-its emails are in each status. Poll it to drive a progress bar — `processed`
-counts every email that has left the queue (sent, delivered, failed, …).
+Returns live progress for a [batch](/email/send-batch): how many emails are in
+each status. `processed` counts every email that has left the queue.
 
 ## Example
 
@@ -46,9 +45,9 @@ curl https://api.retransmit.dev/v1/emails/batch/bt_xxxxxxxxxxxx \
 }
 ```
 
-`counts` only includes statuses with at least one email. The batch is finished
-when `processed` equals `total`; individual emails keep updating afterwards as
-delivery events arrive (`sent` → `delivered` / `bounced` / …).
+`counts` only lists statuses with at least one email. The batch is finished
+when `processed` equals `total`. Individual emails keep updating afterwards as
+delivery events arrive.
 
 ## Errors
 

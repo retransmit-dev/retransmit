@@ -8,10 +8,8 @@
 
 The SDK wraps every endpoint below with typed methods (`emails.send`,
 `emails.get`, `batch.send`, `batch.get`, `sms.send`, `sms.get`,
-`whatsapp.send`, and `whatsapp.get`) and returns
-`{ data, error }` instead of throwing on API errors. Each endpoint page shows
-the SDK call alongside the raw HTTP request. Other languages can call the HTTP
-API directly.
+`whatsapp.send`, `whatsapp.get`) and returns `{ data, error }` instead of
+throwing. Each endpoint page shows the SDK call next to the raw HTTP request.
 
 ## Base URL
 
@@ -44,7 +42,7 @@ revoked key returns `401 unauthorized`:
 
 ## Response format
 
-Responses are JSON. Errors always have the shape:
+Responses are JSON. Errors always have this shape:
 
 ```json
 {
@@ -61,7 +59,7 @@ See [Errors](/api-reference/errors) for the full list of codes.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | [`/v1/emails`](/email/send) | Queue a transactional email |
+| `POST` | [`/v1/emails`](/email/send) | Queue an email |
 | `POST` | [`/v1/emails/batch`](/email/send-batch) | Queue up to 10,000 emails in one request |
 | `GET` | [`/v1/emails/:id`](/email/get) | Retrieve an email and its event history |
 | `GET` | [`/v1/emails/batch/:id`](/email/get-batch) | Batch progress: counts per status |
@@ -73,8 +71,7 @@ See [Errors](/api-reference/errors) for the full list of codes.
 
 ## Asynchronous sending
 
-Submitting an email, SMS, or WhatsApp message returns `202 Accepted` immediately with status
-`queued`. A worker drains the queue at the provider's rate, retries transient
-failures with exponential backoff, and marks a message as `failed` only after
-all retries are exhausted. Track outcomes by polling the matching email, batch,
-SMS, or WhatsApp endpoint, or receive push updates through [Webhooks](/webhooks).
+Sending returns `202 Accepted` with status `queued`. A worker sends at the
+provider's rate and retries transient failures with exponential backoff. A
+message is marked `failed` only after all retries are exhausted. Track outcomes
+by polling the matching `GET` endpoint or through [Webhooks](/webhooks).

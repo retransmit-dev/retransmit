@@ -1,8 +1,7 @@
 # SMS
 
-Send transactional SMS through the same Retransmit API key and SDK you use for
-email. Retransmit detects the destination country and routes the message to an
-available provider.
+Send SMS with the same API key and SDK you use for email. Retransmit detects
+the destination country and routes the message to an available provider.
 
 ## Send a message
 
@@ -18,28 +17,25 @@ const { data, error } = await retransmit.sms.send({
 });
 ```
 
-The `from` sender ID is optional. When provided, it can contain up to 11
-letters, digits, spaces, hyphens, or underscores. If omitted, Retransmit uses
-the routed provider's configured sender.
+`from` is an optional sender ID of up to 11 letters, digits, spaces, hyphens,
+or underscores. If omitted, Retransmit uses the routed provider's default sender.
 
 Recipients must be in international E.164 format, such as `+237670000000`.
-You can send to one recipient or up to 50 recipients in one request, but all
-recipients in that request must be in the same country.
+One request takes up to 50 recipients, all in the same country.
 
 ## Routing and availability
 
-Retransmit determines the destination country from the recipient number and
-selects an available provider for that country. If no provider is configured
-for the destination, the request returns `422 no_route` and is not queued.
+Retransmit reads the destination country from the recipient number and picks
+a provider for it. If no provider is configured for that country, the request
+returns `422 no_route` and nothing is queued.
 
 For mixed-country recipient lists, send one request per country.
 
 ## Message segments
 
-SMS billing is based on message segments, not API requests. The send response
-includes `segments`, the number of billable GSM-7 or UCS-2 parts used by the
-message. Unicode characters can reduce the number of characters that fit in
-each segment.
+SMS is billed per segment, not per request. The send response includes
+`segments`, the number of billable GSM-7 or UCS-2 parts. Unicode characters
+reduce how many characters fit in each segment.
 
 ```json
 {
@@ -53,9 +49,8 @@ each segment.
 
 ## Track delivery
 
-Poll `retransmit.sms.get(id)` or [`GET /v1/sms/:id`](/sms/get)
-to retrieve the current status and event history. For push updates, subscribe
-to `sms.sent`, `sms.delivered`, `sms.undelivered`, and `sms.failed`
-[webhooks](/webhooks).
+Poll `retransmit.sms.get(id)` or [`GET /v1/sms/:id`](/sms/get) for the
+current status and event history. For push updates, subscribe to `sms.sent`,
+`sms.delivered`, `sms.undelivered`, and `sms.failed` [webhooks](/webhooks).
 
-See [Send SMS](/sms/send) for the complete request contract.
+See [Send SMS](/sms/send) for the full request contract.

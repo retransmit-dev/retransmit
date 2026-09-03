@@ -87,6 +87,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${dmSans.variable} ${geistMono.variable}`}
     >
+      <head>
+        <script
+          defer
+          src="https://analytics.slane.io/tracker.js"
+          data-site="j1eghz0ma3ds"
+          data-persistent="true"
+        />
+      </head>
       <body className="antialiased">
         <Providers>
           <a

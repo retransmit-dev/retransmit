@@ -2,13 +2,13 @@ import { Steps, Tabs } from "nextra/components";
 
 # Quickstart
 
-Send your first email, SMS, or WhatsApp message through Retransmit.
+Send your first email, SMS, or WhatsApp message.
 
 <Steps>
 ## Get an API key
 
-Create an API key from the dashboard. Keys look like `rt_...` and are shown once —
-store the value in your app's environment:
+Create an API key in the dashboard. Keys start with `rt_` and are shown once.
+Store it in your environment:
 
 ```sh
 RETRANSMIT_API_KEY=rt_xxxxxxxxxxxxxxxx
@@ -16,27 +16,23 @@ RETRANSMIT_API_KEY=rt_xxxxxxxxxxxxxxxx
 
 ## Install the SDK (optional)
 
-For Node.js / TypeScript apps, the official
-[`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev) package wraps
-the API with typed methods and `{ data, error }` results. It has zero
-dependencies and works on Node 18+ and edge runtimes.
+The [`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev) package
+wraps the API with typed methods and `{ data, error }` results. It has zero
+dependencies and runs on Node 18+ and edge runtimes.
 
 ```sh npm2yarn
 npm install retransmit.dev
 ```
 
-Prefer plain HTTP? Every example below also shows the equivalent `curl` —
-the API works from any language.
+Every example also shows the `curl` equivalent. The API works from any language.
 
 ## Send an email
 
-Email requires a verified sending domain. Add your domain in the dashboard and
-publish the DNS records it gives you (SPF / DKIM). See [Domains](/email/domains) for
-details.
+Email needs a verified sending domain. Add it in the dashboard and publish the
+DNS records it gives you. See [Domains](/email/domains).
 
-You can only send from domains registered **and verified** on your account.
-Sending from an unregistered domain returns `403 domain_not_found`; from an
-unverified one, `403 domain_not_verified`.
+Sending from an unregistered domain returns `403 domain_not_found`. Sending
+from an unverified one returns `403 domain_not_verified`.
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
@@ -71,8 +67,8 @@ curl -X POST https://api.retransmit.dev/v1/emails \
 </Tabs.Tab>
 </Tabs>
 
-Response (`202 Accepted` — the email is queued and sent moments later by the
-worker, which respects provider rate limits and retries transient failures):
+The response is `202 Accepted`. The email is queued and a worker sends it
+moments later:
 
 ```json
 {
@@ -82,13 +78,13 @@ worker, which respects provider rate limits and retries transient failures):
 }
 ```
 
-Sending thousands at once? [Send Batch](/email/send-batch) queues up
-to 10,000 emails in a single request — `retransmit.batch.send([...])` in the SDK.
+For thousands of emails, use [Send Batch](/email/send-batch)
+(`retransmit.batch.send([...])` in the SDK). It takes up to 10,000 per request.
 
 ## Send an SMS
 
-SMS recipients use international E.164 format, including the leading `+` and
-country code. Recipients in one request must all be in the same country.
+Recipients use international E.164 format with the leading `+` and country
+code. All recipients in one request must be in the same country.
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
@@ -117,13 +113,13 @@ curl -X POST https://api.retransmit.dev/v1/sms \
 </Tabs.Tab>
 </Tabs>
 
-See [SMS](/sms) for sender IDs, routing, segment billing, and status details.
+See [SMS](/sms) for sender IDs, routing, segments, and statuses.
 
 ## Send a WhatsApp message
 
-First connect your WhatsApp Business number under **WhatsApp** in the
-dashboard. To start a conversation you must send an approved template; once
-the recipient replies you can send free-form text for 24 hours.
+Connect your WhatsApp Business number under **WhatsApp** in the dashboard. A
+conversation must start with an approved template. Once the recipient replies,
+you can send free-form text for 24 hours.
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
@@ -160,12 +156,11 @@ curl -X POST https://api.retransmit.dev/v1/whatsapp \
 </Tabs.Tab>
 </Tabs>
 
-See [WhatsApp](/whatsapp) for templates, media, and receiving replies.
+See [WhatsApp](/whatsapp) for templates, media, and replies.
 
 ## Check delivery status
 
-Every send returns a message `id`. Fetch it at any time from the matching
-channel to see its status and event history:
+Every send returns an `id`. Fetch it any time for the status and event history:
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
@@ -194,6 +189,5 @@ curl https://api.retransmit.dev/v1/whatsapp/wa_xxxxxxxxxxxx \
 </Tabs.Tab>
 </Tabs>
 
-For push-based delivery updates on every channel, and to receive WhatsApp
-replies, set up [Webhooks](/webhooks).
+For push updates and WhatsApp replies, set up [Webhooks](/webhooks).
 </Steps>

@@ -7,7 +7,7 @@ import "nextra-theme-docs/style.css";
 export const metadata: Metadata = {
   title: {
     default: "Retransmit Docs",
-    template: "%s – Retransmit",
+    template: "%s | Retransmit",
   },
   description:
     "One API for Email, SMS, WhatsApp, and OTP. Integrate Retransmit into your apps.",

@@ -6,8 +6,7 @@ import { Tabs } from "nextra/components";
 GET /v1/emails/:id
 ```
 
-Retrieves a previously sent email, including its current status and the full
-event timeline.
+Retrieves an email with its current status and full event history.
 
 ## Example
 
@@ -56,7 +55,7 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
 
 | Status | Meaning |
 | --- | --- |
-| `queued` | Accepted and waiting for the worker; also the state while sends are being retried. |
+| `queued` | Waiting for the worker, or being retried. |
 | `scheduled` | Scheduled for a later send. |
 | `sent` | Handed to the upstream provider. |
 | `delivery_delayed` | The receiving server temporarily deferred delivery. |
@@ -65,10 +64,10 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
 | `clicked` | The recipient clicked a link. |
 | `bounced` | The recipient's server permanently rejected it. |
 | `complained` | The recipient marked it as spam. |
-| `suppressed` | Not sent — the address is on a suppression list. |
+| `suppressed` | Not sent. The address is on a suppression list. |
 | `canceled` | A scheduled send was canceled. |
 | `rejected` | Rejected before sending. |
-| `failed` | The send failed after all retries (dead-lettered); `error` contains the reason. |
+| `failed` | The send failed after all retries. `error` contains the reason. |
 
 ## Errors
 

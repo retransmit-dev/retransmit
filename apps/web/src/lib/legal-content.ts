@@ -24,7 +24,7 @@ const CONTACT_EMAIL = "contact@logestalabs.com";
 export const PRIVACY_POLICY: LegalDoc = {
   href: "/privacy",
   title: "Privacy policy",
-  updatedLabel: "September 2, 2026",
+  updatedLabel: "September 3, 2026",
   intro:
     "This policy explains what Retransmit collects, why we collect it, how long we keep it, who we share it with, and what you can do about it. It covers the retransmit.dev website, the dashboard, and the hosted API. If you self-host Retransmit, this policy does not apply to your instance; you control that data.",
   sections: [
@@ -43,6 +43,7 @@ export const PRIVACY_POLICY: LegalDoc = {
         "Sending configuration: your verified domains, API keys, webhook endpoints, and suppression lists.",
         "Usage and billing data: API request logs, credit balance, purchase history, and send volumes, used for billing, capacity planning, and abuse prevention.",
         "Technical data collected automatically: IP address, browser type, and request timestamps, recorded in server logs when you use the website, dashboard, or API. We use this to secure the service and diagnose problems.",
+        "Website analytics data: the page URL, referring page, browser window width, a randomly generated visitor identifier, and conversion events such as opening the quickstart. We use this to understand website traffic and which calls to action are useful.",
       ],
     },
     {
@@ -81,7 +82,7 @@ export const PRIVACY_POLICY: LegalDoc = {
     {
       title: "Cookies",
       body: [
-        "The dashboard uses cookies for one purpose: keeping you signed in. These are first-party session cookies and they are required for the service to work. The website stores your theme preference in your browser. We do not use advertising cookies, cross-site tracking cookies, or third-party analytics trackers.",
+        "The dashboard uses first-party session cookies to keep you signed in. The website stores your theme preference in your browser. To measure pageviews and conversion journeys across visits, the website also stores a random visitor identifier in local storage until you clear the site's data and in a first-party _wa_id cookie with a renewable two-year expiry. We do not use advertising cookies or use this identifier for cross-site tracking.",
       ],
     },
     {
@@ -91,6 +92,7 @@ export const PRIVACY_POLICY: LegalDoc = {
       ],
       points: [
         "Amazon Web Services: our infrastructure runs on AWS data centers in the European Union and the United States, and your emails are delivered through Amazon SES.",
+        "Slane Analytics: analytics.slane.io receives website page URLs, referrers, browser window widths, random visitor identifiers, and conversion event names and placements so we can measure website usage.",
         "Payment providers: when you buy credits, your payment details go directly to the payment provider. We never see or store card numbers; we receive only confirmation that a payment succeeded.",
         "Authorities: we disclose data to law enforcement or regulators only when the law requires it, and we push back on requests that are overbroad.",
       ],

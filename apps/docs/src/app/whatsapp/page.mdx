@@ -1,21 +1,20 @@
 # WhatsApp
 
-Send WhatsApp messages through the same Retransmit API key and SDK you use for
-email and SMS. Messages go out from your own WhatsApp Business number, so
-recipients see your business name and replies come straight back to you.
+Send WhatsApp messages with the same API key and SDK you use for email and
+SMS. Messages go out from your own WhatsApp Business number, so recipients see
+your business name and replies come back to you.
 
 ## Connect a number
 
 Open **WhatsApp** in the dashboard and click **Connect a number**. Meta's
 signup dialog walks you through logging in with Facebook, picking or creating
-your business, and verifying a phone number you own by SMS or voice call. No
-Meta developer account or code is needed; Retransmit's app handles the
-integration.
+your business, and verifying a phone number by SMS or voice call. No Meta
+developer account or code is needed.
 
-A number can only be attached to one WhatsApp app at a time. If it is
-currently used in the WhatsApp or WhatsApp Business app, remove it there
-first. Most organizations connect one number; connect several if you need
-separate identities and pass `from` when sending.
+A number can only belong to one WhatsApp app at a time. If it is in use in
+the WhatsApp or WhatsApp Business app, remove it there first. Most
+organizations connect one number. If you connect several, pass `from` when
+sending.
 
 ## Send a message
 
@@ -31,14 +30,13 @@ const { data, error } = await retransmit.whatsapp.send({
 ```
 
 Recipients must be in international E.164 format. Each request targets one
-recipient, and the response carries the message `id` you use to track it.
+recipient and returns the message `id` you use to track it.
 
 ## Templates and the 24-hour window
 
-WhatsApp only lets a business start a conversation with an approved
-**template**. Once the recipient replies, a 24-hour customer service window
-opens and you can send free-form `text`, `image`, and `document` messages
-until it closes.
+A business can only start a conversation with an approved **template**. Once
+the recipient replies, a 24-hour customer service window opens and you can
+send free-form `text`, `image`, and `document` messages until it closes.
 
 ```ts
 await retransmit.whatsapp.send({
@@ -55,17 +53,15 @@ await retransmit.whatsapp.send({
 ```
 
 Templates are created and approved in WhatsApp Manager on the business you
-connected. The `name` and `language` you pass must match the approved
-template exactly.
+connected. `name` and `language` must match the approved template exactly.
 
 A free-form message sent outside the window is accepted by the API but comes
 back as `failed` with the provider's error once the worker sends it.
 
 ## Media
 
-Images and documents are sent by public link. Retransmit passes the link to
-WhatsApp, which downloads it at send time, so the URL must be reachable
-without authentication.
+Images and documents are sent by public link. WhatsApp downloads the file at
+send time, so the URL must be reachable without authentication.
 
 ```ts
 await retransmit.whatsapp.send({
@@ -88,8 +84,7 @@ for the current status and event history. For push updates, subscribe to
 
 ## Replies
 
-WhatsApp is a two-way channel. When a recipient answers, Retransmit delivers
-the message to your webhook endpoints as `whatsapp.received`. See
-[Receive messages](/whatsapp/receive).
+When a recipient answers, Retransmit delivers the message to your webhook
+endpoints as `whatsapp.received`. See [Receive messages](/whatsapp/receive).
 
-See [Send WhatsApp](/whatsapp/send) for the complete request contract.
+See [Send WhatsApp](/whatsapp/send) for the full request contract.

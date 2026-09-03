@@ -6,24 +6,22 @@ import { Tabs } from "nextra/components";
 POST /v1/emails/batch
 ```
 
-Queues up to **10,000 emails** in one request. All emails are validated and
-stored first; the request is all-or-nothing — if any email fails validation,
-nothing is queued. The worker then sends them at the platform's provider rate,
-retrying transient failures with exponential backoff. Emails that exhaust all
-retries are marked `failed` (dead-lettered).
+Queues up to 10,000 emails in one request. The request is all-or-nothing: if
+any email fails validation, nothing is queued. A worker sends them at the
+provider rate and retries transient failures. Emails that exhaust their
+retries are marked `failed`.
 
-Track progress with [Get Batch](/email/get-batch), watch the live
-stats on the dashboard's Emails page, or subscribe to
-[Webhooks](/webhooks) for per-email events.
+Track progress with [Get Batch](/email/get-batch), on the dashboard's Emails
+page, or through per-email [Webhooks](/webhooks).
 
 ## Request body
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `emails` | object[] | Yes | 1–10,000 email objects, each with the same fields as [Send Email](/email/send). |
+| `emails` | object[] | Yes | 1 to 10,000 email objects, each with the same fields as [Send Email](/email/send). |
 
-Every `from` domain used in the batch must be registered and verified on your
-account (a batch may mix multiple verified domains).
+Every `from` domain in the batch must be registered and verified on your
+account. A batch may mix several verified domains.
 
 ## Example
 

@@ -59,7 +59,12 @@ export function SiteNav() {
         </nav>
         <div className="flex items-center gap-2">
           <ModeToggle />
-          <CtaButton href={siteConfig.links.quickstart} size="sm">
+          <CtaButton
+            href={siteConfig.links.quickstart}
+            size="sm"
+            goal="start_quickstart"
+            goalPlacement="nav"
+          >
             Get started
           </CtaButton>
         </div>

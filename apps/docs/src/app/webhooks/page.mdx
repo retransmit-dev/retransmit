@@ -1,8 +1,8 @@
 # Webhooks
 
-Webhooks push email, SMS, and WhatsApp events to your application as they happen — no polling.
-Create endpoints in the dashboard, choose which event types each one receives,
-and Retransmit POSTs a signed JSON payload to your URL.
+Webhooks push email, SMS, and WhatsApp events to your application as they happen.
+Create an endpoint in the dashboard, pick the event types it receives, and
+Retransmit POSTs a signed JSON payload to your URL.
 
 ## Event types
 
@@ -17,7 +17,7 @@ and Retransmit POSTs a signed JSON payload to your URL.
 | `email.complained` | The recipient marked it as spam. |
 | `email.rejected` | The email was rejected before sending. |
 | `email.failed` | The provider send failed. |
-| `email.unsubscribed` | The recipient unsubscribed from a [marketing email](/email/marketing-email); `data.data.addresses` lists the addresses. |
+| `email.unsubscribed` | The recipient unsubscribed from a [marketing email](/email/marketing-email). `data.data.addresses` lists the addresses. |
 | `sms.sent` | The SMS was handed to the upstream provider. |
 | `sms.delivered` | The carrier reported successful delivery. |
 | `sms.undelivered` | The carrier reported the SMS as undelivered, expired, or rejected. |
@@ -45,37 +45,32 @@ and Retransmit POSTs a signed JSON payload to your URL.
 }
 ```
 
-Some events carry extra context in `data.data` — for example `email.failed`,
-`sms.failed`, and `whatsapp.failed` include `{ "message": "..." }` with the
-provider error. WhatsApp events identify the message as `data.messageId`
-(`wa_...`).
+Some events carry extra context in `data.data`. `email.failed`, `sms.failed`,
+and `whatsapp.failed` include `{ "message": "..." }` with the provider error.
+WhatsApp events identify the message as `data.messageId` (`wa_...`).
 
 ## Delivery behavior
 
 - Requests are `POST` with `Content-Type: application/json`.
-- Your endpoint should respond with a `2xx` within **10 seconds**; anything
-  else is recorded as a failed delivery.
-- Failed deliveries are **retried up to 8 times with exponential backoff**
-  (roughly 10s, 20s, 40s … capped at 1 hour). Each retry is re-signed with a
-  fresh timestamp. After all retries the delivery is dropped (dead-lettered).
-- Because of retries, deliveries can arrive more than once and out of order —
-  key on the payload `id` for idempotency and on `type`/`created_at` for
-  ordering.
-- Respond quickly and process asynchronously — do the real work after you've
-  returned `200`.
-- Every attempt (including failures) is visible per-endpoint in the dashboard.
+- Respond with a `2xx` within 10 seconds. Anything else counts as a failed delivery.
+- Failed deliveries are retried up to 8 times with exponential backoff
+  (10s, 20s, 40s, up to 1 hour). Each retry is re-signed with a fresh
+  timestamp. After the last retry the delivery is dropped.
+- Deliveries can arrive more than once and out of order. Use the payload `id`
+  for idempotency and `created_at` for ordering.
+- Return `200` first, then do the work.
+- Every attempt, including failures, is visible per endpoint in the dashboard.
 
 ## Verifying signatures
 
-Every delivery is signed so you can confirm it came from Retransmit. Two
-headers accompany each request:
+Every delivery is signed. Two headers accompany each request:
 
 | Header | Value |
 | --- | --- |
 | `retransmit-timestamp` | Unix timestamp (seconds) when the delivery was signed. |
-| `retransmit-signature` | `v1=<hex>` — HMAC-SHA256 of `` `${timestamp}.${body}` `` using your endpoint's secret (`whsec_...`). |
+| `retransmit-signature` | `v1=<hex>`. HMAC-SHA256 of `` `${timestamp}.${body}` `` using your endpoint's secret (`whsec_...`). |
 
-The secret is shown once when you create the endpoint. Verify like this:
+The secret is shown once when you create the endpoint.
 
 ```ts filename="verify-webhook.ts"
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -99,7 +94,7 @@ Example handler (Hono, but the shape is the same anywhere):
 
 ```ts filename="webhook-handler.ts"
 app.post("/webhooks/retransmit", async (c) => {
-  const body = await c.req.text(); // raw body — don't parse first
+  const body = await c.req.text(); // raw body, do not parse first
   const timestamp = c.req.header("retransmit-timestamp") ?? "";
   const signature = (c.req.header("retransmit-signature") ?? "").replace(/^v1=/, "");
 
@@ -115,11 +110,10 @@ app.post("/webhooks/retransmit", async (c) => {
 
 > [!IMPORTANT]
 >
-> Compute the HMAC over the **raw** request body. If your framework parses and
-> re-serializes JSON before you sign, key order or whitespace changes will make
-> verification fail.
+> Compute the HMAC over the raw request body. Parsing and re-serializing JSON
+> first can change key order or whitespace and break verification.
 
 > [!TIP]
 >
 > Reject deliveries whose `retransmit-timestamp` is more than a few minutes old
-> to defend against replay attacks.
+> to prevent replays.

@@ -136,7 +136,13 @@ export default function Home() {
             balance. WhatsApp is next.
           </p>
           <div className="mt-9 flex justify-center">
-            <CtaButton href={siteConfig.links.quickstart}>Get started</CtaButton>
+            <CtaButton
+              href={siteConfig.links.quickstart}
+              goal="start_quickstart"
+              goalPlacement="home_hero"
+            >
+              Get started
+            </CtaButton>
           </div>
         </div>
       </section>
@@ -434,7 +440,13 @@ export default function Home() {
               One balance across every channel. Fund it in your local currency,
               including bank transfer and mobile money.
             </p>
-            <CtaButton href={siteConfig.links.quickstart} size="sm" className="mt-6">
+            <CtaButton
+              href={siteConfig.links.quickstart}
+              size="sm"
+              goal="start_quickstart"
+              goalPlacement="home_pricing"
+              className="mt-6"
+            >
               Get started
             </CtaButton>
           </Card>
@@ -450,7 +462,13 @@ export default function Home() {
             minutes.
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
-            <CtaButton href={siteConfig.links.quickstart}>Get started</CtaButton>
+            <CtaButton
+              href={siteConfig.links.quickstart}
+              goal="start_quickstart"
+              goalPlacement="home_final"
+            >
+              Get started
+            </CtaButton>
             <CtaButton href={siteConfig.links.docs} tone="quiet">
               Read the docs
             </CtaButton>

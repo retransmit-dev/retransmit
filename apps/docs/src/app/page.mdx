@@ -1,27 +1,20 @@
 # Introduction
 
-**Retransmit** is a developer-first messaging platform: a single API and one balance for
-sending **Email, SMS, WhatsApp, OTP**, and other transactional communications.
+Retransmit is one API and one balance for sending email, SMS, and WhatsApp messages.
 
-> One API. One balance. Every message.
+You do not create AWS, Twilio, or Meta accounts. Integrate once, load credit, and send.
+Retransmit handles the providers, routing, and delivery.
 
-You don't create AWS, Twilio, or Meta accounts. You integrate Retransmit once, load credit,
-and start sending — Retransmit manages the underlying providers, routing, delivery, and
-infrastructure.
-
-## What's available today
-
-Retransmit currently supports **Email**, **SMS**, and **WhatsApp** through the
-same API key, SDK, balance, and delivery workflow:
+## What you get
 
 - Transactional email, including batches of up to 10,000 messages
-- SMS with destination-aware provider routing and segment counts
+- SMS with per-country provider routing and segment counts
 - WhatsApp text, template, and media messages, with replies delivered to your webhooks
-- Typed Node.js SDK — [`retransmit.dev` on npm](https://www.npmjs.com/package/retransmit.dev)
+- A typed Node.js SDK: [`retransmit.dev` on npm](https://www.npmjs.com/package/retransmit.dev)
 - Per-message status and event history
 - Signed delivery webhooks
 
-## How the pieces fit
+## How it fits together
 
 ```text
 Your application
@@ -33,22 +26,21 @@ Retransmit API  ──►  Email / SMS / WhatsApp
 Retransmit infrastructure (SES, Twilio, Meta, ...)
 ```
 
-## Where to go next
+## Next steps
 
-- [Quickstart](/quickstart) — send your first email, SMS, or WhatsApp message in a few minutes.
-- [Email](/email) — send individual or batch email and configure deliverability.
-- [SMS](/sms) — learn about phone numbers, routing, segments, and delivery states.
-- [WhatsApp](/whatsapp) — send templates and free-form messages, and receive replies.
-- [Domains](/email/domains) — add and verify an email sending domain.
-- [API Reference](/api-reference) — endpoints, authentication, and errors.
-- [Webhooks](/webhooks) — get notified about delivery events and verify signatures.
+- [Quickstart](/quickstart): send your first message.
+- [Email](/email): single and batch sends, domains, marketing email.
+- [SMS](/sms): sender IDs, routing, segments, statuses.
+- [WhatsApp](/whatsapp): templates, media, replies.
+- [API Reference](/api-reference): endpoints, authentication, errors.
+- [Webhooks](/webhooks): delivery events and signature verification.
 
 ## Environments
 
 | Environment | Base URL |
 | --- | --- |
 | Production | `https://api.retransmit.dev` |
-| Local development (this monorepo) | `http://localhost:3002` |
+| Local development | `http://localhost:3002` |
 
-In local development, run the API with `pnpm dev:api` from the repository root
-(it starts on port 3002). The dashboard runs on port 3001 (`pnpm dev:dashboard`).
+Locally, run `pnpm dev:api` from the repository root. The API starts on port 3002
+and the dashboard (`pnpm dev:dashboard`) on port 3001.
