@@ -7,6 +7,7 @@ import { SiteNav } from "@/components/marketing/site-nav";
 import Providers from "@/components/providers";
 import { SiteStructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/site";
+import Script from "next/script";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -88,7 +89,7 @@ export default function RootLayout({
       className={`${dmSans.variable} ${geistMono.variable}`}
     >
       <head>
-        <script
+        <Script
           defer
           src="https://analytics.slane.io/tracker.js"
           data-site="j1eghz0ma3ds"
