@@ -2,6 +2,7 @@
 
 import { ErrorBoundary } from "@/components/error-boundary";
 import { EmailStatusBadge } from "@/components/status-badges";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -100,6 +101,18 @@ function EmailAddresses({ email }: { email: EmailDetails }) {
       )}
       <span className="text-muted-foreground">Subject</span>
       <span>{email.subject}</span>
+      {email.tags && email.tags.length > 0 && (
+        <>
+          <span className="text-muted-foreground">Tags</span>
+          <span className="flex flex-wrap gap-1">
+            {email.tags.map((tag) => (
+              <Badge key={tag.name} variant="secondary" className="font-mono text-xs">
+                {tag.name}: {tag.value}
+              </Badge>
+            ))}
+          </span>
+        </>
+      )}
     </div>
   );
 }

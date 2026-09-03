@@ -40,12 +40,14 @@ const { data, error } = await retransmit.batch.send([
     to: "one@example.com",
     subject: "Hello",
     html: "<p>Hi one</p>",
+    tags: [{ name: "campaign", value: "outreach-1" }],
   },
   {
     from: "Acme <hello@yourdomain.com>",
     to: "two@example.com",
     subject: "Hello",
     html: "<p>Hi two</p>",
+    tags: [{ name: "campaign", value: "outreach-1" }],
   },
 ]);
 ```
@@ -61,13 +63,15 @@ curl -X POST https://api.retransmit.dev/v1/emails/batch \
         "from": "Acme <hello@yourdomain.com>",
         "to": "one@example.com",
         "subject": "Hello",
-        "html": "<p>Hi one</p>"
+        "html": "<p>Hi one</p>",
+        "tags": [{ "name": "campaign", "value": "outreach-1" }]
       },
       {
         "from": "Acme <hello@yourdomain.com>",
         "to": "two@example.com",
         "subject": "Hello",
-        "html": "<p>Hi two</p>"
+        "html": "<p>Hi two</p>",
+        "tags": [{ "name": "campaign", "value": "outreach-1" }]
       }
     ]
   }'

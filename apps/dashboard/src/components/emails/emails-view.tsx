@@ -19,6 +19,7 @@ export function EmailsView({ initialRange }: { initialRange: DateRange }) {
     range: initialRange,
     status: "all",
     apiKeyId: "all",
+    tag: "all",
   });
   const [cursors, setCursors] = useState<Date[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);

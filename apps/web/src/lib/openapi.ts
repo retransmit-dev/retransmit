@@ -452,6 +452,27 @@ export const OPENAPI_DOCUMENT = {
           subject: { type: "string", minLength: 1, maxLength: 998 },
           html: { type: "string", maxLength: 1000000 },
           text: { type: "string", maxLength: 1000000 },
+          marketing: {
+            type: "boolean",
+            default: false,
+            description:
+              "Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, List-Unsubscribe headers are added, and unsubscribed recipients are skipped.",
+          },
+          tags: {
+            type: "array",
+            maxItems: 10,
+            description:
+              "Labels for filtering sends in the dashboard and API, e.g. `[{\"name\": \"campaign\", \"value\": \"outreach-1\"}]`. Names must be unique per email. Never sent to the recipient.",
+            items: { $ref: "#/components/schemas/EmailTag" },
+          },
+        },
+      },
+      EmailTag: {
+        type: "object",
+        required: ["name", "value"],
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 256, pattern: "^[A-Za-z0-9_-]+$" },
+          value: { type: "string", minLength: 1, maxLength: 256, pattern: "^[A-Za-z0-9_-]+$" },
         },
       },
       QueuedEmail: {
@@ -504,6 +525,8 @@ export const OPENAPI_DOCUMENT = {
           bcc: { type: ["array", "null"], items: { type: "string" } },
           reply_to: { type: ["array", "null"], items: { type: "string" } },
           subject: { type: "string" },
+          marketing: { type: "boolean" },
+          tags: { type: "array", items: { $ref: "#/components/schemas/EmailTag" } },
           status: { type: "string", enum: [...EMAIL_STATUSES] },
           error: {
             type: ["string", "null"],

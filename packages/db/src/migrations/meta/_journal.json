@@ -43,6 +43,13 @@
       "when": 1788412071020,
       "tag": "0005_whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788448671881,
+      "tag": "0006_email_tags",
+      "breakpoints": true
     }
   ]
 }

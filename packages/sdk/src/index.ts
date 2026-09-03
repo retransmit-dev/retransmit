@@ -6,6 +6,7 @@ export { Batch } from "./batch";
 export type {
   EmailEvent,
   EmailStatus,
+  EmailTag,
   GetBatchResponse,
   GetEmailResponse,
   GetSmsResponse,

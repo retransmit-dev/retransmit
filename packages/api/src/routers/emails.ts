@@ -1,7 +1,7 @@
 import { db } from "@retransmit/db";
 import { email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
 import { EMAIL_STATUSES } from "@retransmit/db/schema/email";
-import type { EmailStatus } from "@retransmit/db/schema/email";
+import type { EmailStatus, EmailTag } from "@retransmit/db/schema/email";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
@@ -19,6 +19,18 @@ function searchCondition(search: string) {
     // `to` is a jsonb array of addresses; matching its text form covers every recipient.
     sql`${email.to}::text ilike ${pattern}`,
   );
+}
+
+/** Tag names and values allow letters, digits, underscore and dash. */
+const tagInput = z.object({
+  name: z.string().min(1).max(256),
+  value: z.string().min(1).max(256),
+});
+
+/** Matches emails carrying exactly this name/value pair (uses the GIN index). */
+function tagCondition(tag: EmailTag) {
+  const needle: EmailTag[] = [{ name: tag.name, value: tag.value }];
+  return sql`${email.tags} @> ${JSON.stringify(needle)}::jsonb`;
 }
 
 export const emailRouter = router({
@@ -78,6 +90,23 @@ export const emailRouter = router({
         return { id: batch.id, total: batch.total, createdAt: batch.createdAt, processed, counts };
       });
     }),
+  /**
+   * Distinct tag name/value pairs across the user's emails, for the filter
+   * picker. Grouped in SQL so the result stays small however many emails
+   * carry each tag.
+   */
+  tags: protectedProcedure.query(async ({ ctx }) => {
+    const rows = await db.execute<{ name: string; value: string; count: number }>(sql`
+      select tag->>'name' as name, tag->>'value' as value, count(*)::int as count
+      from ${email}, jsonb_array_elements(${email.tags}) as tag
+      where ${email.userId} = ${ctx.session.user.id} and ${email.tags} is not null
+      group by 1, 2
+      order by 1, 2
+      limit 500
+    `);
+    return rows.rows;
+  }),
+
   /** Email logs, newest first, cursor-paginated by createdAt. */
   list: protectedProcedure
     .input(
@@ -89,10 +118,12 @@ export const emailRouter = router({
         apiKeyId: z.string().optional(),
         from: z.coerce.date().optional(),
         to: z.coerce.date().optional(),
+        tag: tagInput.optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       const conditions: (SQL | undefined)[] = [eq(email.userId, ctx.session.user.id)];
+      if (input.tag) conditions.push(tagCondition(input.tag));
       if (input.cursor) conditions.push(lt(email.createdAt, input.cursor));
       if (input.status) conditions.push(eq(email.status, input.status));
       if (input.search) conditions.push(searchCondition(input.search));
@@ -108,6 +139,7 @@ export const emailRouter = router({
           subject: email.subject,
           status: email.status,
           error: email.error,
+          tags: email.tags,
           createdAt: email.createdAt,
           lastEventAt: email.lastEventAt,
         })

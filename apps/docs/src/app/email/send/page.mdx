@@ -25,6 +25,7 @@ transient failures automatically. For many emails at once, use
 | `html` | string | Yes* | HTML body, up to 1,000,000 characters. |
 | `text` | string | Yes* | Plain-text body, up to 1,000,000 characters. |
 | `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, one-click `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
+| `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering sends in the dashboard, for example `{ "name": "campaign", "value": "outreach-1" }`. Names and values allow letters, digits, `_` and `-`, up to 256 characters. Names must be unique within one email. Tags are never sent to the recipient. |
 
 \* At least one of `html` or `text` is required; you can provide both.
 
@@ -44,6 +45,7 @@ const { data, error } = await retransmit.emails.send({
   subject: "Your receipt",
   html: "<p>Thanks for your order!</p>",
   text: "Thanks for your order!",
+  tags: [{ name: "category", value: "receipt" }],
 });
 ```
 
@@ -61,7 +63,8 @@ curl -X POST https://api.retransmit.dev/v1/emails \
     "reply_to": "support@yourdomain.com",
     "subject": "Your receipt",
     "html": "<p>Thanks for your order!</p>",
-    "text": "Thanks for your order!"
+    "text": "Thanks for your order!",
+    "tags": [{ "name": "category", "value": "receipt" }]
   }'
 ```
 </Tabs.Tab>

@@ -1,9 +1,11 @@
 "use client";
 
+import { decodeTag } from "@/components/emails/email-filters";
 import type { EmailFilters } from "@/components/emails/email-filters";
 import { EmailStatusBadge } from "@/components/status-badges";
 import type { EmailStatusValue } from "@/components/status-badges";
 import { TableSkeleton } from "@/components/table-skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -58,6 +60,7 @@ export function EmailsTable({
             ? undefined
             : (filters.status as EmailStatusValue),
         apiKeyId: filters.apiKeyId === "all" ? undefined : filters.apiKeyId,
+        tag: decodeTag(filters.tag),
       },
       { placeholderData: keepPreviousData },
     ),
@@ -68,7 +71,8 @@ export function EmailsTable({
   const filtered =
     filters.search.trim() !== "" ||
     filters.status !== "all" ||
-    filters.apiKeyId !== "all";
+    filters.apiKeyId !== "all" ||
+    filters.tag !== "all";
 
   if (emails.isLoading) return <TableSkeleton />;
 
@@ -117,8 +121,21 @@ export function EmailsTable({
               <TableCell className="max-w-48 truncate font-medium">
                 {row.to.join(", ")}
               </TableCell>
-              <TableCell className="max-w-64 truncate text-muted-foreground">
-                {row.subject}
+              <TableCell className="max-w-64 text-muted-foreground">
+                <div className="truncate">{row.subject}</div>
+                {row.tags && row.tags.length > 0 && (
+                  <div className="mt-0.5 flex flex-wrap gap-1">
+                    {row.tags.map((tag) => (
+                      <Badge
+                        key={tag.name}
+                        variant="secondary"
+                        className="font-mono text-[10px]"
+                      >
+                        {tag.name}: {tag.value}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </TableCell>
               <TableCell>
                 <EmailStatusBadge status={row.status} />
