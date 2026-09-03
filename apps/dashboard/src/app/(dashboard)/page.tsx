@@ -1,5 +1,9 @@
+import { PageHeader, PageShell } from "@/components/page-shell";
+import { navMetadata } from "@/lib/navigation";
 import { auth } from "@retransmit/auth";
 import { headers } from "next/headers";
+
+export const metadata = navMetadata("/");
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -7,12 +11,11 @@ export default async function DashboardPage() {
   });
 
   return (
-    <div className="flex flex-col gap-1">
-      <h1 className="text-2xl font-semibold">Overview</h1>
-      <p className="text-muted-foreground">
-        Welcome back, {session?.user.name}. Add a domain, create an API key,
-        and start sending.
-      </p>
-    </div>
+    <PageShell>
+      <PageHeader
+        href="/"
+        description={`Welcome back, ${session?.user.name}. Add a domain, create an API key, and start sending.`}
+      />
+    </PageShell>
   );
 }

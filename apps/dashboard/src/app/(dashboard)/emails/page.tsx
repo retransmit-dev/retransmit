@@ -3,6 +3,7 @@
 import { EMAIL_STATUS_OPTIONS, EmailStatusBadge } from "@/components/status-badges";
 import type { EmailStatusValue } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
+import { PageHeader, PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -278,31 +279,28 @@ export default function EmailsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">Emails</h1>
-          <p className="text-sm text-muted-foreground">
-            Every email sent through your account, with delivery status.
-          </p>
-        </div>
-        <Select
-          items={FILTER_ITEMS}
-          value={status}
-          onValueChange={(value) => changeStatus(value as string)}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FILTER_ITEMS.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <PageShell>
+      <PageHeader
+        href="/emails"
+        actions={
+          <Select
+            items={FILTER_ITEMS}
+            value={status}
+            onValueChange={(value) => changeStatus(value as string)}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FILTER_ITEMS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      />
 
       <LiveStats />
 
@@ -407,6 +405,6 @@ export default function EmailsPage() {
       )}
 
       <EmailDetailsSheet emailId={selectedId} onClose={() => setSelectedId(null)} />
-    </div>
+    </PageShell>
   );
 }

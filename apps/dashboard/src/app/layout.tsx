@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { DM_Sans, Geist_Mono } from "next/font/google";
 
 import Providers from "@/components/providers";
-import { cn } from "@/lib/utils";
 import "../globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
@@ -18,8 +15,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "retransmit",
-  description: "retransmit",
+  title: {
+    default: "Retransmit",
+    template: "%s | Retransmit",
+  },
+  description:
+    "Send email, SMS and WhatsApp from one API. Domains, keys, deliveries and analytics in one place.",
+  // Nothing in the product app should ever appear in search results.
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false },
+  },
 };
 
 export default function RootLayout({
@@ -28,16 +36,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    // The font variables live on <html> because the base layer sets
+    // font-family there; scoping them to <body> leaves that rule invalid.
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("font-sans", inter.variable)}
+      className={`${dmSans.variable} ${geistMono.variable}`}
     >
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">{children}</div>
+          <div className="grid h-svh grid-rows-[auto_1fr]">{children}</div>
         </Providers>
       </body>
     </html>

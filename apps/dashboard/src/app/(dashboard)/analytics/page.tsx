@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { DateRangePicker } from "@/components/date-range-picker";
+import { PageHeader, PageShell } from "@/components/page-shell";
 import type { DateRange } from "@/components/date-range-picker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -130,34 +131,31 @@ export default function AnalyticsPage() {
   const totals = overview.data?.totals ?? ZERO_COUNTS;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">Analytics</h1>
-          <p className="text-sm text-muted-foreground">
-            Delivery and engagement for the emails you send.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select
-            items={domainItems}
-            value={domainId}
-            onValueChange={(value) => setDomainId(value as string)}
-          >
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {domainItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <DateRangePicker value={range} onChange={setRange} />
-        </div>
-      </div>
+    <PageShell>
+      <PageHeader
+        href="/analytics"
+        actions={
+          <>
+            <Select
+              items={domainItems}
+              value={domainId}
+              onValueChange={(value) => setDomainId(value as string)}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {domainItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DateRangePicker value={range} onChange={setRange} />
+          </>
+        }
+      />
 
       {overview.isLoading ? (
         <div className="flex flex-col gap-4">
@@ -312,6 +310,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

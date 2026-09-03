@@ -4,91 +4,43 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  /* Analytics series colors, one per metric. CVD-validated as the sets that
-     share a chart (sent | delivered+opened+clicked | bounced+complained). */
-  --chart-sent: #2a78d6;
-  --chart-delivered: #199e70;
-  --chart-opened: #eb6834;
-  --chart-clicked: #4a3aa7;
-  --chart-bounced: #e34948;
-  --chart-complained: #c98500;
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --chart-sent: #3987e5;
-  --chart-delivered: #199e70;
-  --chart-opened: #d95926;
-  --chart-clicked: #9085e9;
-  --chart-bounced: #d03b3b;
-  --chart-complained: #c98500;
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
+/* ---------------------------------------------------------------------------
+   Retransmit design tokens (Captivaq system, shared with apps/web)
+   Neutrals: warm paper. Text is near-black warm grey, never pure black.
+   Accent: one coral signal, used wherever the product is telling you something
+   (live state, primary CTAs). Yellow is reserved for highlighter marks.
+   Shape rule: controls 8px, cards 16px, badges and status chips are pills.
+--------------------------------------------------------------------------- */
 
 @theme inline {
-  --font-sans: var(--font-sans);
+  --font-sans:
+    var(--font-dm-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  --font-heading: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+
+  /* The primary button is one surface with the slab drawn inside it: a lit
+     crest along the top, a shaded lip along the bottom and a neutral drop
+     stack lifting it off the page. The button already owns a 1px border, so
+     the border carries the accent ring. Hovered, the face darkens and the
+     bevel sharpens; pressed, the lift disappears and the face is shaded from
+     the top so it sits into the page. */
+  --shadow-ledge: var(--ledge-shadow);
+  --shadow-ledge-hover: var(--ledge-shadow-hover);
+  --shadow-ledge-pressed: var(--ledge-shadow-pressed);
+  --color-primary-emphasis: var(--primary-emphasis);
+
+  /* Card system. The hairline is a 1px ring cast as a shadow, never a
+     border, so it sits outside the box and leaves the radius untouched. */
+  --color-tray: var(--tray);
+  --shadow-tray: var(--tray-shadow);
+  --shadow-card: var(--card-shadow);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -120,14 +72,146 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-  --font-heading: var(--font-sans);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --ease-haptic: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The app chrome is two surfaces, not one. `--sidebar` paints the whole outer
+   canvas (the inset variant puts it on the wrapper) and `--background` paints
+   the rounded content pane floating on top of it, so those two tokens carry
+   the app's structure: the rail is always a firm step away from the pane. */
+
+:root {
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.6596 0.1992 40.68);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.6531 0.1637 37.2);
+  --signal: oklch(0.6531 0.1637 37.2);
+  --signal-foreground: oklch(1 0 0);
+  --highlight: oklch(0.973 0.071 103.2 / 80%);
+  --highlight-foreground: oklch(0.286 0.066 53.8);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  /* Analytics series colors, one per metric. CVD-validated as the sets that
+     share a chart (sent | delivered+opened+clicked | bounced+complained). */
+  --chart-sent: #2a78d6;
+  --chart-delivered: #199e70;
+  --chart-opened: #eb6834;
+  --chart-clicked: #4a3aa7;
+  --chart-bounced: #e34948;
+  --chart-complained: #c98500;
+  --radius: 0.625rem;
+  /* Solid-brand recipe over the coral. The bevel is white and black alpha
+     insets so it tracks the face color; a layered neutral stack lifts the
+     slab off the page. Hover darkens the face one step and sharpens the
+     bevel. Pressed drops the lift and shades the face from the top. */
+  --primary-emphasis: color-mix(in oklab, var(--primary), black 6%);
+  --ledge-shadow:
+    0 1px 1px 0 rgb(0 0 0 / 0.08), 0 2px 3px 0 rgb(0 0 0 / 0.06),
+    1px 4px 8px 0 rgb(0 0 0 / 0.12),
+    inset 0 2px 0.4px 0 rgb(255 255 255 / 0.12),
+    inset 0 -3px 2px 0 rgb(0 0 0 / 0.04);
+  --ledge-shadow-hover:
+    0 1px 1px 0 rgb(0 0 0 / 0.1), 0 2px 3px 0 rgb(0 0 0 / 0.08),
+    1px 4px 8px 0 rgb(0 0 0 / 0.12),
+    inset 0 2px 0.4px 0 rgb(255 255 255 / 0.24),
+    inset 0 -3px 2px 0 rgb(0 0 0 / 0.1);
+  --ledge-shadow-pressed:
+    inset 0 3px 1px 0 rgb(0 0 0 / 0.1), inset 0 0 2px 0 rgb(0 0 0 / 0.1);
+  --tray: oklch(0.2686 0 0 / 5%);
+  --tray-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06),
+    0 2px 4px 0 rgb(0 0 0 / 0.04);
+  --card-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
+
+  /* The rail is a full step darker than the pane it frames. The active nav
+     chip is the pane colour, so the selected item reads as the page. */
+  --sidebar: oklch(0.96 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(1 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+}
+
+.dark {
+  /* Mirror of the light ramp: the page is one step darker than a card, so
+     cards still lift off the background without a shadow. Kept in lockstep
+     with apps/web's dark theme so moving from the marketing page into the
+     app does not change the palette under you. The one departure is
+     `--sidebar`, a step down from the pane, because the inset layout paints
+     it as the outer canvas and the page should be the brightest surface. */
+  --background: oklch(0.2393 0 0);
+  --foreground: oklch(0.898 0.0017 68);
+  --card: oklch(0.2478 0 0);
+  --card-foreground: oklch(0.898 0.0017 68);
+  --popover: oklch(0.2686 0 0);
+  --popover-foreground: oklch(0.898 0.0017 68);
+  --primary: oklch(0.6596 0.1992 40.68);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.3082 0 0);
+  --secondary-foreground: oklch(0.898 0.0017 68);
+  --muted: oklch(0.2963 0 0);
+  --muted-foreground: oklch(0.7338 0.0037 40);
+  --accent: oklch(0.3286 0 0);
+  --accent-foreground: oklch(0.898 0.0017 68);
+  --destructive: oklch(0.7176 0.221 22.2);
+  --tray: oklch(0.42 0 0 / 50%);
+  --tray-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+  --card-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+  --border: oklch(0.898 0.0017 68 / 13%);
+  --input: oklch(0.898 0.0017 68 / 17%);
+  --ring: oklch(0.6531 0.1637 37.2);
+  --signal: oklch(0.6531 0.1637 37.2);
+  --signal-foreground: oklch(1 0 0);
+  --highlight: oklch(0.421 0.095 57.7 / 80%);
+  --highlight-foreground: oklch(0.973 0.071 103.2);
+  --chart-1: oklch(0.6531 0.1637 37.2);
+  --chart-2: oklch(0.7338 0.0037 40);
+  --chart-3: oklch(0.6182 0.004 40);
+  --chart-4: oklch(0.4879 0.004 40);
+  --chart-5: oklch(0.3596 0.003 40);
+  --chart-sent: #3987e5;
+  --chart-delivered: #199e70;
+  --chart-opened: #d95926;
+  --chart-clicked: #9085e9;
+  --chart-bounced: #d03b3b;
+  --chart-complained: #c98500;
+  --sidebar: oklch(0.215 0 0);
+  --sidebar-foreground: oklch(0.898 0.0017 68);
+  --sidebar-primary: oklch(0.6531 0.1637 37.2);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.3286 0 0);
+  --sidebar-accent-foreground: oklch(0.898 0.0017 68);
+  --sidebar-border: oklch(0.898 0.0017 68 / 13%);
+  --sidebar-ring: oklch(0.6531 0.1637 37.2);
 }
 
 @layer base {
@@ -135,9 +219,35 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply font-sans bg-background text-foreground;
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  ::selection {
+    background: var(--signal);
+    color: var(--signal-foreground);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.001ms;
   }
 }

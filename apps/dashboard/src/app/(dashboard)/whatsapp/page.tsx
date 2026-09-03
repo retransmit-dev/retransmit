@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, PageShell } from "@/components/page-shell";
 import {
   Empty,
   EmptyDescription,
@@ -114,16 +115,8 @@ export default function WhatsappPage() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">WhatsApp</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect a WhatsApp Business number to send from it with your API key.
-          </p>
-        </div>
-        {connectButton}
-      </div>
+    <PageShell>
+      <PageHeader href="/whatsapp" actions={connectButton} />
 
       {config.isSuccess && !configured && (
         <Alert>
@@ -252,6 +245,6 @@ export default function WhatsappPage() {
         A number can only be on one WhatsApp app at a time, so remove it from the WhatsApp
         Business app first if you use it there.
       </p>
-    </div>
+    </PageShell>
   );
 }

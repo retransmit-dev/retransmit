@@ -1,111 +1,101 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import type * as React from "react";
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+import { BrandIcon, BrandMark } from "@/components/brand-mark";
+import { ModeToggle } from "@/components/mode-toggle";
+import { NavMain } from "@/components/nav-main";
+import { NavUser, type SidebarUser } from "@/components/nav-user";
+import {
+  NavWorkspace,
+  type WorkspaceSummary,
+} from "@/components/nav-workspace";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-} from "@/components/ui/sidebar"
-import Link from "next/link"
-import {
-  BanIcon,
-  ChartLineIcon,
-  GlobeIcon,
-  KeyRoundIcon,
-  LayoutDashboardIcon,
-  MailIcon,
-  MessageCircleIcon,
-  SendIcon,
-  Settings2Icon,
-  WebhookIcon,
-} from "lucide-react"
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { navGroups } from "@/lib/navigation";
+import { BookOpenIcon } from "lucide-react";
+import Link from "next/link";
 
-const navMain = [
-  {
-    title: "Overview",
-    url: "/",
-    icon: <LayoutDashboardIcon />,
-  },
-  {
-    title: "Emails",
-    url: "/emails",
-    icon: <MailIcon />,
-  },
-  {
-    title: "Analytics",
-    url: "/analytics",
-    icon: <ChartLineIcon />,
-  },
-  {
-    title: "Domains",
-    url: "/domains",
-    icon: <GlobeIcon />,
-  },
-  {
-    title: "WhatsApp",
-    url: "/whatsapp",
-    icon: <MessageCircleIcon />,
-  },
-  {
-    title: "API Keys",
-    url: "/api-keys",
-    icon: <KeyRoundIcon />,
-  },
-  {
-    title: "Webhooks",
-    url: "/webhooks",
-    icon: <WebhookIcon />,
-  },
-  {
-    title: "Suppressions",
-    url: "/suppressions",
-    icon: <BanIcon />,
-  },
-  {
-    title: "Settings",
-    url: "/settings/team",
-    icon: <Settings2Icon />,
-  },
-]
+const DOCS_URL = "https://docs.retransmit.dev";
 
 export function AppSidebar({
   user,
+  workspaces,
+  activeWorkspaceId,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  user: { name: string; email: string; avatar?: string | null }
+  user: SidebarUser;
+  workspaces: WorkspaceSummary[];
+  activeWorkspaceId: string;
 }) {
+  const { open } = useSidebar();
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link href="/" />}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <SendIcon className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Retransmit</span>
-                <span className="truncate text-xs">Email</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
+          {open ? (
+            <>
+              <Link
+                href="/"
+                className="flex items-center gap-2 rounded-md px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              >
+                <BrandMark />
+              </Link>
+
+              <SidebarTrigger className="text-sidebar-foreground/60 hover:text-sidebar-foreground" />
+            </>
+          ) : (
+            /*
+             * Collapsed, the mark doubles as the way back out: hovering (or
+             * tabbing to) it swaps the icon for the toggle in place. The group
+             * is named so the swap answers to this square alone — the rail's
+             * own wrapper is a bare `group`, and an unnamed `group-hover:`
+             * here would fire anywhere over the rail.
+             */
+            <div className="group/brand relative flex size-9 items-center justify-center">
+              <BrandIcon className="size-5" />
+
+              <SidebarTrigger className="absolute inset-0 size-9 text-sidebar-foreground/60 opacity-0 transition-opacity group-hover/brand:opacity-100 hover:text-sidebar-foreground focus-visible:opacity-100 [&_svg]:size-5!" />
+            </div>
+          )}
+        </div>
+        <NavWorkspace
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+        />
       </SidebarHeader>
+
       <SidebarContent>
-        <NavMain items={navMain} />
+        {navGroups.map((group) => (
+          <NavMain key={group.label ?? group.sections[0].href} group={group} />
+        ))}
       </SidebarContent>
+
       <SidebarFooter>
         <NavUser user={user} />
+        <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-1">
+          <a
+            href={DOCS_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          >
+            <BookOpenIcon className="size-3.5 group-data-[collapsible=icon]:size-5" />
+            <span className="group-data-[collapsible=icon]:hidden">Docs</span>
+          </a>
+          <ModeToggle
+            variant="ghost"
+            size="icon-sm"
+            className="group-data-[collapsible=icon]:size-9 group-data-[collapsible=icon]:[&_svg]:size-5!"
+          />
+        </div>
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
-  )
+  );
 }

@@ -1,3 +1,4 @@
+import { PageHeader, PageShell } from "@/components/page-shell";
 import {
   Empty,
   EmptyDescription,
@@ -5,17 +6,15 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { navMetadata } from "@/lib/navigation";
 import { WebhookIcon } from "lucide-react";
+
+export const metadata = navMetadata("/webhooks");
 
 export default function WebhooksPage() {
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Webhooks</h1>
-        <p className="text-sm text-muted-foreground">
-          Get notified about deliveries, bounces, and complaints.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader href="/webhooks" />
       <Empty className="border py-16">
         <EmptyHeader>
           <EmptyMedia variant="icon">
@@ -27,6 +26,6 @@ export default function WebhooksPage() {
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
-    </div>
+    </PageShell>
   );
 }

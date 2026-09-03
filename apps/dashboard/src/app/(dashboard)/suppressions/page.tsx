@@ -2,6 +2,7 @@
 
 import { SuppressionReasonBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
+import { PageHeader, PageShell } from "@/components/page-shell";
 import {
   Dialog,
   DialogContent,
@@ -249,16 +250,8 @@ export default function SuppressionsPage() {
   const rows = list.data?.rows ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Suppressions</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Addresses this organization will not send to. Hard bounces and spam
-          complaints are added automatically; you can also add or import
-          addresses yourself. Removing an entry makes the address sendable
-          again.
-        </p>
-      </div>
+    <PageShell>
+      <PageHeader href="/suppressions" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatCard value={stats.data?.total} label="Total" />
@@ -490,6 +483,6 @@ export default function SuppressionsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }

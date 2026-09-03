@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, PageShell } from "@/components/page-shell";
 import {
   Dialog,
   DialogContent,
@@ -126,19 +127,16 @@ export default function ApiKeysPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">API Keys</h1>
-          <p className="text-sm text-muted-foreground">
-            Authenticate requests to the Retransmit API.
-          </p>
-        </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <PlusIcon />
-          Create key
-        </Button>
-      </div>
+    <PageShell>
+      <PageHeader
+        href="/api-keys"
+        actions={
+          <Button onClick={() => setCreateOpen(true)}>
+            <PlusIcon />
+            Create key
+          </Button>
+        }
+      />
 
       {keys.isLoading ? (
         <div className="flex flex-col gap-2">
@@ -279,6 +277,6 @@ export default function ApiKeysPage() {
       </Dialog>
 
       <CreatedKeyDialog createdKey={createdKey} onClose={() => setCreatedKey(null)} />
-    </div>
+    </PageShell>
   );
 }

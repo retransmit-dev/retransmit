@@ -1,18 +1,20 @@
-import { SettingsNav } from "@/components/settings-nav";
+import { PageHeader, PageShell } from "@/components/page-shell";
+import { SettingsTabs } from "@/components/settings/tabs";
 import type { PropsWithChildren } from "react";
 
-export default function SettingsLayout(props: PropsWithChildren) {
+/**
+ * The settings screen is one page with two tabs: General and Team. This
+ * layout owns the strip that switches between them; each tab's page owns its
+ * own data.
+ */
+export default function SettingsLayout({ children }: PropsWithChildren) {
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your organization. Domains, suppressions, and sending are
-          shared with everyone in it.
-        </p>
-      </div>
-      <SettingsNav />
-      {props.children}
-    </div>
+    <PageShell>
+      <PageHeader href="/settings" className="gap-4">
+        <SettingsTabs />
+      </PageHeader>
+
+      {children}
+    </PageShell>
   );
 }

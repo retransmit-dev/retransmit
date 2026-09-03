@@ -13,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { PageHeader, PageShell } from "@/components/page-shell";
 import {
   Empty,
   EmptyDescription,
@@ -210,19 +211,16 @@ export default function DomainsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">Domains</h1>
-          <p className="text-sm text-muted-foreground">
-            Verify a domain to send email from any address on it.
-          </p>
-        </div>
-        <Button onClick={() => setAddOpen(true)}>
-          <PlusIcon />
-          Add domain
-        </Button>
-      </div>
+    <PageShell>
+      <PageHeader
+        href="/domains"
+        actions={
+          <Button onClick={() => setAddOpen(true)}>
+            <PlusIcon />
+            Add domain
+          </Button>
+        }
+      />
 
       {domains.isLoading ? (
         <div className="flex flex-col gap-2">
@@ -347,6 +345,6 @@ export default function DomainsPage() {
       </Sheet>
 
       <DomainDetailsSheet domainId={selectedId} onClose={() => setSelectedId(null)} />
-    </div>
+    </PageShell>
   );
 }
