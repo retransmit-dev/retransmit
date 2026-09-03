@@ -23,6 +23,7 @@ import {
   GlobeIcon,
   HouseIcon,
   KeyRoundIcon,
+  LayersIcon,
   type LucideIcon,
   MailIcon,
   MessageCircleIcon,
@@ -66,6 +67,13 @@ const emails: NavSection = {
   title: "Emails",
   description: "Every email sent through your account, with delivery status.",
   icon: MailIcon,
+};
+
+const batches: NavSection = {
+  href: "/batches",
+  title: "Batches",
+  description: "Bulk sends and how far each one has drained, with a count per status.",
+  icon: LayersIcon,
 };
 
 const whatsapp: NavSection = {
@@ -139,7 +147,7 @@ const settings: NavSection = {
 
 export const navGroups: NavGroup[] = [
   { sections: [overview] },
-  { label: "Messages", sections: [emails, whatsapp, analytics] },
+  { label: "Messages", sections: [emails, batches, whatsapp, analytics] },
   { label: "Configure", sections: [domains, apiKeys, webhooks, suppressions] },
   { label: "Account", sections: [settings] },
 ];

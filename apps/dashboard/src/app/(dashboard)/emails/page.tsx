@@ -5,7 +5,6 @@ import type { EmailStatusValue } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import { PageHeader, PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import {
   Empty,
   EmptyDescription,
@@ -188,15 +187,12 @@ function EmailDetailsSheet({
   );
 }
 
-/** Polls every few seconds so a running batch visibly drains. */
+/** Polls every few seconds so the tiles track a running batch. */
 const LIVE_REFETCH_MS = 4000;
 
 function LiveStats() {
   const stats = useQuery(
     trpc.email.stats.queryOptions(undefined, { refetchInterval: LIVE_REFETCH_MS }),
-  );
-  const batches = useQuery(
-    trpc.email.batches.queryOptions({ limit: 5 }, { refetchInterval: LIVE_REFETCH_MS }),
   );
 
   const counts = stats.data?.counts;
@@ -212,46 +208,17 @@ function LiveStats() {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {tiles.map((tile) => (
-          <Card key={tile.label} className="py-4">
-            <CardContent className="px-4">
-              <p className="text-xs text-muted-foreground">{tile.label}</p>
-              <p className="text-2xl font-semibold tabular-nums">
-                {tile.value.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {batches.data && batches.data.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-lg border p-4">
-          <h2 className="text-sm font-medium">Recent batches</h2>
-          {batches.data.map((batch) => {
-            const pct = batch.total === 0 ? 0 : Math.round((batch.processed / batch.total) * 100);
-            const parts = Object.entries(batch.counts)
-              .filter(([, value]) => value > 0)
-              .map(([key, value]) => `${value.toLocaleString()} ${key}`)
-              .join(" · ");
-            return (
-              <div key={batch.id} className="flex flex-col gap-1">
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <code className="text-muted-foreground">{batch.id.slice(0, 11)}…</code>
-                  <span className="text-muted-foreground">
-                    {formatDate(batch.createdAt)} · {parts || "queued"}
-                  </span>
-                  <span className="tabular-nums">
-                    {batch.processed.toLocaleString()} / {batch.total.toLocaleString()} ({pct}%)
-                  </span>
-                </div>
-                <Progress value={pct} />
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {tiles.map((tile) => (
+        <Card key={tile.label} className="py-4">
+          <CardContent className="px-4">
+            <p className="text-xs text-muted-foreground">{tile.label}</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              {tile.value.toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
