@@ -5,6 +5,71 @@ import { organization, user } from "./auth";
 import { apiKey } from "./email";
 import type { WebhookEventType } from "./email";
 
+export const WHATSAPP_ACCOUNT_STATUSES = ["active", "disconnected"] as const;
+export type WhatsappAccountStatus = (typeof WHATSAPP_ACCOUNT_STATUSES)[number];
+
+/**
+ * How the number came to be on the account. `embedded_signup` is a number the
+ * customer owns and verified through Meta's Embedded Signup; `provisioned` is
+ * reserved for numbers Retransmit buys and registers on the customer's
+ * behalf (not built yet).
+ */
+export const WHATSAPP_ACCOUNT_SOURCES = ["embedded_signup", "provisioned"] as const;
+export type WhatsappAccountSource = (typeof WHATSAPP_ACCOUNT_SOURCES)[number];
+
+/**
+ * A WhatsApp Business phone number connected to an organization. Each
+ * organization brings its own number (and WhatsApp Business Account) through
+ * Embedded Signup under Retransmit's Meta app, so messages go out with the
+ * customer's name and replies are unambiguous.
+ */
+export const whatsappAccount = pgTable(
+  "whatsapp_account",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** Member who connected the number; inbound webhooks go to this user's endpoints. */
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Routing key of the gateway that serves this number, e.g. `meta`. */
+    provider: text("provider").notNull(),
+    source: text("source").$type<WhatsappAccountSource>().default("embedded_signup").notNull(),
+    /** WhatsApp Business Account id the number belongs to. */
+    wabaId: text("waba_id").notNull(),
+    /** Meta phone number id; webhooks identify the receiving number by it. */
+    phoneNumberId: text("phone_number_id").notNull(),
+    /** The number itself, normalized E.164. */
+    phoneNumber: text("phone_number").notNull(),
+    /** Business display name approved by Meta for the number. */
+    verifiedName: text("verified_name"),
+    /** Meta quality rating: GREEN, YELLOW, RED or UNKNOWN. */
+    qualityRating: text("quality_rating"),
+    /** Encrypted business integration token (see @retransmit/whatsapp/crypto). */
+    accessToken: text("access_token").notNull(),
+    /** Two-step verification PIN set at registration, encrypted like the token. */
+    pin: text("pin"),
+    status: text("status").$type<WhatsappAccountStatus>().default("active").notNull(),
+    /** Last error from Meta when syncing or registering, for the dashboard. */
+    error: text("error"),
+    lastSyncedAt: timestamp("last_synced_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("whatsappAccount_provider_phoneNumberId_idx").on(
+      table.provider,
+      table.phoneNumberId,
+    ),
+    index("whatsappAccount_organizationId_idx").on(table.organizationId),
+  ],
+);
+
 export const WHATSAPP_STATUSES = ["queued", "sent", "delivered", "read", "failed"] as const;
 export type WhatsappStatus = (typeof WHATSAPP_STATUSES)[number];
 
@@ -40,6 +105,10 @@ export const whatsappMessage = pgTable(
       onDelete: "cascade",
     }),
     apiKeyId: text("api_key_id").references(() => apiKey.id, { onDelete: "set null" }),
+    /** The connected number this went out from. Null once that number is disconnected. */
+    accountId: text("account_id").references(() => whatsappAccount.id, { onDelete: "set null" }),
+    /** Sending number at the time of sending, normalized E.164. */
+    from: text("from").notNull(),
     /** Recipient, normalized E.164 (`+2376...`). One row per recipient. */
     to: text("to").notNull(),
     /** ISO 3166-1 alpha-2 destination country detected from the number. */
@@ -68,7 +137,7 @@ export const whatsappMessage = pgTable(
     index("whatsappMessage_userId_createdAt_idx").on(table.userId, table.createdAt),
     index("whatsappMessage_providerMessageId_idx").on(table.providerMessageId),
     index("whatsappMessage_userId_status_idx").on(table.userId, table.status),
-    index("whatsappMessage_to_createdAt_idx").on(table.to, table.createdAt),
+    index("whatsappMessage_accountId_createdAt_idx").on(table.accountId, table.createdAt),
   ],
 );
 
@@ -88,15 +157,15 @@ export const whatsappEvent = pgTable(
 );
 
 /**
- * Messages people send to the platform number. The sending business is
- * resolved from the conversation (a quoted message of ours, else the last
- * outbound to that number); rows that cannot be attributed keep a null user
- * and never reach a webhook.
+ * Messages people send to a connected number. The receiving number's
+ * `phone_number_id` identifies the account; notifications for a number we
+ * no longer know are stored without an owner and never reach a webhook.
  */
 export const whatsappInbound = pgTable(
   "whatsapp_inbound",
   {
     id: text("id").primaryKey(),
+    accountId: text("account_id").references(() => whatsappAccount.id, { onDelete: "set null" }),
     userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
     organizationId: text("organization_id").references(() => organization.id, {
       onDelete: "cascade",
@@ -106,7 +175,7 @@ export const whatsappInbound = pgTable(
     providerMessageId: text("provider_message_id").notNull(),
     /** Sender, normalized E.164. */
     from: text("from").notNull(),
-    /** The platform number that received it (display form, e.g. `+15550001234`). */
+    /** The connected number that received it, normalized E.164. */
     to: text("to"),
     /** WhatsApp profile name of the sender, when shared. */
     profileName: text("profile_name"),
@@ -129,13 +198,27 @@ export const whatsappInbound = pgTable(
       table.provider,
       table.providerMessageId,
     ),
-    index("whatsappInbound_userId_createdAt_idx").on(table.userId, table.createdAt),
+    index("whatsappInbound_accountId_createdAt_idx").on(table.accountId, table.createdAt),
   ],
 );
+
+export const whatsappAccountRelations = relations(whatsappAccount, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [whatsappAccount.organizationId],
+    references: [organization.id],
+  }),
+  user: one(user, { fields: [whatsappAccount.userId], references: [user.id] }),
+  messages: many(whatsappMessage),
+  inbound: many(whatsappInbound),
+}));
 
 export const whatsappMessageRelations = relations(whatsappMessage, ({ one, many }) => ({
   user: one(user, { fields: [whatsappMessage.userId], references: [user.id] }),
   apiKey: one(apiKey, { fields: [whatsappMessage.apiKeyId], references: [apiKey.id] }),
+  account: one(whatsappAccount, {
+    fields: [whatsappMessage.accountId],
+    references: [whatsappAccount.id],
+  }),
   events: many(whatsappEvent),
 }));
 
@@ -147,6 +230,10 @@ export const whatsappEventRelations = relations(whatsappEvent, ({ one }) => ({
 }));
 
 export const whatsappInboundRelations = relations(whatsappInbound, ({ one }) => ({
+  account: one(whatsappAccount, {
+    fields: [whatsappInbound.accountId],
+    references: [whatsappAccount.id],
+  }),
   user: one(user, { fields: [whatsappInbound.userId], references: [user.id] }),
   replyTo: one(whatsappMessage, {
     fields: [whatsappInbound.replyToMessageId],

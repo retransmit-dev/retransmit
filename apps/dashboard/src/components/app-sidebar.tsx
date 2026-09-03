@@ -22,6 +22,7 @@ import {
   KeyRoundIcon,
   LayoutDashboardIcon,
   MailIcon,
+  MessageCircleIcon,
   SendIcon,
   Settings2Icon,
   WebhookIcon,
@@ -47,6 +48,11 @@ const navMain = [
     title: "Domains",
     url: "/domains",
     icon: <GlobeIcon />,
+  },
+  {
+    title: "WhatsApp",
+    url: "/whatsapp",
+    icon: <MessageCircleIcon />,
   },
   {
     title: "API Keys",

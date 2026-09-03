@@ -3,11 +3,16 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import type { WebhookEventType } from "@retransmit/db/schema/email";
-import { whatsappEvent, whatsappInbound, whatsappMessage } from "@retransmit/db/schema/whatsapp";
+import {
+  whatsappAccount,
+  whatsappEvent,
+  whatsappInbound,
+  whatsappMessage,
+} from "@retransmit/db/schema/whatsapp";
 import type { WhatsappStatus } from "@retransmit/db/schema/whatsapp";
 import { dispatchWebhookEvent } from "@retransmit/email/webhooks";
 import { normalizePhone } from "@retransmit/sms/phone";
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import z from "zod";
 
 interface MappedStatus {
@@ -27,6 +32,8 @@ const STATUS_RANK: Record<WhatsappStatus, number> = {
 export function webhookPayload(row: typeof whatsappMessage.$inferSelect) {
   return {
     messageId: row.id,
+    accountId: row.accountId,
+    from: row.from,
     to: row.to,
     country: row.country,
     type: row.type,
@@ -206,9 +213,8 @@ function inboundText(message: Record<string, unknown>): string | null {
 }
 
 /**
- * Stores one inbound message and, when it can be attributed to a customer,
- * fans it out as `whatsapp.received`. Attribution: the quoted message's
- * owner first, else whoever last messaged that number from the platform.
+ * Stores one inbound message and, when the receiving number is a connected
+ * account, fans it out as `whatsapp.received` to that account's owner.
  * Returns false for duplicates (Meta redelivers until it sees a 200).
  */
 async function recordInboundMessage(
@@ -219,6 +225,14 @@ async function recordInboundMessage(
   const from = normalizePhone(`+${message.from.replace(/^\+/, "")}`) ?? `+${message.from}`;
   const contact = value.contacts?.find((entry) => entry.wa_id === message.from) ?? value.contacts?.[0];
 
+  const phoneNumberId = value.metadata?.phone_number_id;
+  const [account] = phoneNumberId
+    ? await db
+        .select()
+        .from(whatsappAccount)
+        .where(and(eq(whatsappAccount.provider, provider), eq(whatsappAccount.phoneNumberId, phoneNumberId)))
+    : [];
+
   let replyTo: typeof whatsappMessage.$inferSelect | undefined;
   if (message.context?.id) {
     [replyTo] = await db
@@ -226,28 +240,21 @@ async function recordInboundMessage(
       .from(whatsappMessage)
       .where(eq(whatsappMessage.providerMessageId, message.context.id));
   }
-  const owner =
-    replyTo ??
-    (
-      await db
-        .select()
-        .from(whatsappMessage)
-        .where(and(eq(whatsappMessage.to, from), eq(whatsappMessage.provider, provider)))
-        .orderBy(desc(whatsappMessage.createdAt))
-        .limit(1)
-    )[0];
 
   const receivedAt = message.timestamp ? new Date(Number(message.timestamp) * 1000) : new Date();
   const row = {
     id: createId("wai"),
-    userId: owner?.userId ?? null,
-    organizationId: owner?.organizationId ?? null,
+    accountId: account?.id ?? null,
+    userId: account?.userId ?? null,
+    organizationId: account?.organizationId ?? null,
     provider,
     providerMessageId: message.id,
     from,
-    to: value.metadata?.display_phone_number
-      ? normalizePhone(`+${value.metadata.display_phone_number.replace(/^\+/, "")}`)
-      : null,
+    to:
+      account?.phoneNumber ??
+      (value.metadata?.display_phone_number
+        ? normalizePhone(`+${value.metadata.display_phone_number.replace(/^\+/, "")}`)
+        : null),
     profileName: contact?.profile?.name ?? null,
     type: message.type,
     text: inboundText(message as Record<string, unknown>),
@@ -260,12 +267,15 @@ async function recordInboundMessage(
   });
   if (inserted.length === 0) return false;
 
-  if (!owner) {
-    console.warn(`[whatsapp] inbound ${message.id} from ${from} could not be attributed to a user`);
+  if (!account) {
+    console.warn(
+      `[whatsapp] inbound ${message.id} for unknown phone_number_id ${phoneNumberId ?? "?"} stored without an owner`,
+    );
     return true;
   }
-  await dispatchWebhookEvent(owner.userId, "whatsapp.received", {
+  await dispatchWebhookEvent(account.userId, "whatsapp.received", {
     inboundId: row.id,
+    accountId: account.id,
     from: row.from,
     to: row.to,
     profileName: row.profileName,

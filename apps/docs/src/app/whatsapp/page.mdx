@@ -1,9 +1,21 @@
 # WhatsApp
 
 Send WhatsApp messages through the same Retransmit API key and SDK you use for
-email and SMS. Retransmit connects to the WhatsApp Business Platform directly,
-so you do not need a Meta developer account, a verified business, or a phone
-number of your own.
+email and SMS. Messages go out from your own WhatsApp Business number, so
+recipients see your business name and replies come straight back to you.
+
+## Connect a number
+
+Open **WhatsApp** in the dashboard and click **Connect a number**. Meta's
+signup dialog walks you through logging in with Facebook, picking or creating
+your business, and verifying a phone number you own by SMS or voice call. No
+Meta developer account or code is needed; Retransmit's app handles the
+integration.
+
+A number can only be attached to one WhatsApp app at a time. If it is
+currently used in the WhatsApp or WhatsApp Business app, remove it there
+first. Most organizations connect one number; connect several if you need
+separate identities and pass `from` when sending.
 
 ## Send a message
 
@@ -42,9 +54,9 @@ await retransmit.whatsapp.send({
 });
 ```
 
-Templates are created and approved on the Retransmit platform account.
-Contact support to register yours; the `name` and `language` you pass must
-match the approved template exactly.
+Templates are created and approved in WhatsApp Manager on the business you
+connected. The `name` and `language` you pass must match the approved
+template exactly.
 
 A free-form message sent outside the window is accepted by the API but comes
 back as `failed` with the provider's error once the worker sends it.

@@ -1,29 +1,36 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { whatsappEvent, whatsappMessage } from "@retransmit/db/schema/whatsapp";
+import { whatsappAccount, whatsappEvent, whatsappMessage } from "@retransmit/db/schema/whatsapp";
 import { dispatchWebhookEvent } from "@retransmit/email/webhooks";
 import { eq } from "drizzle-orm";
 
+import { senderFor } from "./accounts";
 import { webhookPayload } from "./delivery";
-import { selectProvider } from "./provider";
+import { getProvider } from "./provider";
 
 /**
- * Processes one `whatsapp-send` job: routes the message to a provider and
- * records the outcome. Idempotent — a row that is no longer `queued` is
- * skipped, so a retry after a partial failure never double-sends.
+ * Processes one `whatsapp-send` job: sends through the connected number the
+ * message was created for and records the outcome. Idempotent — a row that
+ * is no longer `queued` is skipped, so a retry after a partial failure never
+ * double-sends.
  *
- * Routing happens here (not at enqueue time) so a message queued while a
- * provider was down can still go out through whichever provider is best when
- * the job actually runs. Throws on provider failure so pg-boss retries with
- * backoff; an unroutable destination fails permanently right away.
+ * Throws on provider failure so pg-boss retries with backoff; a number that
+ * was disconnected in the meantime fails permanently right away.
  */
 export async function processWhatsappSend(messageId: string): Promise<void> {
   const [row] = await db.select().from(whatsappMessage).where(eq(whatsappMessage.id, messageId));
   if (!row || row.status !== "queued") return;
 
-  const provider = selectProvider(row.country);
-  if (!provider) {
-    const message = `No configured WhatsApp provider can deliver to ${row.country ?? "this destination"}`;
+  const [account] = row.accountId
+    ? await db.select().from(whatsappAccount).where(eq(whatsappAccount.id, row.accountId))
+    : [];
+  const provider = account && account.status === "active" ? getProvider(account.provider) : undefined;
+  if (!account || !provider) {
+    const message = !account
+      ? `The WhatsApp number ${row.from} is no longer connected`
+      : account.status !== "active"
+        ? `The WhatsApp number ${row.from} is disconnected`
+        : `No gateway registered for provider ${account.provider}`;
     await db
       .update(whatsappMessage)
       .set({ status: "failed", error: message, lastEventAt: new Date() })
@@ -42,16 +49,19 @@ export async function processWhatsappSend(messageId: string): Promise<void> {
   }
 
   try {
-    const { providerMessageId } = await provider.send({
-      id: row.id,
-      to: row.to,
-      country: row.country,
-      type: row.type,
-      text: row.text,
-      previewUrl: row.previewUrl,
-      template: row.template,
-      media: row.media,
-    });
+    const { providerMessageId } = await provider.send(
+      {
+        id: row.id,
+        to: row.to,
+        country: row.country,
+        type: row.type,
+        text: row.text,
+        previewUrl: row.previewUrl,
+        template: row.template,
+        media: row.media,
+      },
+      senderFor(account),
+    );
 
     await db
       .update(whatsappMessage)

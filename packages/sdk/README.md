@@ -93,9 +93,9 @@ console.log(progress?.processed, "/", progress?.total, progress?.counts);
 
 ## WhatsApp
 
-One recipient per request, in E.164 format. Start a conversation with an
-approved template; once the recipient replies you can send free-form text and
-media for 24 hours.
+Connect your WhatsApp Business number in the dashboard first. One recipient
+per request, in E.164 format. Start a conversation with an approved template;
+once the recipient replies you can send free-form text and media for 24 hours.
 
 ```ts
 const { data, error } = await retransmit.whatsapp.send({

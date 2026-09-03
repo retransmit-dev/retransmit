@@ -6,15 +6,16 @@ import { Tabs } from "nextra/components";
 POST /v1/whatsapp
 ```
 
-Validates and queues one WhatsApp message for asynchronous delivery.
-Retransmit normalizes the recipient number, detects its destination country,
-and selects an available provider. Poll [Get WhatsApp](/whatsapp/get) or
+Validates and queues one WhatsApp message for asynchronous delivery from a
+number connected to your organization. Retransmit normalizes the recipient
+number and detects its destination country. Poll [Get WhatsApp](/whatsapp/get) or
 subscribe to [Webhooks](/webhooks) for the outcome.
 
 ## Request body
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
+| `from` | string | No | Connected number to send from, in E.164 format. Required only when your organization has more than one number. |
 | `to` | string | Yes | One recipient in international E.164 format. |
 | `type` | string | No | `text` (default), `template`, `image`, or `document`. |
 | `text` | string | For `text` | Message body, from 1 to 4,096 characters. Also used as the caption for media when the media object has none. |
@@ -94,6 +95,7 @@ curl -X POST https://api.retransmit.dev/v1/whatsapp \
   "id": "wa_xxxxxxxxxxxx",
   "status": "queued",
   "type": "text",
+  "from": "+237650000000",
   "country": "CM",
   "created_at": "2026-09-01T12:00:00.000Z"
 }
@@ -107,6 +109,6 @@ curl -X POST https://api.retransmit.dev/v1/whatsapp \
 | --- | --- | --- |
 | `400` | `invalid_json` | The request body is not valid JSON. |
 | `401` | `unauthorized` | The API key is missing, invalid, or revoked. |
-| `422` | `validation_error` | A field is invalid, the phone number is malformed, or the object required by `type` is missing. |
-| `422` | `no_route` | No WhatsApp provider is configured. |
+| `422` | `validation_error` | A field is invalid, the phone number is malformed, the object required by `type` is missing, or `from` is needed to choose between several numbers. |
+| `422` | `no_whatsapp_account` | No connected WhatsApp number matches. Connect one in the dashboard. |
 | `500` | `internal_error` | The message could not be created. |

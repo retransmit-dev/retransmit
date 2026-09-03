@@ -56,6 +56,24 @@ export function DomainStatusBadge({ status }: { status: string }) {
   );
 }
 
+const WHATSAPP_ACCOUNT_STATUS: Record<string, { label: string; dot: string }> = {
+  active: { label: "Connected", dot: "bg-emerald-500" },
+  pending: { label: "Pending registration", dot: "bg-amber-500" },
+  disconnected: { label: "Disconnected", dot: "bg-zinc-500" },
+};
+
+export function WhatsappAccountStatusBadge({ status }: { status: string }) {
+  const option = WHATSAPP_ACCOUNT_STATUS[status];
+  return (
+    <Badge variant="outline">
+      <span
+        className={cn("size-1.5 rounded-full", option?.dot ?? "bg-muted-foreground")}
+      />
+      {option?.label ?? status}
+    </Badge>
+  );
+}
+
 const SUPPRESSION_REASON: Record<string, { label: string; dot: string }> = {
   bounce: { label: "Bounced", dot: "bg-red-500" },
   complaint: { label: "Complained", dot: "bg-amber-500" },

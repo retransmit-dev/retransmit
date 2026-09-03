@@ -16,6 +16,7 @@ export class Whatsapp {
    */
   send(options: SendWhatsappOptions): Promise<Result<SendWhatsappResponse>> {
     return this.client.request("POST", "/v1/whatsapp", {
+      from: options.from,
       to: options.to,
       type: options.type,
       text: options.text,

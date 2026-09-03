@@ -3,7 +3,7 @@ import { createId } from "@retransmit/db/id";
 import { WHATSAPP_MESSAGE_TYPES, whatsappEvent, whatsappMessage } from "@retransmit/db/schema/whatsapp";
 import { enqueueWhatsappSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone } from "@retransmit/sms/phone";
-import { selectProvider } from "@retransmit/whatsapp/provider";
+import { WhatsappAccountError, resolveSenderAccount } from "@retransmit/whatsapp/accounts";
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import z from "zod";
@@ -19,6 +19,8 @@ const mediaSchema = z.object({
 
 const sendWhatsappSchema = z
   .object({
+    /** Connected number to send from (E.164 or `wab_` id). Optional with a single number. */
+    from: z.string().min(1).max(64).optional(),
     to: z.string().refine((value) => normalizePhone(value) !== null, {
       message: "Invalid phone number. Numbers must be in international format, e.g. +237670000000",
     }),
@@ -60,10 +62,10 @@ export const whatsappRoutes = new Hono<ApiKeyEnv>();
 whatsappRoutes.use("*", apiKeyAuth);
 
 /**
- * Queues a single WhatsApp message to one recipient. The destination country
- * is detected from the number and the message is routed to the cheapest
- * configured provider (see @retransmit/whatsapp/provider). Returns 202
- * immediately; the worker sends it with retries and a dead-letter queue.
+ * Queues a single WhatsApp message to one recipient from one of the
+ * organization's connected numbers (see @retransmit/whatsapp/accounts).
+ * Returns 202 immediately; the worker sends it with retries and a
+ * dead-letter queue.
  *
  * Business-initiated conversations must start with an approved `template`;
  * free-form `text` and media only deliver inside the 24-hour customer
@@ -95,18 +97,22 @@ whatsappRoutes.post("/", async (c) => {
   const to = normalizePhone(input.to)!;
   const country = detectCountry(to);
 
-  // Fail fast when no provider is configured instead of queueing a doomed job.
-  // The worker re-routes at send time, so this is only an availability check.
-  if (!selectProvider(country)) {
-    return c.json(
-      {
-        error: {
-          code: "no_route",
-          message: `No WhatsApp provider is configured for ${country ?? "this destination"} yet`,
+  let account;
+  try {
+    account = await resolveSenderAccount(c.get("organizationId"), input.from);
+  } catch (cause) {
+    if (cause instanceof WhatsappAccountError) {
+      return c.json(
+        {
+          error: {
+            code: cause.code === "ambiguous" ? "validation_error" : "no_whatsapp_account",
+            message: cause.message,
+          },
         },
-      },
-      422,
-    );
+        422,
+      );
+    }
+    throw cause;
   }
 
   const media = input.type === "image" ? input.image : input.type === "document" ? input.document : null;
@@ -115,6 +121,8 @@ whatsappRoutes.post("/", async (c) => {
     userId: c.get("userId"),
     organizationId: c.get("organizationId"),
     apiKeyId: c.get("apiKeyId"),
+    accountId: account.id,
+    from: account.phoneNumber,
     to,
     country,
     type: input.type,
@@ -135,6 +143,7 @@ whatsappRoutes.post("/", async (c) => {
       id: row.id,
       status: "queued",
       type: row.type,
+      from: row.from,
       country,
       created_at: created.createdAt.toISOString(),
     },
@@ -159,6 +168,7 @@ whatsappRoutes.get("/:id", async (c) => {
 
   return c.json({
     id: row.id,
+    from: row.from,
     to: row.to,
     country: row.country,
     type: row.type,

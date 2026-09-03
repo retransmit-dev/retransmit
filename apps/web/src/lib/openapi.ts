@@ -70,6 +70,7 @@ const ERROR_CODES = [
   "domain_not_found",
   "domain_not_verified",
   "no_route",
+  "no_whatsapp_account",
   "not_found",
   "internal_error",
 ] as const;
@@ -351,7 +352,7 @@ export const OPENAPI_DOCUMENT = {
         tags: ["Whatsapp"],
         summary: "Queue one WhatsApp message",
         description:
-          "Returns 202 immediately; a worker sends it with retries and a dead-letter queue. One recipient per request. Business-initiated conversations must start with an approved template; free-form text and media only deliver inside the 24-hour window opened by a reply. Replies reach you as whatsapp.received webhooks. Poll GET /v1/whatsapp/{id} or subscribe to webhooks for the outcome.",
+          "Returns 202 immediately; a worker sends it with retries and a dead-letter queue. Goes out from a WhatsApp Business number connected to your organization in the dashboard; pass `from` when you have several. One recipient per request. Business-initiated conversations must start with an approved template; free-form text and media only deliver inside the 24-hour window opened by a reply. Replies reach you as whatsapp.received webhooks. Poll GET /v1/whatsapp/{id} or subscribe to webhooks for the outcome.",
         requestBody: {
           required: true,
           content: {
@@ -372,7 +373,7 @@ export const OPENAPI_DOCUMENT = {
           "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
           "401": errorResponse("Missing, invalid, or revoked API key."),
           "422": errorResponse(
-            "Schema validation failed or the object required by `type` is missing (`validation_error`), or no WhatsApp provider is configured (`no_route`).",
+            "Schema validation failed, the object required by `type` is missing, or `from` is needed to pick between several numbers (`validation_error`); or no connected WhatsApp number matches (`no_whatsapp_account`).",
           ),
           "500": errorResponse("Unexpected server error."),
         },
@@ -639,6 +640,11 @@ export const OPENAPI_DOCUMENT = {
         type: "object",
         required: ["to"],
         properties: {
+          from: {
+            type: "string",
+            description:
+              "Connected number to send from, in international format. Optional when the organization has one number.",
+          },
           to: {
             type: "string",
             description: "One recipient in international format, e.g. +237670000000.",
@@ -667,11 +673,12 @@ export const OPENAPI_DOCUMENT = {
       },
       QueuedWhatsapp: {
         type: "object",
-        required: ["id", "status", "type", "country", "created_at"],
+        required: ["id", "status", "type", "from", "country", "created_at"],
         properties: {
           id: { type: "string" },
           status: { type: "string", const: "queued" },
           type: { type: "string", enum: [...WHATSAPP_MESSAGE_TYPES] },
+          from: { type: "string", description: "The connected number the message goes out from." },
           country: {
             type: ["string", "null"],
             description: "ISO 3166-1 alpha-2 country detected from the number prefix.",
@@ -683,6 +690,7 @@ export const OPENAPI_DOCUMENT = {
         type: "object",
         required: [
           "id",
+          "from",
           "to",
           "country",
           "type",
@@ -700,6 +708,7 @@ export const OPENAPI_DOCUMENT = {
         ],
         properties: {
           id: { type: "string" },
+          from: { type: "string" },
           to: { type: "string" },
           country: { type: ["string", "null"] },
           type: { type: "string", enum: [...WHATSAPP_MESSAGE_TYPES] },

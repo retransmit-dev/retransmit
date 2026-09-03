@@ -22,6 +22,7 @@ All errors share one shape:
 | `404` | `not_found` | The resource (or route) does not exist. |
 | `422` | `validation_error` | A request field failed validation. The message names the field, e.g. `subject: String must contain at least 1 character(s)`. For batches it includes the index: `emails.42.subject: ...`. |
 | `422` | `no_route` | No SMS provider is configured for the destination country. |
+| `422` | `no_whatsapp_account` | No connected WhatsApp number matches the request. Connect one in the dashboard, or fix `from`. |
 | `500` | `internal_error` | Something went wrong on Retransmit's side. Safe to retry. |
 
 ## Handling errors
@@ -33,6 +34,8 @@ All errors share one shape:
   rather than retrying.
 - `422 no_route` is a channel availability problem: use a supported SMS
   destination or wait until a provider is configured for that country.
+- `422 no_whatsapp_account` is a setup problem: connect a WhatsApp number in
+  the dashboard before sending.
 
 ## Send failures are asynchronous
 
@@ -40,6 +43,6 @@ Sending is queued, so most provider rejections do not surface as HTTP errors on
 submit. Retransmit retries transient provider failures automatically with
 exponential backoff; a message that exhausts its retries is marked `failed`
 with the provider's message in `error`. Detect failures through
-[Get Email](/email/get), [Get Batch](/email/get-batch), or
-[Get SMS](/sms/get), or subscribe to `email.failed` and
-`sms.failed` [webhooks](/webhooks).
+[Get Email](/email/get), [Get Batch](/email/get-batch),
+[Get SMS](/sms/get), or [Get WhatsApp](/whatsapp/get), or subscribe to
+`email.failed`, `sms.failed`, and `whatsapp.failed` [webhooks](/webhooks).

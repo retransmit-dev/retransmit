@@ -16,6 +16,7 @@ const TITLES: Record<string, string> = {
   "/emails": "Emails",
   "/analytics": "Analytics",
   "/domains": "Domains",
+  "/whatsapp": "WhatsApp",
   "/api-keys": "API Keys",
   "/webhooks": "Webhooks",
 }

@@ -1,23 +1,26 @@
-import type { WhatsappMessage, WhatsappProvider, WhatsappSendResult } from "../provider";
+import type {
+  WhatsappMessage,
+  WhatsappProvider,
+  WhatsappSender,
+  WhatsappSendResult,
+} from "../provider";
 
 /**
  * Meta WhatsApp Business Platform, Cloud API
  * (https://developers.facebook.com/docs/whatsapp/cloud-api).
  *
- * Retransmit connects to Meta directly: one Meta app, one WhatsApp Business
- * Account (WABA) and one platform phone number carry every customer's
- * messages. Customers never see Meta.
+ * Retransmit is the Meta app ("Tech Provider"); each customer connects their
+ * own WhatsApp Business Account and phone number through Embedded Signup
+ * (see ../meta-signup.ts). Sending uses that account's token and phone
+ * number id, so nothing here is per-deployment except the app itself.
  *
- * Env (per prefix, default `WHATSAPP_META`):
- * - `<PREFIX>_ACCESS_TOKEN` — a permanent System User token with
- *   `whatsapp_business_messaging` (and `whatsapp_business_management`).
- * - `<PREFIX>_PHONE_NUMBER_ID` — the sending number's id from WhatsApp
- *   Manager (not the number itself).
- * - `<PREFIX>_COST_PER_MESSAGE` — optional USD price override.
+ * App-level env (prefix `WHATSAPP_META`):
+ * - `<PREFIX>_APP_ID` / `<PREFIX>_APP_SECRET` — the Meta app. The secret
+ *   also signs webhook posts (verified in ../delivery.ts).
+ * - `<PREFIX>_VERIFY_TOKEN` — webhook verification handshake.
+ * - `<PREFIX>_SIGNUP_CONFIG_ID` — Embedded Signup configuration.
  * - `<PREFIX>_API_VERSION` — Graph API version, default `v23.0`.
- *
- * Webhooks (statuses and inbound messages) are verified and processed in
- * `../delivery.ts`; see `<PREFIX>_APP_SECRET` and `<PREFIX>_VERIFY_TOKEN`.
+ * - `<PREFIX>_COST_PER_MESSAGE` — optional USD price override.
  */
 export interface MetaProviderOptions {
   key: string;
@@ -28,7 +31,8 @@ export interface MetaProviderOptions {
 }
 
 // META_GRAPH_API_BASE_URL swaps the whole Graph host (local mock).
-const baseUrl = () => process.env.META_GRAPH_API_BASE_URL ?? "https://graph.facebook.com";
+export const graphBaseUrl = () => process.env.META_GRAPH_API_BASE_URL ?? "https://graph.facebook.com";
+export const metaApiVersion = () => process.env.WHATSAPP_META_API_VERSION ?? "v23.0";
 
 /** Graph API error envelope. */
 interface MetaErrorBody {
@@ -98,15 +102,13 @@ export function buildMetaPayload(message: WhatsappMessage): Record<string, unkno
 
 export function createMetaProvider(options: MetaProviderOptions): WhatsappProvider {
   const env = (suffix: string) => process.env[`${options.envPrefix}_${suffix}`];
-  const version = () => env("API_VERSION") ?? "v23.0";
-  const sendUrl = () =>
-    `${baseUrl()}/${version()}/${encodeURIComponent(env("PHONE_NUMBER_ID") ?? "")}/messages`;
 
-  async function send(message: WhatsappMessage): Promise<WhatsappSendResult> {
-    const response = await fetch(sendUrl(), {
+  async function send(message: WhatsappMessage, sender: WhatsappSender): Promise<WhatsappSendResult> {
+    const url = `${graphBaseUrl()}/${metaApiVersion()}/${encodeURIComponent(sender.phoneNumberId)}/messages`;
+    const response = await fetch(url, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${env("ACCESS_TOKEN") ?? ""}`,
+        authorization: `Bearer ${sender.accessToken}`,
         "content-type": "application/json",
       },
       body: JSON.stringify(buildMetaPayload(message)),
@@ -129,7 +131,7 @@ export function createMetaProvider(options: MetaProviderOptions): WhatsappProvid
     key: options.key,
     name: options.name,
     isConfigured() {
-      return Boolean(env("ACCESS_TOKEN") && env("PHONE_NUMBER_ID"));
+      return Boolean(env("APP_ID") && env("APP_SECRET"));
     },
     costFor() {
       const configured = Number(env("COST_PER_MESSAGE"));

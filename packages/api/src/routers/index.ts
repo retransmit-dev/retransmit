@@ -7,6 +7,7 @@ import { organizationRouter } from "./organizations";
 import { suppressionRouter } from "./suppressions";
 import { todoRouter } from "./todo";
 import { webhookRouter } from "./webhooks";
+import { whatsappAccountRouter } from "./whatsapp-accounts";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -25,6 +26,7 @@ export const appRouter = router({
   organization: organizationRouter,
   suppression: suppressionRouter,
   webhook: webhookRouter,
+  whatsappAccount: whatsappAccountRouter,
   todo: todoRouter,
 });
 export type AppRouter = typeof appRouter;

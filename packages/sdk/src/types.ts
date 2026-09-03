@@ -162,6 +162,11 @@ export interface WhatsappDocument extends WhatsappMedia {
 }
 
 export interface SendWhatsappOptions {
+  /**
+   * Connected number to send from, in international format. Optional when
+   * your organization has a single WhatsApp number.
+   */
+  from?: string;
   /** One recipient in international format (`+237670000000`). */
   to: string;
   /** Defaults to `text`. */
@@ -182,6 +187,8 @@ export interface SendWhatsappResponse {
   id: string;
   status: "queued";
   type: WhatsappMessageType;
+  /** The connected number the message goes out from. */
+  from: string;
   /** ISO 3166-1 alpha-2 destination country detected from the number prefix. */
   country: string | null;
   created_at: string;
@@ -194,6 +201,7 @@ export interface WhatsappEvent {
 
 export interface GetWhatsappResponse {
   id: string;
+  from: string;
   to: string;
   country: string | null;
   type: WhatsappMessageType;
