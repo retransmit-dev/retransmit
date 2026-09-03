@@ -11,6 +11,11 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+} from "@/components/ui/pagination";
+import {
   Table,
   TableBody,
   TableCell,
@@ -20,24 +25,49 @@ import {
 } from "@/components/ui/table";
 import { useCurrentOrganization } from "@/hooks/use-organization";
 import { formatDate } from "@/lib/format";
+import { SUPPRESSIONS_PAGE_SIZE } from "@/lib/suppressions";
 import { trpc } from "@/utils/trpc";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BanIcon, Trash2Icon } from "lucide-react";
-import { useDeferredValue } from "react";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  BanIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Trash2Icon,
+} from "lucide-react";
+import { useDeferredValue, useEffect } from "react";
 import { toast } from "sonner";
 
 import type { SuppressionFilters } from "./suppression-filters";
 
-export function SuppressionsTable({ filters }: { filters: SuppressionFilters }) {
+export function SuppressionsTable({
+  filters,
+  page,
+  onPageChange,
+}: {
+  filters: SuppressionFilters;
+  /** Zero-based page index. */
+  page: number;
+  onPageChange: (page: number) => void;
+}) {
   const queryClient = useQueryClient();
   const search = useDeferredValue(filters.search);
   const { canManage } = useCurrentOrganization();
   const stats = useQuery(trpc.suppression.stats.queryOptions());
   const list = useQuery(
-    trpc.suppression.list.queryOptions({
-      search: search || undefined,
-      reason: filters.reason ?? undefined,
-    }),
+    trpc.suppression.list.queryOptions(
+      {
+        search: search || undefined,
+        reason: filters.reason ?? undefined,
+        limit: SUPPRESSIONS_PAGE_SIZE,
+        offset: page * SUPPRESSIONS_PAGE_SIZE,
+      },
+      { placeholderData: keepPreviousData },
+    ),
   );
 
   const removeMutation = useMutation(
@@ -51,6 +81,13 @@ export function SuppressionsTable({ filters }: { filters: SuppressionFilters }) 
 
   const hasAny = (stats.data?.total ?? 0) > 0;
   const rows = list.data?.rows ?? [];
+  const total = list.data?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / SUPPRESSIONS_PAGE_SIZE));
+
+  // Removing the last row on the last page leaves it empty; step back.
+  useEffect(() => {
+    if (list.data && page > 0 && page >= pageCount) onPageChange(pageCount - 1);
+  }, [list.data, page, pageCount, onPageChange]);
 
   if (list.isLoading || stats.isLoading) return <TableSkeleton rows={2} />;
 
@@ -110,10 +147,38 @@ export function SuppressionsTable({ filters }: { filters: SuppressionFilters }) 
           ))}
         </TableBody>
       </Table>
-      {list.data && list.data.total > rows.length && (
-        <p className="text-sm text-muted-foreground">
-          Latest {rows.length} of {list.data.total}. Search or export for all.
-        </p>
+      {pageCount > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 0 || list.isFetching}
+                onClick={() => onPageChange(page - 1)}
+              >
+                <ChevronLeftIcon />
+                Previous
+              </Button>
+            </PaginationItem>
+            <PaginationItem>
+              <span className="px-2 text-sm text-muted-foreground">
+                Page {page + 1} of {pageCount}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page + 1 >= pageCount || list.isFetching}
+                onClick={() => onPageChange(page + 1)}
+              >
+                Next
+                <ChevronRightIcon />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </>
   );

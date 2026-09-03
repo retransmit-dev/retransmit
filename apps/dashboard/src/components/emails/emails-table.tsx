@@ -124,14 +124,17 @@ export function EmailsTable({
               <TableCell className="max-w-64 text-muted-foreground">
                 <div className="truncate">{row.subject}</div>
                 {row.tags && row.tags.length > 0 && (
-                  <div className="mt-0.5 flex flex-wrap gap-1">
+                  <div
+                    className="mt-0.5 truncate"
+                    title={row.tags.map((tag) => `${tag.name}: ${tag.value}`).join(", ")}
+                  >
                     {row.tags.map((tag) => (
                       <Badge
                         key={tag.name}
                         variant="secondary"
-                        className="font-mono text-[10px]"
+                        className="mr-1 font-mono text-[10px]"
                       >
-                        {tag.name}: {tag.value}
+                        {tag.value}
                       </Badge>
                     ))}
                   </div>

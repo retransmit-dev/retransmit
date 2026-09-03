@@ -2,8 +2,12 @@
 
 import { DateRangePicker } from "@/components/date-range-picker";
 import type { DateRange } from "@/components/date-range-picker";
-import { EMAIL_STATUS_OPTIONS } from "@/components/status-badges";
-import { Input } from "@/components/ui/input";
+import { EMAIL_STATUS_OPTIONS, StatusDot } from "@/components/status-badges";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
   Select,
   SelectContent,
@@ -39,11 +43,12 @@ export function decodeTag(encoded: string) {
   return { name: encoded.slice(0, index), value: encoded.slice(index + 1) };
 }
 
-const STATUS_ITEMS = [
+const STATUS_ITEMS: { value: string; label: string; dot?: string }[] = [
   { value: "all", label: "All statuses" },
   ...EMAIL_STATUS_OPTIONS.map((option) => ({
     value: option.value as string,
     label: option.label,
+    dot: option.dot,
   })),
 ];
 
@@ -59,16 +64,17 @@ export function EmailFilterBar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative min-w-48 flex-1">
-        <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-8"
+      <InputGroup className="min-w-64 flex-1">
+        <InputGroupInput
           placeholder="Search..."
           aria-label="Search emails"
           value={filters.search}
           onChange={(e) => onChange({ search: e.target.value })}
         />
-      </div>
+        <InputGroupAddon>
+          <SearchIcon />
+        </InputGroupAddon>
+      </InputGroup>
       <DateRangePicker
         value={filters.range}
         onChange={(range) => onChange({ range })}
@@ -84,6 +90,7 @@ export function EmailFilterBar({
         <SelectContent>
           {STATUS_ITEMS.map((item) => (
             <SelectItem key={item.value} value={item.value}>
+              {item.dot && <StatusDot className={item.dot} />}
               {item.label}
             </SelectItem>
           ))}
