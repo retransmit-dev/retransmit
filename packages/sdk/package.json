@@ -1,6 +1,6 @@
 {
   "name": "retransmit.dev",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Node.js SDK for the Retransmit email and SMS APIs",
   "keywords": [
     "email",
@@ -14,7 +14,7 @@
   "homepage": "https://docs.retransmit.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jpainam/retransmit.git",
+    "url": "git+https://github.com/retransmit-dev/retransmit.git",
     "directory": "packages/sdk"
   },
   "license": "MIT",
