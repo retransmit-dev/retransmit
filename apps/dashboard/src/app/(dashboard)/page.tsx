@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
   return (
     <PageShell>
       <PageHeader
-        href="/analytics"
+        href="/"
         actions={
           <>
             <Select
