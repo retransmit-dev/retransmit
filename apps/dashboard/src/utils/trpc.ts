@@ -1,23 +1,25 @@
 import type { AppRouter } from "@retransmit/api/routers/index";
-import { QueryCache, QueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import { toast } from "sonner";
 
-export const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: (error, query) => {
-      toast.error(error.message, {
-        action: {
-          label: "retry",
-          onClick: () => {
-            query.invalidate();
-          },
-        },
-      });
-    },
-  }),
-});
+import { createQueryClient } from "@/trpc/query-client";
+
+/**
+ * tRPC for client components. The server-side counterpart, which prefetches
+ * into the same cache shape, lives in `trpc/server.tsx`.
+ *
+ * The browser keeps one query client for the life of the tab. Server renders
+ * of client components get a fresh one per call so nothing leaks between
+ * requests; whatever they fetch is discarded with the render.
+ */
+
+let browserQueryClient: QueryClient | undefined;
+
+export function getQueryClient(): QueryClient {
+  if (typeof window === "undefined") return createQueryClient();
+  return (browserQueryClient ??= createQueryClient());
+}
 
 const trpcClient = createTRPCClient<AppRouter>({
   links: [
@@ -35,5 +37,5 @@ const trpcClient = createTRPCClient<AppRouter>({
 
 export const trpc = createTRPCOptionsProxy<AppRouter>({
   client: trpcClient,
-  queryClient,
+  queryClient: getQueryClient,
 });

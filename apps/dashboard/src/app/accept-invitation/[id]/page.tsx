@@ -27,6 +27,8 @@ export default function AcceptInvitationPage() {
     queryKey: ["invitation", invitationId],
     enabled: Boolean(session.data),
     retry: false,
+    // Rendered inline as "invalid or expired" rather than thrown.
+    throwOnError: false,
     queryFn: async () => {
       const { data, error } = await authClient.organization.getInvitation({
         query: { id: invitationId },
@@ -56,7 +58,6 @@ export default function AcceptInvitationPage() {
       toast.success("You joined the organization");
       router.push("/");
     },
-    onError: (error) => toast.error(error.message),
   });
 
   const rejectMutation = useMutation({
@@ -68,7 +69,6 @@ export default function AcceptInvitationPage() {
       toast.success("Invitation declined");
       router.push("/");
     },
-    onError: (error) => toast.error(error.message),
   });
 
   return (
