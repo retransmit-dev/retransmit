@@ -62,8 +62,8 @@ function CreatedKeyDialog({
         <DialogHeader>
           <DialogTitle>API key created</DialogTitle>
           <DialogDescription>
-            Copy the key for <span className="font-medium">{createdKey?.name}</span>{" "}
-            now — for security reasons it will never be shown again.
+            Copy the <span className="font-medium">{createdKey?.name}</span> key
+            now. It won&apos;t be shown again.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2">
@@ -151,9 +151,9 @@ export default function ApiKeysPage() {
             </EmptyMedia>
             <EmptyTitle>No API keys yet</EmptyTitle>
             <EmptyDescription>
-              Create a key and pass it as{" "}
+              Send a key as{" "}
               <code className="font-mono text-xs">Authorization: Bearer rt_...</code>{" "}
-              to send emails.
+              in API requests.
             </EmptyDescription>
           </EmptyHeader>
           <Button onClick={() => setCreateOpen(true)}>
@@ -219,8 +219,7 @@ export default function ApiKeysPage() {
                             Revoke “{row.name}”?
                           </AlertDialogTitle>
                           <AlertDialogDescription>
-                            Requests using this key will start failing
-                            immediately. This cannot be undone.
+                            This key stops working immediately. This cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -245,9 +244,7 @@ export default function ApiKeysPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create API key</DialogTitle>
-            <DialogDescription>
-              Give the key a name that describes where it will be used.
-            </DialogDescription>
+            <DialogDescription>Use a name like Production.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">

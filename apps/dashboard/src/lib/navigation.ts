@@ -55,7 +55,7 @@ export type NavGroup = {
 const overview: NavSection = {
   href: "/",
   title: "Overview",
-  description: "Add a domain, create an API key, and start sending.",
+  description: "Set up sending and track results.",
   icon: HouseIcon,
 };
 
@@ -64,23 +64,21 @@ const overview: NavSection = {
 const emails: NavSection = {
   href: "/emails",
   title: "Emails",
-  description: "Every email sent through your account, with delivery status.",
+  description: "View sent emails and delivery status.",
   icon: MailIcon,
 };
 
 const batches: NavSection = {
   href: "/batches",
   title: "Batches",
-  description:
-    "Bulk sends and how far each one has drained, with a count per status.",
+  description: "Track bulk sends by status.",
   icon: LayersIcon,
 };
 
 const whatsapp: NavSection = {
   href: "/whatsapp",
   title: "WhatsApp",
-  description:
-    "Connect a WhatsApp Business number to send from it with your API key.",
+  description: "Connect a WhatsApp Business number.",
   icon: MessageCircleIcon,
 };
 
@@ -96,29 +94,28 @@ const whatsapp: NavSection = {
 const domains: NavSection = {
   href: "/domains",
   title: "Domains",
-  description: "Verify a domain to send email from any address on it.",
+  description: "Verify domains for email sending.",
   icon: GlobeIcon,
 };
 
 const apiKeys: NavSection = {
   href: "/api-keys",
   title: "API keys",
-  description: "Authenticate requests to the Retransmit API.",
+  description: "Authenticate API requests.",
   icon: KeyRoundIcon,
 };
 
 const webhooks: NavSection = {
   href: "/webhooks",
   title: "Webhooks",
-  description: "Get notified about deliveries, bounces, and complaints.",
+  description: "Receive delivery, bounce, and complaint events.",
   icon: WebhookIcon,
 };
 
 const suppressions: NavSection = {
   href: "/suppressions",
   title: "Suppressions",
-  description:
-    "Addresses this organization will not send to. Hard bounces and spam complaints are added automatically; you can also add or import addresses yourself. Removing an entry makes the address sendable again.",
+  description: "Manage addresses blocked from email.",
   icon: BanIcon,
 };
 
@@ -127,20 +124,18 @@ const suppressions: NavSection = {
 const settings: NavSection = {
   href: "/settings",
   title: "Settings",
-  description:
-    "Manage your organization. Domains, suppressions, and sending are shared with everyone in it.",
+  description: "Manage your organization.",
   icon: Settings2Icon,
   items: [
     {
       href: "/settings/general",
       title: "General",
-      description: "The organization's name and your role in it.",
+      description: "View organization details.",
     },
     {
       href: "/settings/team",
       title: "Team",
-      description:
-        "People with access to this organization, and what each can do.",
+      description: "Manage members and roles.",
     },
   ],
 };

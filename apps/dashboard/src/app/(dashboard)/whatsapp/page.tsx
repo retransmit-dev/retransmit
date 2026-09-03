@@ -62,7 +62,7 @@ export default function WhatsappPage() {
         void queryClient.invalidateQueries(trpc.whatsappAccount.pathFilter());
         toast.success(`${row.phoneNumber} is connected`);
         if (row.error) {
-          toast.warning("Registration is still pending. Finish verification in WhatsApp Manager, then sync.");
+          toast.warning("Finish verification in WhatsApp Manager, then sync.");
         }
       },
       onError: (error) => toast.error(error.message),
@@ -96,7 +96,7 @@ export default function WhatsappPage() {
             apiVersion: config.data.apiVersion,
             onComplete: (result: { code: string; wabaId: string; phoneNumberId: string }) =>
               connectMutation.mutate(result),
-            onCancel: () => toast.info("WhatsApp signup was closed before finishing"),
+            onCancel: () => toast.info("WhatsApp signup closed"),
             onError: (message: string) => toast.error(message),
           }
         : null,
@@ -120,11 +120,10 @@ export default function WhatsappPage() {
 
       {config.isSuccess && !configured && (
         <Alert>
-          <AlertTitle>WhatsApp is not set up on this deployment</AlertTitle>
+          <AlertTitle>WhatsApp is not configured</AlertTitle>
           <AlertDescription>
             Set WHATSAPP_META_APP_ID, WHATSAPP_META_APP_SECRET and
-            WHATSAPP_META_SIGNUP_CONFIG_ID on the dashboard and API servers to enable
-            connecting numbers.
+            WHATSAPP_META_SIGNUP_CONFIG_ID on both servers.
           </AlertDescription>
         </Alert>
       )}
@@ -142,9 +141,7 @@ export default function WhatsappPage() {
             </EmptyMedia>
             <EmptyTitle>No WhatsApp number yet</EmptyTitle>
             <EmptyDescription>
-              Connect a number you own through Meta. You will log in with Facebook,
-              pick or create your business, and verify the number by SMS or call.
-              Takes a few minutes.
+              Connect and verify a number through Meta.
             </EmptyDescription>
           </EmptyHeader>
           {connectButton}
@@ -215,9 +212,8 @@ export default function WhatsappPage() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Disconnect {row.phoneNumber}?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Sending from this number stops immediately and replies to it
-                            no longer reach your webhooks. The number stays on your
-                            WhatsApp Business Account; you can reconnect it later.
+                            Stops sending and webhook replies. The number stays in
+                            your WhatsApp Business Account.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -239,9 +235,8 @@ export default function WhatsappPage() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Message templates are managed in WhatsApp Manager on the business you connected.
-        A number can only be on one WhatsApp app at a time, so remove it from the WhatsApp
-        Business app first if you use it there.
+        Manage templates in WhatsApp Manager. Remove numbers from the WhatsApp
+        Business app before connecting them.
       </p>
     </PageShell>
   );

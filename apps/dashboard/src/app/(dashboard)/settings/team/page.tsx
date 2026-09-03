@@ -198,8 +198,7 @@ export default function TeamSettingsPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Members share this organization&apos;s domains and suppression
-            list. Admins can also manage them.
+            Members share domains and suppressions. Admins can manage both.
           </p>
         </form>
       )}
@@ -292,7 +291,7 @@ export default function TeamSettingsPage() {
                               variant="destructive"
                               onClick={() => removeMutation.mutate(member.id)}
                             >
-                              Remove from organization
+                              Remove member
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

@@ -125,7 +125,7 @@ function DomainDetailsSheet({
         toast[updated.status === "verified" ? "success" : "info"](
           updated.status === "verified"
             ? `${updated.name} is verified`
-            : `${updated.name} is still ${updated.status.replace("_", " ")} — DNS changes can take a while to propagate`,
+            : `${updated.name} is ${updated.status.replace("_", " ")}. DNS may take time.`,
         );
       },
     }),
@@ -143,8 +143,8 @@ function DomainDetailsSheet({
           </SheetTitle>
           <SheetDescription>
             {isVerified
-              ? "This domain is verified and ready to send. These DNS records back its DKIM signing — keep them published."
-              : "Publish these records at your DNS provider, then check the verification status. Verification usually completes within a few minutes but can take up to 72 hours."}
+              ? "Ready to send. Keep these DKIM records published."
+              : "Publish these DNS records, then check again. Changes may take 72 hours."}
           </SheetDescription>
         </SheetHeader>
         {details.isLoading ? (
@@ -187,7 +187,7 @@ export default function DomainsPage() {
         if (created.status === "verified") {
           toast.success(`${created.name} added and already verified`);
         } else {
-          toast.success(`${created.name} added — publish its DNS records to verify`);
+          toast.success(`${created.name} added. Publish its DNS records.`);
         }
         setSelectedId(created.id);
       },
@@ -235,8 +235,7 @@ export default function DomainsPage() {
             </EmptyMedia>
             <EmptyTitle>No domains yet</EmptyTitle>
             <EmptyDescription>
-              Add a domain you own, publish its DKIM records, and start sending
-              from it.
+              Add a domain and publish its DKIM records.
             </EmptyDescription>
           </EmptyHeader>
           <Button onClick={() => setAddOpen(true)}>
@@ -289,8 +288,7 @@ export default function DomainsPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Remove {row.name}?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Sending from this domain will stop immediately and
-                          its DKIM setup will be removed from Retransmit.
+                          Stops sending from this domain and removes its DKIM setup.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -315,8 +313,7 @@ export default function DomainsPage() {
           <SheetHeader className="p-0">
             <SheetTitle>Add a domain</SheetTitle>
             <SheetDescription>
-              Use a domain you own. After adding it you will get the DNS
-              records to publish for verification.
+              Add a domain to get its verification DNS records.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleCreate} className="flex flex-col gap-3">

@@ -60,7 +60,7 @@ export default function GeneralSettingsPage() {
           />
           {!canManage && (
             <p className="text-xs text-muted-foreground">
-              Only owners and admins can rename the organization.
+              Only owners and admins can rename it.
             </p>
           )}
         </div>

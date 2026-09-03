@@ -33,7 +33,7 @@ export default function AcceptInvitationPage() {
       });
       if (error) {
         throw new Error(
-          error.message ?? "This invitation is invalid, expired, or for a different email",
+          error.message ?? "This invitation is invalid or expired",
         );
       }
       return data;
@@ -83,8 +83,7 @@ export default function AcceptInvitationPage() {
             <CardHeader>
               <CardTitle>You are invited</CardTitle>
               <CardDescription>
-                Sign in with the email address that received this invitation,
-                then open the invite link again.
+                Sign in with the invited email, then reopen this link.
               </CardDescription>
             </CardHeader>
             <CardFooter>
@@ -99,7 +98,7 @@ export default function AcceptInvitationPage() {
             </CardHeader>
             <CardFooter>
               <Button variant="outline" render={<Link href="/" />}>
-                Go to dashboard
+                Dashboard
               </Button>
             </CardFooter>
           </>
@@ -108,10 +107,8 @@ export default function AcceptInvitationPage() {
             <CardHeader>
               <CardTitle>Join {invitation.data?.organizationName}</CardTitle>
               <CardDescription>
-                You were invited as{" "}
-                <span className="capitalize">{invitation.data?.role}</span>. You
-                will share the organization&apos;s domains and suppression
-                list.
+                Role: <span className="capitalize">{invitation.data?.role}</span>.
+                You&apos;ll share its domains and suppressions.
               </CardDescription>
             </CardHeader>
             <CardFooter className="gap-2">
@@ -120,7 +117,7 @@ export default function AcceptInvitationPage() {
                 disabled={acceptMutation.isPending || rejectMutation.isPending}
               >
                 {acceptMutation.isPending && <Spinner />}
-                Accept invitation
+                Accept
               </Button>
               <Button
                 variant="outline"

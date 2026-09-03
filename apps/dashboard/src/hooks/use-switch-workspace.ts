@@ -34,7 +34,7 @@ export function useSwitchWorkspace(activeWorkspaceId: string) {
       await queryClient.resetQueries();
       router.refresh();
     } catch {
-      toast.error("We couldn't switch workspaces. Please try again.");
+      toast.error("Workspace switch failed. Try again.");
     } finally {
       setSwitchingTo(undefined);
     }

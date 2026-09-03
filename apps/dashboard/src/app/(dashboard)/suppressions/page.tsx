@@ -167,7 +167,7 @@ export default function SuppressionsPage() {
         setAddValue("");
         toast.success(
           skipped > 0
-            ? `${added} added, ${skipped} already suppressed or invalid`
+            ? `${added} added; ${skipped} skipped`
             : `${added} address${added === 1 ? "" : "es"} suppressed`,
         );
       },
@@ -193,7 +193,7 @@ export default function SuppressionsPage() {
       .filter(Boolean);
     if (emails.length === 0) return;
     if (emails.length > 100) {
-      toast.error("Add up to 100 addresses at a time. Use Import CSV for more.");
+      toast.error("Limit 100 addresses. Use CSV import for more.");
       return;
     }
     addMutation.mutate({ emails });
@@ -226,7 +226,7 @@ export default function SuppressionsPage() {
       setPendingImport(null);
       toast.success(
         skipped > 0
-          ? `Imported ${added} addresses (${skipped} duplicate or invalid)`
+          ? `Imported ${added}; skipped ${skipped}`
           : `Imported ${added} addresses`,
       );
     } catch {
@@ -315,18 +315,15 @@ export default function SuppressionsPage() {
                   <PopoverHeader>
                     <PopoverTitle>CSV import format</PopoverTitle>
                     <PopoverDescription>
-                      A .csv or .txt file with one address per line. An
-                      optional second column sets the reason: bounce,
-                      complaint, unsubscribe, or manual. A header row is
-                      fine, it gets skipped.
+                      One address per line. Optional reason: bounce, complaint,
+                      unsubscribe, or manual. Headers are skipped.
                     </PopoverDescription>
                   </PopoverHeader>
                   <pre className="rounded-md bg-muted p-2 font-mono text-xs leading-relaxed">
                     {"email,reason\nuser@example.com,bounce\nother@example.com,complaint\nplain@example.com"}
                   </pre>
                   <p className="text-xs text-muted-foreground">
-                    Rows without a recognized reason import as manual, and
-                    exports from another provider usually work as-is.
+                    Unknown reasons become manual. Most provider exports work as-is.
                   </p>
                 </PopoverContent>
               </Popover>
@@ -362,12 +359,12 @@ export default function SuppressionsPage() {
               <BanIcon />
             </EmptyMedia>
             <EmptyTitle>
-              {hasAny ? "No matches." : "Nothing suppressed yet."}
+              {hasAny ? "No matches" : "No suppressions yet"}
             </EmptyTitle>
             <EmptyDescription>
               {hasAny
-                ? "No suppressed addresses match this search or filter."
-                : "Hard bounces and spam complaints land here automatically. Migrating from another provider? Import their suppression list so those addresses never get a first send from us."}
+                ? "No matches for this search or filter."
+                : "Bounces and complaints are added automatically. Import existing suppressions here."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -411,8 +408,7 @@ export default function SuppressionsPage() {
           </Table>
           {list.data && list.data.total > rows.length && (
             <p className="text-sm text-muted-foreground">
-              Showing the {rows.length} most recent of {list.data.total}. Use
-              search to narrow down, or export the full list.
+              Latest {rows.length} of {list.data.total}. Search or export for all.
             </p>
           )}
         </>
@@ -421,11 +417,9 @@ export default function SuppressionsPage() {
       <Sheet open={addOpen} onOpenChange={setAddOpen}>
         <SheetContent side="right" className="p-4 sm:max-w-md">
           <SheetHeader className="p-0">
-            <SheetTitle>Add addresses to the suppression list</SheetTitle>
+            <SheetTitle>Add suppressions</SheetTitle>
             <SheetDescription>
-              These addresses will not receive email from this organization
-              until they are removed from the list. A domain entry like
-              @example.com suppresses every address at that domain.
+              Blocks addresses until removed. Use @example.com to block a domain.
             </SheetDescription>
           </SheetHeader>
           <form onSubmit={handleAdd} className="flex flex-col gap-3">
@@ -441,8 +435,7 @@ export default function SuppressionsPage() {
                 disabled={addMutation.isPending}
               />
               <p className="text-xs text-muted-foreground">
-                One per line, or separated by commas or spaces. Up to 100 at a
-                time.
+                One per line, comma, or space. Limit 100.
               </p>
             </div>
             <Button type="submit" disabled={addMutation.isPending || !addValue.trim()}>
@@ -461,9 +454,7 @@ export default function SuppressionsPage() {
           <DialogHeader>
             <DialogTitle>Import suppression list</DialogTitle>
             <DialogDescription>
-              Found {pendingImport?.length ?? 0} addresses in the file.
-              Addresses already on the list are skipped, so re-importing is
-              safe.
+              Found {pendingImport?.length ?? 0} addresses. Duplicates are skipped.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -21,9 +21,7 @@ export default function WebhooksPage() {
             <WebhookIcon />
           </EmptyMedia>
           <EmptyTitle>Coming soon</EmptyTitle>
-          <EmptyDescription>
-            Managing webhook endpoints from the dashboard is on its way.
-          </EmptyDescription>
+          <EmptyDescription>Webhook management is coming soon.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     </PageShell>

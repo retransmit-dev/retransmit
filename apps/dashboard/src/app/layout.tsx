@@ -19,8 +19,7 @@ export const metadata: Metadata = {
     default: "Retransmit",
     template: "%s | Retransmit",
   },
-  description:
-    "Send email, SMS and WhatsApp from one API. Domains, keys, deliveries and analytics in one place.",
+  description: "Send email, SMS, and WhatsApp from one API.",
   // Nothing in the product app should ever appear in search results.
   robots: {
     index: false,

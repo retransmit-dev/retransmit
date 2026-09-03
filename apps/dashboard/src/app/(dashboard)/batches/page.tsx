@@ -63,8 +63,7 @@ export default function BatchesPage() {
             </EmptyMedia>
             <EmptyTitle>No batches yet</EmptyTitle>
             <EmptyDescription>
-              Send more than one email in a single API call and the batch will
-              show up here.
+              Batches appear after a bulk API send.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

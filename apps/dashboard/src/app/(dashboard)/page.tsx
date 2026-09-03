@@ -243,9 +243,7 @@ export default function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Volume</CardTitle>
-              <CardDescription>
-                Emails sent, delivered, and opened.
-              </CardDescription>
+              <CardDescription>Sent, delivered, and opened.</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer
@@ -297,9 +295,7 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Engagement</CardTitle>
-                <CardDescription>
-                  Distinct emails delivered, opened, and clicked.
-                </CardDescription>
+                <CardDescription>Delivered, opened, and clicked.</CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
@@ -356,7 +352,7 @@ export default function AnalyticsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Deliverability issues</CardTitle>
+                <CardTitle>Delivery issues</CardTitle>
                 <CardDescription>Bounces and spam complaints.</CardDescription>
               </CardHeader>
               <CardContent>

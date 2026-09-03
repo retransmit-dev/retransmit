@@ -26,7 +26,7 @@ export function useSignOut(onSignedOut?: () => void) {
       onSignedOut?.();
       window.location.replace("/login");
     } catch {
-      toast.error("Unable to sign out. Please try again.");
+      toast.error("Sign-out failed. Try again.");
     } finally {
       setIsPending(false);
     }

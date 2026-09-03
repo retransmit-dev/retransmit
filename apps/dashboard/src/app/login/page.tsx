@@ -78,15 +78,14 @@ export default function LoginPage() {
       <div className="mx-auto mt-10 w-full max-w-md p-6 text-center">
         <h1 className="text-3xl font-bold">Check your email</h1>
         <p className="mt-4 text-muted-foreground">
-          We sent a sign-in link to <strong>{magicLinkSentTo}</strong>. It
-          expires in 5 minutes.
+          Link sent to <strong>{magicLinkSentTo}</strong>. Expires in 5 minutes.
         </p>
         <Button
           variant="link"
           className="mt-4"
           onClick={() => setMagicLinkSentTo(null)}
         >
-          Use a different email
+          Use another email
         </Button>
       </div>
     );
@@ -98,7 +97,7 @@ export default function LoginPage() {
         Sign in to Retransmit
       </h1>
       <p className="mb-6 text-center text-sm text-muted-foreground">
-        New accounts are created on first sign-in.
+        First sign-in creates an account.
       </p>
 
       <div className="space-y-3">

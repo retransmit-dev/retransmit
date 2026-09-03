@@ -359,7 +359,7 @@ export default function EmailsPage() {
             <EmptyDescription>
               {filtered
                 ? "Try a different search, status or API key."
-                : "Widen the date range, or send an email through the API and it will show up here."}
+                : "Widen the date range or send an email."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>

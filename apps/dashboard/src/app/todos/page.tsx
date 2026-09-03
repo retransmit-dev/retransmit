@@ -65,7 +65,7 @@ export default function TodosPage() {
       <Card>
         <CardHeader>
           <CardTitle>Todo List</CardTitle>
-          <CardDescription>Manage your tasks efficiently</CardDescription>
+          <CardDescription>Track your tasks.</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -75,7 +75,7 @@ export default function TodosPage() {
             <Input
               value={newTodoText}
               onChange={(e) => setNewTodoText(e.target.value)}
-              placeholder="Add a new task..."
+              placeholder="New task"
               disabled={createMutation.isPending}
             />
             <Button
@@ -95,7 +95,7 @@ export default function TodosPage() {
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : todos.data?.length === 0 ? (
-            <p className="py-4 text-center">No todos yet. Add one above!</p>
+            <p className="py-4 text-center">No tasks yet.</p>
           ) : (
             <ul className="space-y-2">
               {todos.data?.map((todo) => (

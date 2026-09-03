@@ -100,7 +100,7 @@ export function useEmbeddedSignup(options: EmbeddedSignupOptions | null) {
         if (!pending.current.phoneNumberId) {
           setRunning(false);
           latest.current?.onError?.(
-            "Signup finished without a phone number. Add a number to the WhatsApp Business Account and try again.",
+            "Add a phone number in WhatsApp Manager, then try again.",
           );
           return;
         }
@@ -112,7 +112,7 @@ export function useEmbeddedSignup(options: EmbeddedSignupOptions | null) {
       } else if (data.event === "ERROR") {
         pending.current = {};
         setRunning(false);
-        latest.current?.onError?.(data.data?.error_message ?? "Meta reported an error during signup");
+        latest.current?.onError?.(data.data?.error_message ?? "Meta signup failed");
       }
     };
     window.addEventListener("message", listener);
