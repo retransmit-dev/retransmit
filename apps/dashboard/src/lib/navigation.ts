@@ -19,7 +19,6 @@
 
 import {
   BanIcon,
-  ChartLineIcon,
   GlobeIcon,
   HouseIcon,
   KeyRoundIcon,
@@ -72,7 +71,8 @@ const emails: NavSection = {
 const batches: NavSection = {
   href: "/batches",
   title: "Batches",
-  description: "Bulk sends and how far each one has drained, with a count per status.",
+  description:
+    "Bulk sends and how far each one has drained, with a count per status.",
   icon: LayersIcon,
 };
 
@@ -84,12 +84,12 @@ const whatsapp: NavSection = {
   icon: MessageCircleIcon,
 };
 
-const analytics: NavSection = {
-  href: "/analytics",
-  title: "Analytics",
-  description: "Delivery and engagement for the emails you send.",
-  icon: ChartLineIcon,
-};
+// const analytics: NavSection = {
+//   href: "/analytics",
+//   title: "Analytics",
+//   description: "Delivery and engagement for the emails you send.",
+//   icon: ChartLineIcon,
+// };
 
 /* -- Configure ----------------------------------------------------------- */
 
@@ -147,7 +147,7 @@ const settings: NavSection = {
 
 export const navGroups: NavGroup[] = [
   { sections: [overview] },
-  { label: "Messages", sections: [emails, batches, whatsapp, analytics] },
+  { label: "Messages", sections: [emails, batches, whatsapp] },
   { label: "Configure", sections: [domains, apiKeys, webhooks, suppressions] },
   { label: "Account", sections: [settings] },
 ];

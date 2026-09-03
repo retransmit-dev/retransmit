@@ -1,7 +1,7 @@
 "use client";
 
-import { EmailStatusBadge } from "@/components/status-badges";
 import { PageHeader, PageShell } from "@/components/page-shell";
+import { EmailStatusBadge } from "@/components/status-badges";
 import {
   Empty,
   EmptyDescription,
@@ -38,7 +38,10 @@ function formatDate(value: string | Date): string {
 
 export default function BatchesPage() {
   const batches = useQuery(
-    trpc.email.batches.queryOptions({ limit: LIMIT }, { refetchInterval: LIVE_REFETCH_MS }),
+    trpc.email.batches.queryOptions(
+      { limit: LIMIT },
+      { refetchInterval: LIVE_REFETCH_MS },
+    ),
   );
   const rows = batches.data ?? [];
 
@@ -60,12 +63,13 @@ export default function BatchesPage() {
             </EmptyMedia>
             <EmptyTitle>No batches yet</EmptyTitle>
             <EmptyDescription>
-              Send more than one email in a single API call and the batch will show up here.
+              Send more than one email in a single API call and the batch will
+              show up here.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -79,13 +83,23 @@ export default function BatchesPage() {
             <TableBody>
               {rows.map((batch) => {
                 const pct =
-                  batch.total === 0 ? 0 : Math.round((batch.processed / batch.total) * 100);
-                const statuses = Object.entries(batch.counts).filter(([, value]) => value > 0);
+                  batch.total === 0
+                    ? 0
+                    : Math.round((batch.processed / batch.total) * 100);
+                const statuses = Object.entries(batch.counts).filter(
+                  ([, value]) => value > 0,
+                );
                 return (
                   <TableRow key={batch.id}>
                     <TableCell>
-                      <Gauge value={pct} size={40} label={`Batch ${batch.id} progress`}>
-                        <span className="text-[10px] font-medium tabular-nums">{pct}%</span>
+                      <Gauge
+                        value={pct}
+                        size={40}
+                        label={`Batch ${batch.id} progress`}
+                      >
+                        <span className="text-[10px] font-medium tabular-nums">
+                          {pct}%
+                        </span>
                       </Gauge>
                     </TableCell>
                     <TableCell>
@@ -95,7 +109,8 @@ export default function BatchesPage() {
                       {formatDate(batch.createdAt)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-right tabular-nums">
-                      {batch.processed.toLocaleString()} / {batch.total.toLocaleString()}
+                      {batch.processed.toLocaleString()} /{" "}
+                      {batch.total.toLocaleString()}
                     </TableCell>
                     <TableCell>
                       {statuses.length === 0 ? (
@@ -103,7 +118,10 @@ export default function BatchesPage() {
                       ) : (
                         <div className="flex flex-wrap items-center gap-1.5">
                           {statuses.map(([status, value]) => (
-                            <span key={status} className="inline-flex items-center gap-1">
+                            <span
+                              key={status}
+                              className="inline-flex items-center gap-1"
+                            >
                               <EmailStatusBadge status={status} />
                               <span className="text-xs tabular-nums text-muted-foreground">
                                 {value.toLocaleString()}

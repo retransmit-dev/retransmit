@@ -37,7 +37,14 @@ const PRESETS: { label: string; range: () => DateRange }[] = [
   })),
 ]
 
+function matchesPreset(preset: DateRange, value: DateRange): boolean {
+  return isSameDay(preset.from, value.from) && isSameDay(preset.to, value.to)
+}
+
+/** Reads "Last 7 days" when the range is a preset, otherwise the dates. */
 function formatRange(range: DateRange): string {
+  const preset = PRESETS.find((candidate) => matchesPreset(candidate.range(), range))
+  if (preset) return preset.label
   if (isSameDay(range.from, range.to)) return format(range.from, "MMM d")
   return `${format(range.from, "MMM d")} - ${format(range.to, "MMM d")}`
 }
@@ -87,8 +94,7 @@ export function DateRangePicker({
           <div className="flex flex-col gap-0.5 border-r p-2">
             {PRESETS.map((preset) => {
               const range = preset.range()
-              const active =
-                isSameDay(range.from, value.from) && isSameDay(range.to, value.to)
+              const active = matchesPreset(range, value)
               return (
                 <Button
                   key={preset.label}

@@ -3,10 +3,23 @@ import { email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
 import { EMAIL_STATUSES } from "@retransmit/db/schema/email";
 import type { EmailStatus } from "@retransmit/db/schema/email";
 import { TRPCError } from "@trpc/server";
-import { and, asc, count, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, or, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, router } from "../index";
+
+/** Case-insensitive match on recipient, sender or subject. */
+function searchCondition(search: string) {
+  const escaped = search.trim().toLowerCase().replace(/[%_\\]/g, "\\$&");
+  const pattern = `%${escaped}%`;
+  return or(
+    ilike(email.subject, pattern),
+    ilike(email.from, pattern),
+    // `to` is a jsonb array of addresses; matching its text form covers every recipient.
+    sql`${email.to}::text ilike ${pattern}`,
+  );
+}
 
 export const emailRouter = router({
   /** Live counts of the user's emails per status (drives the stats header). */
@@ -72,12 +85,20 @@ export const emailRouter = router({
         limit: z.number().int().min(1).max(100).default(50),
         cursor: z.coerce.date().optional(),
         status: z.enum(EMAIL_STATUSES).optional(),
+        search: z.string().trim().max(320).optional(),
+        apiKeyId: z.string().optional(),
+        from: z.coerce.date().optional(),
+        to: z.coerce.date().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(email.userId, ctx.session.user.id)];
+      const conditions: (SQL | undefined)[] = [eq(email.userId, ctx.session.user.id)];
       if (input.cursor) conditions.push(lt(email.createdAt, input.cursor));
       if (input.status) conditions.push(eq(email.status, input.status));
+      if (input.search) conditions.push(searchCondition(input.search));
+      if (input.apiKeyId) conditions.push(eq(email.apiKeyId, input.apiKeyId));
+      if (input.from) conditions.push(gte(email.createdAt, input.from));
+      if (input.to) conditions.push(lte(email.createdAt, input.to));
 
       const rows = await db
         .select({

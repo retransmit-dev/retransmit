@@ -1,5 +1,7 @@
 "use client";
 
+import { DateRangePicker } from "@/components/date-range-picker";
+import type { DateRange } from "@/components/date-range-picker";
 import { EMAIL_STATUS_OPTIONS, EmailStatusBadge } from "@/components/status-badges";
 import type { EmailStatusValue } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -42,19 +45,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/utils/trpc";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeftIcon, ChevronRightIcon, MailIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { endOfDay, startOfDay, subDays } from "date-fns";
+import { ChevronLeftIcon, ChevronRightIcon, MailIcon, SearchIcon } from "lucide-react";
+import { Fragment, useDeferredValue, useState } from "react";
 
 const PAGE_SIZE = 25;
 
-const FILTER_ITEMS = [
+const STATUS_ITEMS = [
   { value: "all", label: "All statuses" },
   ...EMAIL_STATUS_OPTIONS.map((option) => ({
     value: option.value as string,
     label: option.label,
   })),
 ];
+
+const ALL_KEYS = { value: "all", label: "All API keys" };
+
+function defaultRange(): DateRange {
+  return { from: startOfDay(subDays(new Date(), 14)), to: endOfDay(new Date()) };
+}
 
 function formatDate(value: string | Date): string {
   return new Date(value).toLocaleString(undefined, {
@@ -224,52 +234,112 @@ function LiveStats() {
 }
 
 export default function EmailsPage() {
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const [range, setRange] = useState<DateRange>(defaultRange);
   const [status, setStatus] = useState<string>("all");
+  const [apiKeyId, setApiKeyId] = useState<string>("all");
   // Stack of page cursors; the last entry is the current page's cursor.
   const [cursors, setCursors] = useState<Date[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const apiKeys = useQuery(trpc.apiKey.list.queryOptions());
+  const keyItems = [
+    ALL_KEYS,
+    ...(apiKeys.data ?? []).map((key) => ({
+      value: key.id,
+      label: key.revokedAt ? `${key.name} (revoked)` : key.name,
+    })),
+  ];
+
   const emails = useQuery(
-    trpc.email.list.queryOptions({
-      limit: PAGE_SIZE,
-      cursor: cursors[cursors.length - 1],
-      status: status === "all" ? undefined : (status as EmailStatusValue),
-    }),
+    trpc.email.list.queryOptions(
+      {
+        limit: PAGE_SIZE,
+        cursor: cursors[cursors.length - 1],
+        search: deferredSearch.trim() || undefined,
+        from: range.from,
+        to: range.to,
+        status: status === "all" ? undefined : (status as EmailStatusValue),
+        apiKeyId: apiKeyId === "all" ? undefined : apiKeyId,
+      },
+      { placeholderData: keepPreviousData },
+    ),
   );
 
   const items = emails.data?.items ?? [];
   const nextCursor = emails.data?.nextCursor;
+  const filtered = search.trim() !== "" || status !== "all" || apiKeyId !== "all";
 
+  // Every filter change restarts pagination from the first page.
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setCursors([]);
+  };
+  const changeRange = (value: DateRange) => {
+    setRange(value);
+    setCursors([]);
+  };
   const changeStatus = (value: string) => {
     setStatus(value);
+    setCursors([]);
+  };
+  const changeApiKey = (value: string) => {
+    setApiKeyId(value);
     setCursors([]);
   };
 
   return (
     <PageShell>
-      <PageHeader
-        href="/emails"
-        actions={
-          <Select
-            items={FILTER_ITEMS}
-            value={status}
-            onValueChange={(value) => changeStatus(value as string)}
-          >
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {FILTER_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        }
-      />
+      <PageHeader href="/emails" />
 
       <LiveStats />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-48 flex-1">
+          <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-8"
+            placeholder="Search..."
+            aria-label="Search emails"
+            value={search}
+            onChange={(e) => changeSearch(e.target.value)}
+          />
+        </div>
+        <DateRangePicker value={range} onChange={changeRange} />
+        <Select
+          items={STATUS_ITEMS}
+          value={status}
+          onValueChange={(value) => changeStatus(value as string)}
+        >
+          <SelectTrigger className="w-40" aria-label="Status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_ITEMS.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          items={keyItems}
+          value={apiKeyId}
+          onValueChange={(value) => changeApiKey(value as string)}
+        >
+          <SelectTrigger className="w-40" aria-label="API key">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {keyItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {emails.isLoading ? (
         <div className="flex flex-col gap-2">
@@ -284,12 +354,12 @@ export default function EmailsPage() {
               <MailIcon />
             </EmptyMedia>
             <EmptyTitle>
-              {status === "all" ? "No emails yet" : "No emails with this status"}
+              {filtered ? "No emails match these filters" : "No emails in this period"}
             </EmptyTitle>
             <EmptyDescription>
-              {status === "all"
-                ? "Send your first email through the API and it will show up here."
-                : "Try a different status filter."}
+              {filtered
+                ? "Try a different search, status or API key."
+                : "Widen the date range, or send an email through the API and it will show up here."}
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
