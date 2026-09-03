@@ -53,10 +53,11 @@ export interface SendEmailOptions {
    */
   marketing?: boolean;
   /**
-   * Up to 10 labels for filtering in the dashboard and API, for example
+   * Up to 10 labels for filtering emails in the dashboard, for example
    * `[{ name: "campaign", value: "outreach-1" }]`. Names and values allow
    * letters, digits, underscores and dashes, up to 256 characters each.
-   * Tags are never sent to the recipient.
+   * Names must be unique within one email. Tags are returned by `emails.get`
+   * and are never sent to the recipient.
    */
   tags?: EmailTag[];
 }
@@ -93,6 +94,53 @@ export interface GetEmailResponse {
   created_at: string;
   last_event_at: string | null;
   events: EmailEvent[];
+}
+
+export interface ListEmailsOptions {
+  /**
+   * Only emails carrying every one of these tags, for example
+   * `[{ name: "campaign", value: "outreach-1" }]`.
+   */
+  tags?: EmailTag[];
+  status?: EmailStatus;
+  /** Only emails sent as part of this batch. */
+  batchId?: string;
+  /** Page size, 1 to 100. Defaults to 50. */
+  limit?: number;
+  /** `next_cursor` from the previous page. */
+  cursor?: string;
+}
+
+/** One row of `emails.list`. Call `emails.get(id)` for the event history. */
+export interface EmailSummary {
+  id: string;
+  batch_id: string | null;
+  from: string;
+  to: string[];
+  subject: string;
+  marketing: boolean;
+  tags: EmailTag[];
+  status: EmailStatus;
+  error: string | null;
+  created_at: string;
+  last_event_at: string | null;
+}
+
+export interface ListEmailsResponse {
+  /** Newest first. */
+  emails: EmailSummary[];
+  has_more: boolean;
+  /** Pass back as `cursor` to fetch the next page. `null` on the last page. */
+  next_cursor: string | null;
+}
+
+export interface EmailTagCount extends EmailTag {
+  /** How many of your emails carry this tag. */
+  count: number;
+}
+
+export interface ListEmailTagsResponse {
+  tags: EmailTagCount[];
 }
 
 export const SMS_STATUSES = [

@@ -51,6 +51,57 @@ const { data } = await retransmit.emails.get("em_xxxxxxxxxxxx");
 console.log(data?.status); // "delivered"
 ```
 
+### Tags
+
+Attach up to 10 `{ name, value }` tags to an email to label it. Filter by
+them in the dashboard or with `emails.list`. Tags come back on `emails.get`
+and are never sent to the recipient.
+
+```ts
+await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Your receipt",
+  html: "<p>Thanks for your order!</p>",
+  tags: [
+    { name: "category", value: "receipt" },
+    { name: "campaign", value: "spring-2026" },
+  ],
+});
+```
+
+Names and values allow letters, digits, underscores and dashes, up to 256
+characters each. Names must be unique within one email. Batch emails accept
+the same `tags` field.
+
+### List and filter emails
+
+`emails.list` returns your emails newest first. Every tag you pass must match.
+Combine with `status` or `batchId`, and page with `cursor`:
+
+```ts
+const { data } = await retransmit.emails.list({
+  tags: [{ name: "campaign", value: "spring-2026" }],
+  status: "bounced",
+  limit: 100,
+});
+
+for (const email of data!.emails) {
+  console.log(email.id, email.to, email.status, email.tags);
+}
+
+if (data!.has_more) {
+  await retransmit.emails.list({ cursor: data!.next_cursor!, /* same filters */ });
+}
+```
+
+To see which tags exist on your account, and how many emails carry each:
+
+```ts
+const { data } = await retransmit.emails.tags();
+// data.tags: [{ name: "campaign", value: "spring-2026", count: 1240 }, ...]
+```
+
 ## SMS
 
 Use international E.164 phone numbers. A single request can contain up to 50

@@ -23,7 +23,7 @@ transient failures. For many emails at once, use [Send Batch](/email/send-batch)
 | `html` | string | Yes* | HTML body, up to 1,000,000 characters. |
 | `text` | string | Yes* | Plain-text body, up to 1,000,000 characters. |
 | `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
-| `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering in the dashboard, e.g. `{ "name": "campaign", "value": "outreach-1" }`. Letters, digits, `_` and `-`, up to 256 characters each. Names must be unique per email. Tags are not sent to the recipient. |
+| `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering in the dashboard and [List Emails](/email/list), e.g. `{ "name": "campaign", "value": "outreach-1" }`. Letters, digits, `_` and `-`, up to 256 characters each. Names must be unique per email. Tags are not sent to the recipient. |
 
 \* At least one of `html` or `text` is required. You can provide both.
 

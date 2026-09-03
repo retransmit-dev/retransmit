@@ -5,7 +5,7 @@ import { Whatsapp } from "./whatsapp";
 import type { Result, RetransmitError, RetransmitOptions } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.retransmit.dev";
-const USER_AGENT = "retransmit.dev-node/0.1.0";
+const USER_AGENT = "retransmit.dev-node/0.3.0";
 
 function readEnv(name: string): string | undefined {
   // Guarded so the SDK also loads in edge/browser-like runtimes without `process`.
@@ -36,10 +36,23 @@ export class Retransmit {
   }
 
   /** Internal transport shared by the resource classes. API failures are returned, never thrown. */
-  async request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<Result<T>> {
+  async request<T>(
+    method: "GET" | "POST",
+    path: string,
+    body?: unknown,
+    query?: Record<string, string | number | string[] | undefined>,
+  ): Promise<Result<T>> {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query ?? {})) {
+      if (value === undefined) continue;
+      for (const item of Array.isArray(value) ? value : [value]) params.append(key, String(item));
+    }
+    const encoded = params.toString();
+    const search = encoded ? `?${encoded}` : "";
+
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}${path}`, {
+      response = await fetch(`${this.baseUrl}${path}${search}`, {
         method,
         headers: {
           Authorization: `Bearer ${this.apiKey}`,

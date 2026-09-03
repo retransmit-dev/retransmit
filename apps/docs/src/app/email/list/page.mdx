@@ -1,0 +1,118 @@
+import { Tabs } from "nextra/components";
+
+# List Emails
+
+```http
+GET /v1/emails
+```
+
+Lists your emails, newest first. Filter by tag, status or batch, and page
+through the results with a cursor. Each row is a summary; call
+[Get Email](/email/get) for the full event history.
+
+## Query parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `tag` | string | Only emails carrying this tag, as `name:value`. Repeat the parameter to require several tags at once, up to 10. |
+| `status` | string | One of the [email statuses](/email/get#email-statuses). |
+| `batch_id` | string | Only emails from this batch. |
+| `limit` | integer | Page size, 1 to 100. Defaults to 50. |
+| `cursor` | string | The `next_cursor` from the previous page. |
+
+## Example
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.emails.list({
+  tags: [{ name: "campaign", value: "spring-2026" }],
+  status: "bounced",
+  limit: 100,
+});
+
+if (data?.has_more) {
+  const next = await retransmit.emails.list({
+    tags: [{ name: "campaign", value: "spring-2026" }],
+    status: "bounced",
+    limit: 100,
+    cursor: data.next_cursor!,
+  });
+}
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl "https://api.retransmit.dev/v1/emails?tag=campaign:spring-2026&status=bounced&limit=100" \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+```
+</Tabs.Tab>
+</Tabs>
+
+## Response
+
+`200 OK`
+
+```json
+{
+  "emails": [
+    {
+      "id": "em_xxxxxxxxxxxx",
+      "batch_id": null,
+      "from": "Acme <hello@yourdomain.com>",
+      "to": ["user@example.com"],
+      "subject": "Your receipt",
+      "marketing": false,
+      "tags": [{ "name": "campaign", "value": "spring-2026" }],
+      "status": "bounced",
+      "error": "550 5.1.1 User unknown",
+      "created_at": "2026-09-01T12:00:00.000Z",
+      "last_event_at": "2026-09-01T12:00:03.000Z"
+    }
+  ],
+  "has_more": true,
+  "next_cursor": "2026-09-01T12:00:00.000Z"
+}
+```
+
+Pass `next_cursor` back as `cursor`, with the same filters, to fetch the next
+page. It is `null` on the last page.
+
+## List tags
+
+```http
+GET /v1/emails/tags
+```
+
+Every distinct tag on your account with how many emails carry it. This is the
+same list the dashboard filter offers.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data } = await retransmit.emails.tags();
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl https://api.retransmit.dev/v1/emails/tags \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+```
+</Tabs.Tab>
+</Tabs>
+
+```json
+{
+  "tags": [
+    { "name": "campaign", "value": "spring-2026", "count": 1240 },
+    { "name": "category", "value": "receipt", "count": 388 }
+  ]
+}
+```
+
+## Errors
+
+| Status | Code | Cause |
+| --- | --- | --- |
+| `422` | `validation_error` | A query parameter is malformed, for example a `tag` without `name:value` or a `limit` above 100. |
+| `401` | `unauthorized` | Missing, malformed, or revoked API key. |

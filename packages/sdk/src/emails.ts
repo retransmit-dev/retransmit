@@ -1,5 +1,13 @@
 import type { Retransmit } from "./retransmit";
-import type { GetEmailResponse, Result, SendEmailOptions, SendEmailResponse } from "./types";
+import type {
+  GetEmailResponse,
+  ListEmailTagsResponse,
+  ListEmailsOptions,
+  ListEmailsResponse,
+  Result,
+  SendEmailOptions,
+  SendEmailResponse,
+} from "./types";
 
 /** Maps the camelCase SDK options onto the snake_case wire format. */
 export function toWirePayload(options: SendEmailOptions) {
@@ -28,5 +36,24 @@ export class Emails {
   /** Retrieves an email with its current status and event history. */
   get(id: string): Promise<Result<GetEmailResponse>> {
     return this.client.request("GET", `/v1/emails/${encodeURIComponent(id)}`);
+  }
+
+  /**
+   * Lists your emails, newest first, optionally filtered by tags, status or
+   * batch. Pass `next_cursor` back as `cursor` to page through the results.
+   */
+  list(options: ListEmailsOptions = {}): Promise<Result<ListEmailsResponse>> {
+    return this.client.request("GET", "/v1/emails", undefined, {
+      tag: options.tags?.map((tag) => `${tag.name}:${tag.value}`),
+      status: options.status,
+      batch_id: options.batchId,
+      limit: options.limit,
+      cursor: options.cursor,
+    });
+  }
+
+  /** Every distinct tag on your emails, with a count of emails carrying it. */
+  tags(): Promise<Result<ListEmailTagsResponse>> {
+    return this.client.request("GET", "/v1/emails/tags");
   }
 }

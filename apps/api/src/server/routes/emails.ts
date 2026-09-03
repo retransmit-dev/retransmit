@@ -1,9 +1,11 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { domain, email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
+import { EMAIL_STATUSES, domain, email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
+import type { EmailTag } from "@retransmit/db/schema/email";
 import { extractEmailAddress, extractEmailDomain } from "@retransmit/email/address";
 import { enqueueEmailSend, enqueueEmailSendBatch } from "@retransmit/queue";
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, lt, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { Hono } from "hono";
 import z from "zod";
 
@@ -63,6 +65,46 @@ const batchSchema = z.object({
 });
 
 type SendEmailInput = z.infer<typeof sendEmailSchema>;
+
+const LIST_MAX = 100;
+const LIST_DEFAULT = 50;
+
+/**
+ * Query string for GET /. Tags arrive as repeatable `tag=name:value` params;
+ * the tag character set excludes `:` so the split is unambiguous.
+ */
+const listEmailsSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(LIST_MAX).default(LIST_DEFAULT),
+  cursor: z
+    .string()
+    .datetime({ offset: true, message: "cursor must be the `next_cursor` from a previous page" })
+    .optional(),
+  status: z.enum(EMAIL_STATUSES).optional(),
+  batch_id: z.string().min(1).optional(),
+  tag: z
+    .array(
+      z.string().transform((raw, ctx) => {
+        const index = raw.indexOf(":");
+        const candidate = { name: raw.slice(0, index), value: raw.slice(index + 1) };
+        const parsed = tagSchema.safeParse(candidate);
+        if (index === -1 || !parsed.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "tag must be `name:value` using letters, digits, underscores and dashes",
+          });
+          return z.NEVER;
+        }
+        return parsed.data;
+      }),
+    )
+    .max(TAG_MAX)
+    .default([]),
+});
+
+/** Matches emails carrying every one of these name/value pairs (uses the GIN index). */
+function tagsCondition(tags: EmailTag[]) {
+  return sql`${email.tags} @> ${JSON.stringify(tags)}::jsonb`;
+}
 
 /**
  * Loads the organization's registered domains for the given `from` addresses
@@ -288,6 +330,92 @@ emailRoutes.post("/", async (c) => {
   await enqueueEmailSend(row.id);
 
   return c.json({ id: row.id, status: "queued", created_at: created.createdAt.toISOString() }, 202);
+});
+
+/**
+ * Lists the account's emails, newest first, filtered by tag, status or batch.
+ * Paginated with an opaque `cursor`; pass `next_cursor` back to get the next
+ * page. Every `tag` filter must match for an email to be included.
+ */
+emailRoutes.get("/", async (c) => {
+  const query = c.req.query();
+  const parsed = listEmailsSchema.safeParse({ ...query, tag: c.req.queries("tag") ?? [] });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return c.json(
+      {
+        error: {
+          code: "validation_error",
+          message: issue ? `${issue.path.join(".") || "query"}: ${issue.message}` : "Invalid query",
+        },
+      },
+      422,
+    );
+  }
+  const input = parsed.data;
+
+  const conditions: SQL[] = [eq(email.userId, c.get("userId"))];
+  if (input.tag.length > 0) conditions.push(tagsCondition(input.tag));
+  if (input.status) conditions.push(eq(email.status, input.status));
+  if (input.batch_id) conditions.push(eq(email.batchId, input.batch_id));
+  if (input.cursor) conditions.push(lt(email.createdAt, new Date(input.cursor)));
+
+  const rows = await db
+    .select({
+      id: email.id,
+      batchId: email.batchId,
+      from: email.from,
+      to: email.to,
+      subject: email.subject,
+      marketing: email.marketing,
+      tags: email.tags,
+      status: email.status,
+      error: email.error,
+      createdAt: email.createdAt,
+      lastEventAt: email.lastEventAt,
+    })
+    .from(email)
+    .where(and(...conditions))
+    .orderBy(desc(email.createdAt))
+    .limit(input.limit + 1);
+
+  const hasMore = rows.length > input.limit;
+  const page = hasMore ? rows.slice(0, input.limit) : rows;
+  const last = page[page.length - 1];
+
+  return c.json({
+    emails: page.map((row) => ({
+      id: row.id,
+      batch_id: row.batchId,
+      from: row.from,
+      to: row.to,
+      subject: row.subject,
+      marketing: row.marketing,
+      tags: row.tags ?? [],
+      status: row.status,
+      error: row.error,
+      created_at: row.createdAt.toISOString(),
+      last_event_at: row.lastEventAt?.toISOString() ?? null,
+    })),
+    has_more: hasMore,
+    next_cursor: hasMore && last ? last.createdAt.toISOString() : null,
+  });
+});
+
+/**
+ * Distinct tag name/value pairs across the account's emails with how many
+ * emails carry each. Same data the dashboard filter picker shows.
+ */
+emailRoutes.get("/tags", async (c) => {
+  const result = await db.execute<{ name: string; value: string; count: number }>(sql`
+    select tag->>'name' as name, tag->>'value' as value, count(*)::int as count
+    from ${email}, jsonb_array_elements(${email.tags}) as tag
+    where ${email.userId} = ${c.get("userId")} and ${email.tags} is not null
+    group by 1, 2
+    order by 1, 2
+    limit 500
+  `);
+  return c.json({ tags: result.rows });
 });
 
 emailRoutes.get("/:id", async (c) => {

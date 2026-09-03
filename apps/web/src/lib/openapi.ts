@@ -148,6 +148,69 @@ export const OPENAPI_DOCUMENT = {
       },
     },
     "/v1/emails": {
+      get: {
+        operationId: "listEmails",
+        tags: ["Emails"],
+        summary: "List emails, newest first, filtered by tag, status or batch",
+        description:
+          "Returns summaries without event history; use GET /v1/emails/{id} for events. Repeat `tag` to require several tags at once. Pass `next_cursor` back as `cursor` for the next page.",
+        parameters: [
+          {
+            name: "tag",
+            in: "query",
+            required: false,
+            description:
+              "Only emails carrying this tag, as `name:value`. Repeat to require several tags (up to 10).",
+            style: "form",
+            explode: true,
+            schema: {
+              type: "array",
+              maxItems: 10,
+              items: { type: "string", pattern: "^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+$" },
+            },
+          },
+          {
+            name: "status",
+            in: "query",
+            required: false,
+            schema: { type: "string", enum: [...EMAIL_STATUSES] },
+          },
+          {
+            name: "batch_id",
+            in: "query",
+            required: false,
+            description: "Only emails from this batch.",
+            schema: { type: "string" },
+          },
+          {
+            name: "limit",
+            in: "query",
+            required: false,
+            description: "Page size. Defaults to 50.",
+            schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+          },
+          {
+            name: "cursor",
+            in: "query",
+            required: false,
+            description: "The `next_cursor` from the previous page.",
+            schema: { type: "string", format: "date-time" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "One page of emails.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/EmailList" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "422": errorResponse("A query parameter is malformed (`validation_error`)."),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
       post: {
         operationId: "sendEmail",
         tags: ["Emails"],
@@ -177,6 +240,27 @@ export const OPENAPI_DOCUMENT = {
             "Sender domain not registered (`domain_not_found`) or not verified (`domain_not_verified`).",
           ),
           "422": errorResponse("Schema validation failed (`validation_error`)."),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
+    "/v1/emails/tags": {
+      get: {
+        operationId: "listEmailTags",
+        tags: ["Emails"],
+        summary: "List every distinct tag on your emails",
+        description:
+          "Each name/value pair with how many emails carry it. The same list the dashboard filter offers. Capped at 500 pairs.",
+        responses: {
+          "200": {
+            description: "Distinct tags, sorted by name then value.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/EmailTagList" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
           "500": errorResponse("Unexpected server error."),
         },
       },
@@ -538,6 +622,57 @@ export const OPENAPI_DOCUMENT = {
             type: "array",
             items: { $ref: "#/components/schemas/EmailEvent" },
           },
+        },
+      },
+      EmailSummary: {
+        type: "object",
+        description: "One row of GET /v1/emails. Same fields as Email minus the event history.",
+        required: ["id", "from", "to", "subject", "status", "created_at"],
+        properties: {
+          id: { type: "string" },
+          batch_id: { type: ["string", "null"] },
+          from: { type: "string" },
+          to: { type: "array", items: { type: "string" } },
+          subject: { type: "string" },
+          marketing: { type: "boolean" },
+          tags: { type: "array", items: { $ref: "#/components/schemas/EmailTag" } },
+          status: { type: "string", enum: [...EMAIL_STATUSES] },
+          error: { type: ["string", "null"] },
+          created_at: { type: "string", format: "date-time" },
+          last_event_at: { type: ["string", "null"], format: "date-time" },
+        },
+      },
+      EmailList: {
+        type: "object",
+        required: ["emails", "has_more", "next_cursor"],
+        properties: {
+          emails: {
+            type: "array",
+            description: "Newest first.",
+            items: { $ref: "#/components/schemas/EmailSummary" },
+          },
+          has_more: { type: "boolean" },
+          next_cursor: {
+            type: ["string", "null"],
+            format: "date-time",
+            description: "Pass back as `cursor` to fetch the next page. `null` on the last page.",
+          },
+        },
+      },
+      EmailTagCount: {
+        type: "object",
+        required: ["name", "value", "count"],
+        properties: {
+          name: { type: "string" },
+          value: { type: "string" },
+          count: { type: "integer", description: "How many emails carry this tag." },
+        },
+      },
+      EmailTagList: {
+        type: "object",
+        required: ["tags"],
+        properties: {
+          tags: { type: "array", items: { $ref: "#/components/schemas/EmailTagCount" } },
         },
       },
       EmailEvent: {

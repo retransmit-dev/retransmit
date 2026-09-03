@@ -33,6 +33,7 @@ describe("OPENAPI_DOCUMENT", () => {
         "/health",
         "/v1/emails",
         "/v1/emails/{id}",
+        "/v1/emails/tags",
         "/v1/emails/batch",
         "/v1/emails/batch/{id}",
       ]),
