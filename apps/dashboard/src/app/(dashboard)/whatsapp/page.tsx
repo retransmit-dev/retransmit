@@ -150,94 +150,92 @@ export default function WhatsappPage() {
           {connectButton}
         </Empty>
       ) : (
-        <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Number</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Quality</TableHead>
-                <TableHead className="hidden md:table-cell">Connected</TableHead>
-                <TableHead className="w-20" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {accounts.data.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    <div className="font-medium">{row.phoneNumber}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {row.verifiedName ?? "No display name yet"}
-                      {row.source === "provisioned" && (
-                        <Badge variant="outline" className="ml-2">
-                          Retransmit number
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <WhatsappAccountStatusBadge status={row.error ? "pending" : row.status} />
-                    {row.error && (
-                      <div className="mt-1 max-w-xs truncate text-xs text-muted-foreground" title={row.error}>
-                        {row.error}
-                      </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Number</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden sm:table-cell">Quality</TableHead>
+              <TableHead className="hidden md:table-cell">Connected</TableHead>
+              <TableHead className="w-20" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {accounts.data.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell>
+                  <div className="font-medium">{row.phoneNumber}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {row.verifiedName ?? "No display name yet"}
+                    {row.source === "provisioned" && (
+                      <Badge variant="outline" className="ml-2">
+                        Retransmit number
+                      </Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Quality rating={row.qualityRating} />
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">
-                    {new Date(row.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Sync ${row.phoneNumber}`}
-                        disabled={syncMutation.isPending}
-                        onClick={() => syncMutation.mutate({ id: row.id })}
-                      >
-                        <RefreshCwIcon className="size-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Disconnect ${row.phoneNumber}`}
-                            />
-                          }
-                        >
-                          <Trash2Icon className="size-4" />
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Disconnect {row.phoneNumber}?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Sending from this number stops immediately and replies to it
-                              no longer reach your webhooks. The number stays on your
-                              WhatsApp Business Account; you can reconnect it later.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => disconnectMutation.mutate({ id: row.id })}
-                            >
-                              Disconnect
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <WhatsappAccountStatusBadge status={row.error ? "pending" : row.status} />
+                  {row.error && (
+                    <div className="mt-1 max-w-xs truncate text-xs text-muted-foreground" title={row.error}>
+                      {row.error}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  )}
+                </TableCell>
+                <TableCell className="hidden sm:table-cell">
+                  <Quality rating={row.qualityRating} />
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground md:table-cell">
+                  {new Date(row.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Sync ${row.phoneNumber}`}
+                      disabled={syncMutation.isPending}
+                      onClick={() => syncMutation.mutate({ id: row.id })}
+                    >
+                      <RefreshCwIcon className="size-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Disconnect ${row.phoneNumber}`}
+                          />
+                        }
+                      >
+                        <Trash2Icon className="size-4 text-destructive" />
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Disconnect {row.phoneNumber}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Sending from this number stops immediately and replies to it
+                            no longer reach your webhooks. The number stays on your
+                            WhatsApp Business Account; you can reconnect it later.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => disconnectMutation.mutate({ id: row.id })}
+                          >
+                            Disconnect
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       <p className="text-xs text-muted-foreground">

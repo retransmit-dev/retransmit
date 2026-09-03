@@ -373,44 +373,42 @@ export default function SuppressionsPage() {
         </Empty>
       ) : (
         <>
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead className="hidden sm:table-cell">Added</TableHead>
-                  {canManage && <TableHead className="w-10" />}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">{row.email}</TableCell>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Address</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead className="hidden sm:table-cell">Added</TableHead>
+                {canManage && <TableHead className="w-10" />}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="font-medium">{row.email}</TableCell>
+                  <TableCell>
+                    <SuppressionReasonBadge reason={row.reason} />
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    {new Date(row.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  {canManage && (
                     <TableCell>
-                      <SuppressionReasonBadge reason={row.reason} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Remove ${row.email} from suppressions`}
+                        onClick={() => removeMutation.mutate({ ids: [row.id] })}
+                        disabled={removeMutation.isPending}
+                      >
+                        <Trash2Icon className="size-4 text-destructive" />
+                      </Button>
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground sm:table-cell">
-                      {new Date(row.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    {canManage && (
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Remove ${row.email} from suppressions`}
-                          onClick={() => removeMutation.mutate({ ids: [row.id] })}
-                          disabled={removeMutation.isPending}
-                        >
-                          <Trash2Icon className="size-4" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
           {list.data && list.data.total > rows.length && (
             <p className="text-sm text-muted-foreground">
               Showing the {rows.length} most recent of {list.data.total}. Use

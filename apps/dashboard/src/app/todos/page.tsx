@@ -124,7 +124,7 @@ export default function TodosPage() {
                     onClick={() => handleDeleteTodo(todo.id)}
                     aria-label="Delete todo"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="size-4 text-destructive" />
                   </Button>
                 </li>
               ))}

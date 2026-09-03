@@ -162,85 +162,83 @@ export default function ApiKeysPage() {
           </Button>
         </Empty>
       ) : (
-        <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Key</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Created</TableHead>
-                <TableHead className="hidden sm:table-cell">Last used</TableHead>
-                <TableHead className="w-20" />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Key</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden sm:table-cell">Created</TableHead>
+              <TableHead className="hidden sm:table-cell">Last used</TableHead>
+              <TableHead className="w-20" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {keys.data.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-medium">{row.name}</TableCell>
+                <TableCell>
+                  <code className="font-mono text-xs text-muted-foreground">
+                    {row.keyHint}
+                  </code>
+                </TableCell>
+                <TableCell>
+                  {row.revokedAt ? (
+                    <Badge variant="destructive">Revoked</Badge>
+                  ) : (
+                    <Badge variant="outline">
+                      <span className="size-1.5 rounded-full bg-emerald-500" />
+                      Active
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
+                  {new Date(row.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
+                  {row.lastUsedAt
+                    ? new Date(row.lastUsedAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Never"}
+                </TableCell>
+                <TableCell>
+                  {!row.revokedAt && (
+                    <AlertDialog>
+                      <AlertDialogTrigger
+                        render={<Button variant="ghost" size="sm" />}
+                      >
+                        Revoke
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Revoke “{row.name}”?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Requests using this key will start failing
+                            immediately. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => revokeMutation.mutate({ id: row.id })}
+                          >
+                            Revoke key
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {keys.data.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell>
-                    <code className="font-mono text-xs text-muted-foreground">
-                      {row.keyHint}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    {row.revokedAt ? (
-                      <Badge variant="destructive">Revoked</Badge>
-                    ) : (
-                      <Badge variant="outline">
-                        <span className="size-1.5 rounded-full bg-emerald-500" />
-                        Active
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">
-                    {new Date(row.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">
-                    {row.lastUsedAt
-                      ? new Date(row.lastUsedAt).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "Never"}
-                  </TableCell>
-                  <TableCell>
-                    {!row.revokedAt && (
-                      <AlertDialog>
-                        <AlertDialogTrigger
-                          render={<Button variant="ghost" size="sm" />}
-                        >
-                          Revoke
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Revoke “{row.name}”?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Requests using this key will start failing
-                              immediately. This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => revokeMutation.mutate({ id: row.id })}
-                            >
-                              Revoke key
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>

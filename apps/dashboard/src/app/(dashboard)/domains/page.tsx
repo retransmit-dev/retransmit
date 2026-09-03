@@ -245,71 +245,69 @@ export default function DomainsPage() {
           </Button>
         </Empty>
       ) : (
-        <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Domain</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Region</TableHead>
-                <TableHead className="hidden sm:table-cell">Added</TableHead>
-                <TableHead className="w-10" />
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Domain</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden sm:table-cell">Region</TableHead>
+              <TableHead className="hidden sm:table-cell">Added</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {domains.data.map((row) => (
+              <TableRow
+                key={row.id}
+                className="cursor-pointer"
+                onClick={() => setSelectedId(row.id)}
+              >
+                <TableCell className="font-medium">{row.name}</TableCell>
+                <TableCell>
+                  <DomainStatusBadge status={row.status} />
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
+                  {row.region}
+                </TableCell>
+                <TableCell className="hidden text-muted-foreground sm:table-cell">
+                  {new Date(row.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <AlertDialog>
+                    <AlertDialogTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Delete ${row.name}`}
+                        />
+                      }
+                    >
+                      <Trash2Icon className="size-4 text-destructive" />
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove {row.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Sending from this domain will stop immediately and
+                          its DKIM setup will be removed from Retransmit.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMutation.mutate({ id: row.id })}
+                        >
+                          Remove domain
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {domains.data.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedId(row.id)}
-                >
-                  <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell>
-                    <DomainStatusBadge status={row.status} />
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">
-                    {row.region}
-                  </TableCell>
-                  <TableCell className="hidden text-muted-foreground sm:table-cell">
-                    {new Date(row.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <AlertDialog>
-                      <AlertDialogTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Delete ${row.name}`}
-                          />
-                        }
-                      >
-                        <Trash2Icon className="size-4" />
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove {row.name}?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Sending from this domain will stop immediately and
-                            its DKIM setup will be removed from Retransmit.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMutation.mutate({ id: row.id })}
-                          >
-                            Remove domain
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
       <Sheet open={addOpen} onOpenChange={setAddOpen}>

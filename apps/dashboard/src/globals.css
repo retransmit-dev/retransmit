@@ -90,21 +90,26 @@
    the app's structure: the rail is always a firm step away from the pane. */
 
 :root {
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  /* Paper, not white. The pane is a warm off-white, cards sit one step
+     above it in near-white and the rail one step below, so the three
+     surfaces read as layers without any of them being pure white. Same
+     light ramp as apps/web; only `--sidebar` departs, because the inset
+     layout paints it as the outer canvas. */
+  --card: oklch(0.993 0.0017 68);
+  --card-foreground: oklch(0.2686 0 0);
+  --popover: oklch(0.995 0.0017 68);
+  --popover-foreground: oklch(0.2686 0 0);
   --primary: oklch(0.6596 0.1992 40.68);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --secondary: oklch(0.9634 0.0028 68);
+  --secondary-foreground: oklch(0.2686 0 0);
+  --muted: oklch(0.9689 0.0024 68);
+  --muted-foreground: oklch(0.4497 0.0082 53);
+  --accent: oklch(0.9634 0.0028 68);
+  --accent-foreground: oklch(0.2686 0 0);
+  --destructive: oklch(0.5885 0.2093 27.3);
+  --border: oklch(0.2686 0 0 / 11%);
+  --input: oklch(0.2686 0 0 / 15%);
   --ring: oklch(0.6531 0.1637 37.2);
   --signal: oklch(0.6531 0.1637 37.2);
   --signal-foreground: oklch(1 0 0);
@@ -149,16 +154,16 @@
 
   /* The rail is a full step darker than the pane it frames. The active nav
      chip is the pane colour, so the selected item reads as the page. */
-  --sidebar: oklch(0.96 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: oklch(0.955 0.0028 68);
+  --sidebar-foreground: oklch(0.2686 0 0);
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(1 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-accent: oklch(0.9856 0.0017 68);
+  --sidebar-accent-foreground: oklch(0.2686 0 0);
+  --sidebar-border: oklch(0.2686 0 0 / 11%);
   --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.9856 0.0017 68);
+  --foreground: oklch(0.2686 0 0);
 }
 
 .dark {

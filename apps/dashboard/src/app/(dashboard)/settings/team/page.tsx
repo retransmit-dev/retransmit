@@ -206,162 +206,158 @@ export default function TeamSettingsPage() {
 
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-medium">Members</h2>
-        <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Member</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="hidden sm:table-cell">Joined</TableHead>
-                {canManage && <TableHead className="w-10" />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => {
-                const isSelf = member.userId === currentUserId;
-                return (
-                  <TableRow key={member.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="size-7">
-                          <AvatarImage src={member.user.image ?? undefined} />
-                          <AvatarFallback className="text-xs">
-                            {initials(member.user.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="grid leading-tight">
-                          <span className="font-medium">
-                            {member.user.name}
-                            {isSelf && (
-                              <span className="text-muted-foreground"> (you)</span>
-                            )}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {member.user.email}
-                          </span>
-                        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Member</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead className="hidden sm:table-cell">Joined</TableHead>
+              {canManage && <TableHead className="w-10" />}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {members.map((member) => {
+              const isSelf = member.userId === currentUserId;
+              return (
+                <TableRow key={member.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="size-7">
+                        <AvatarImage src={member.user.image ?? undefined} />
+                        <AvatarFallback className="text-xs">
+                          {initials(member.user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="grid leading-tight">
+                        <span className="font-medium">
+                          {member.user.name}
+                          {isSelf && (
+                            <span className="text-muted-foreground"> (you)</span>
+                          )}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {member.user.email}
+                        </span>
                       </div>
-                    </TableCell>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {member.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    {new Date(member.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  {canManage && (
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {member.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground sm:table-cell">
-                      {new Date(member.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    {canManage && (
-                      <TableCell>
-                        {!isSelf && member.role !== "owner" && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger
-                              render={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={`Manage ${member.user.name}`}
-                                />
-                              }
-                            >
-                              <MoreHorizontalIcon className="size-4" />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {member.role !== "admin" ? (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    roleMutation.mutate({
-                                      memberId: member.id,
-                                      role: "admin",
-                                    })
-                                  }
-                                >
-                                  Make admin
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    roleMutation.mutate({
-                                      memberId: member.id,
-                                      role: "member",
-                                    })
-                                  }
-                                >
-                                  Make member
-                                </DropdownMenuItem>
-                              )}
+                      {!isSelf && member.role !== "owner" && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Manage ${member.user.name}`}
+                              />
+                            }
+                          >
+                            <MoreHorizontalIcon className="size-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {member.role !== "admin" ? (
                               <DropdownMenuItem
-                                variant="destructive"
-                                onClick={() => removeMutation.mutate(member.id)}
+                                onClick={() =>
+                                  roleMutation.mutate({
+                                    memberId: member.id,
+                                    role: "admin",
+                                  })
+                                }
                               >
-                                Remove from organization
+                                Make admin
                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  roleMutation.mutate({
+                                    memberId: member.id,
+                                    role: "member",
+                                  })
+                                }
+                              >
+                                Make member
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => removeMutation.mutate(member.id)}
+                            >
+                              Remove from organization
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
 
       {pendingInvitations.length > 0 && (
         <div className="flex flex-col gap-2">
           <h2 className="text-sm font-medium">Pending invitations</h2>
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="hidden sm:table-cell">Expires</TableHead>
-                  <TableHead className="w-24" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingInvitations.map((invitation) => (
-                  <TableRow key={invitation.id}>
-                    <TableCell className="font-medium">{invitation.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {invitation.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden text-muted-foreground sm:table-cell">
-                      {invitation.expiresAt
-                        ? new Date(invitation.expiresAt).toLocaleDateString()
-                        : "Never"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="hidden sm:table-cell">Expires</TableHead>
+                <TableHead className="w-24" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingInvitations.map((invitation) => (
+                <TableRow key={invitation.id}>
+                  <TableCell className="font-medium">{invitation.email}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {invitation.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    {invitation.expiresAt
+                      ? new Date(invitation.expiresAt).toLocaleDateString()
+                      : "Never"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Copy invite link"
+                        onClick={() => void copyInviteLink(invitation.id)}
+                      >
+                        <CopyIcon className="size-4" />
+                      </Button>
+                      {canManage && (
                         <Button
                           variant="ghost"
-                          size="icon"
-                          aria-label="Copy invite link"
-                          onClick={() => void copyInviteLink(invitation.id)}
+                          size="sm"
+                          onClick={() => cancelInviteMutation.mutate(invitation.id)}
+                          disabled={cancelInviteMutation.isPending}
                         >
-                          <CopyIcon className="size-4" />
+                          Cancel
                         </Button>
-                        {canManage && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => cancelInviteMutation.mutate(invitation.id)}
-                            disabled={cancelInviteMutation.isPending}
-                          >
-                            Cancel
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

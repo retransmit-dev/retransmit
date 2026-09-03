@@ -328,42 +328,40 @@ export default function EmailsPage() {
         </Empty>
       ) : (
         <>
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>To</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden text-right sm:table-cell">
-                    Sent
-                  </TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>To</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden text-right sm:table-cell">
+                  Sent
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedId(row.id)}
+                >
+                  <TableCell className="max-w-48 truncate font-medium">
+                    {row.to.join(", ")}
+                  </TableCell>
+                  <TableCell className="max-w-64 truncate text-muted-foreground">
+                    {row.subject}
+                  </TableCell>
+                  <TableCell>
+                    <EmailStatusBadge status={row.status} />
+                  </TableCell>
+                  <TableCell className="hidden text-right text-muted-foreground sm:table-cell">
+                    {formatDate(row.createdAt)}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="cursor-pointer"
-                    onClick={() => setSelectedId(row.id)}
-                  >
-                    <TableCell className="max-w-48 truncate font-medium">
-                      {row.to.join(", ")}
-                    </TableCell>
-                    <TableCell className="max-w-64 truncate text-muted-foreground">
-                      {row.subject}
-                    </TableCell>
-                    <TableCell>
-                      <EmailStatusBadge status={row.status} />
-                    </TableCell>
-                    <TableCell className="hidden text-right text-muted-foreground sm:table-cell">
-                      {formatDate(row.createdAt)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
 
           {(cursors.length > 0 || nextCursor) && (
             <Pagination>
