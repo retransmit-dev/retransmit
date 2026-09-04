@@ -32,11 +32,9 @@ export function PasswordLoginForm() {
   };
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <h1 className="mb-2 text-center text-3xl font-bold">
-        Reviewer sign-in
-      </h1>
-      <p className="mb-6 text-center text-sm text-muted-foreground">
+    <div>
+      <h1 className="text-2xl">Reviewer sign-in</h1>
+      <p className="mt-2 mb-8 text-sm text-muted-foreground">
         Use the email and password provided with the review submission.
       </p>
 

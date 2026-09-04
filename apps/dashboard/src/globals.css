@@ -244,6 +244,22 @@
   }
 }
 
+/* Sign-in showcase feed: the list is rendered twice, so -50% lands exactly
+   on the seam. Only ever applied behind the motion-safe variant; the
+   reduced-motion block below also freezes it. */
+@keyframes event-feed {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-event-feed {
+  animation: event-feed 37s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
