@@ -169,12 +169,12 @@ export function SeoContentPage({
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <CtaButton
-            href={siteConfig.links.quickstart}
+            href={siteConfig.links.app}
             size="sm"
-            goal="start_quickstart"
+            goal="start_signup"
             goalPlacement="content_header"
           >
-            Get started
+            Get your API key
           </CtaButton>
           <CtaButton href={siteConfig.links.docs} tone="quiet" size="sm">
             Read the docs
@@ -294,12 +294,12 @@ export function SeoContentPage({
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <CtaButton
-                  href={siteConfig.links.quickstart}
+                  href={siteConfig.links.app}
                   size="sm"
-                  goal="start_quickstart"
+                  goal="start_signup"
                   goalPlacement="content_cta"
                 >
-                  Get started
+                  Get your API key
                 </CtaButton>
                 <CtaButton
                   href={siteConfig.links.github}

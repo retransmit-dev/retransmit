@@ -54,40 +54,30 @@ function CheckItem({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* The channel roadmap. Flip a status here when a channel ships; the cards
-   and the JSON-LD stay in sync by hand, see structured-data.tsx. */
+/* The channels, shipped and planned alike. The JSON-LD stays in sync by
+   hand, see structured-data.tsx. */
 const CHANNELS = [
   {
     icon: Mail,
     title: "Email",
-    status: "live",
     body: "Transactional email with domain verification, batch sending, and full event history.",
   },
   {
     icon: MessageSquareText,
     title: "SMS",
-    status: "live",
     body: "Text messages routed per country to the cheapest provider, with delivery receipts.",
   },
   {
     icon: MessageCircle,
     title: "WhatsApp",
-    status: "soon",
     body: "Template and session messages through the same API and balance.",
   },
   {
     icon: Fingerprint,
     title: "OTP",
-    status: "planned",
     body: "One-time codes with generation, delivery, and verification handled for you.",
   },
 ] as const;
-
-const CHANNEL_BADGE = {
-  live: { label: "Live", className: "bg-primary/10 text-primary" },
-  soon: { label: "Coming soon", className: "bg-muted text-muted-foreground" },
-  planned: { label: "Planned", className: "bg-muted text-muted-foreground" },
-} as const;
 
 const FEATURES = [
   {
@@ -135,13 +125,21 @@ export default function Home() {
             Send transactional email and SMS from one API and one prepaid
             balance. WhatsApp is next.
           </p>
-          <div className="mt-9 flex justify-center">
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            <CtaButton
+              href={siteConfig.links.app}
+              goal="start_signup"
+              goalPlacement="home_hero"
+            >
+              Get your API key
+            </CtaButton>
             <CtaButton
               href={siteConfig.links.quickstart}
+              tone="quiet"
               goal="start_quickstart"
               goalPlacement="home_hero"
             >
-              Get started
+              Read the quickstart
             </CtaButton>
           </div>
         </div>
@@ -151,31 +149,21 @@ export default function Home() {
       <Section id="channels">
         <SectionHeading
           eyebrow="Channels"
-          title="Integrate once. Add channels, not vendors."
-          lead="Every channel shares the same key, SDK, webhooks, and balance. New ones arrive as an SDK update, not another account."
+          title="Add channels, not vendors."
+          lead="Every channel shares the same key, SDK, webhooks, and balance."
         />
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {CHANNELS.map((channel) => {
-            const badge = CHANNEL_BADGE[channel.status];
-            return (
-              <Card key={channel.title} className="p-6">
-                <div className="flex items-center justify-between">
-                  <channel.icon className="size-5 text-primary" aria-hidden />
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
-                  >
-                    {badge.label}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-base font-semibold tracking-tight">
-                  {channel.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {channel.body}
-                </p>
-              </Card>
-            );
-          })}
+          {CHANNELS.map((channel) => (
+            <Card key={channel.title} className="p-6">
+              <channel.icon className="size-5 text-primary" aria-hidden />
+              <h3 className="mt-4 text-base font-semibold tracking-tight">
+                {channel.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {channel.body}
+              </p>
+            </Card>
+          ))}
         </div>
       </Section>
 
@@ -441,13 +429,13 @@ export default function Home() {
               including bank transfer and mobile money.
             </p>
             <CtaButton
-              href={siteConfig.links.quickstart}
+              href={siteConfig.links.app}
               size="sm"
-              goal="start_quickstart"
+              goal="start_signup"
               goalPlacement="home_pricing"
               className="mt-6"
             >
-              Get started
+              Create your account
             </CtaButton>
           </Card>
         </div>
@@ -463,11 +451,11 @@ export default function Home() {
           </p>
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <CtaButton
-              href={siteConfig.links.quickstart}
-              goal="start_quickstart"
+              href={siteConfig.links.app}
+              goal="start_signup"
               goalPlacement="home_final"
             >
-              Get started
+              Get your API key
             </CtaButton>
             <CtaButton href={siteConfig.links.docs} tone="quiet">
               Read the docs

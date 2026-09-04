@@ -11,7 +11,7 @@ export function ModeToggle() {
      the server render matches the client before hydration resolves. */
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="icon"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >

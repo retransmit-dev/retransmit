@@ -5,6 +5,9 @@ export const siteConfig = {
     "Transactional email and SMS for developers: one API, one typed Node.js SDK, one prepaid balance. Batch sending, signed webhooks, WhatsApp next. Use the cloud or self-host the whole stack.",
   url: "https://retransmit.dev",
   links: {
+    /* The dashboard: sign-in and sign-up both land here, and a signed-in
+       visitor goes straight to their workspace. */
+    app: "https://app.retransmit.dev",
     docs: "https://docs.retransmit.dev",
     quickstart: "https://docs.retransmit.dev/quickstart",
     apiReference: "https://docs.retransmit.dev/api-reference",

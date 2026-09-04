@@ -153,6 +153,7 @@ export function homeMarkdown(): string {
     "",
     "## Get started",
     "",
+    `- [Dashboard: create an account and get an API key](${siteConfig.links.app})`,
     `- [Quickstart](${siteConfig.links.quickstart})`,
     `- [Documentation](${siteConfig.links.docs})`,
     `- [API reference](${siteConfig.links.apiReference})`,

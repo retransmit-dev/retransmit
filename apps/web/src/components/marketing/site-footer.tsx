@@ -7,6 +7,7 @@ const COLUMNS = [
   {
     title: "Product",
     links: [
+      { label: "Dashboard", href: siteConfig.links.app },
       { label: "Documentation", href: siteConfig.links.docs },
       { label: "Quickstart", href: siteConfig.links.quickstart },
       { label: "API reference", href: siteConfig.links.apiReference },
@@ -50,6 +51,12 @@ export function SiteFooter() {
                     <li key={link.label}>
                       <a
                         href={link.href}
+                        {...(link.href === siteConfig.links.app
+                          ? {
+                              "data-wa-goal": "start_signup",
+                              "data-wa-goal-placement": "footer",
+                            }
+                          : {})}
                         {...(link.href === siteConfig.links.quickstart
                           ? {
                               "data-wa-goal": "start_quickstart",
