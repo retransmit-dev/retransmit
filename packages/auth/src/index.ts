@@ -30,6 +30,16 @@ export function createAuth() {
       },
     },
     trustedOrigins: [process.env.BETTER_AUTH_URL as string],
+    /**
+     * Password sign-in exists only for third-party reviewers (Meta app
+     * review) who cannot use Google, GitHub or a magic link. Nobody can
+     * register with a password: the credential is attached to an existing
+     * user by `pnpm auth:set-password`, and the form lives at /login/test.
+     */
+    emailAndPassword: {
+      enabled: true,
+      disableSignUp: true,
+    },
     user: {
       deleteUser: {
         enabled: true,

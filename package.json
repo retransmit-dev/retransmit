@@ -25,7 +25,8 @@
     "db:generate": "pnpm with-env turbo run db:generate -F @retransmit/db --",
     "db:migrate": "pnpm with-env turbo run db:migrate -F @retransmit/db --",
     "db:migrate:deploy": "pnpm with-env turbo run db:migrate:deploy -F @retransmit/db --",
-    "import:bidpilot": "pnpm with-env pnpm --filter api run import:bidpilot"
+    "import:bidpilot": "pnpm with-env pnpm --filter api run import:bidpilot",
+    "auth:set-password": "pnpm with-env pnpm --filter api run auth:set-password"
   },
   "dependencies": {
     "dotenv": "catalog:",
