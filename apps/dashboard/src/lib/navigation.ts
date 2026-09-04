@@ -80,6 +80,13 @@ const whatsapp: NavSection = {
   title: "WhatsApp",
   description: "Connect a WhatsApp Business number.",
   icon: MessageCircleIcon,
+  items: [
+    {
+      href: "/whatsapp/test",
+      title: "Test send",
+      description: "Send one message through the Meta Cloud API sandbox.",
+    },
+  ],
 };
 
 // const analytics: NavSection = {

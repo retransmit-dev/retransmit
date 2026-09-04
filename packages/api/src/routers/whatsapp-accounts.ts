@@ -8,6 +8,7 @@ import {
   syncAccount,
 } from "@retransmit/whatsapp/accounts";
 import { embeddedSignupConfig } from "@retransmit/whatsapp/meta-signup";
+import { sendTestMessage, testSendConfig } from "@retransmit/whatsapp/test-send";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import z from "zod";
@@ -98,5 +99,47 @@ export const whatsappAccountRouter = router({
       const row = await findOwnedAccount(input.id, ctx.org.id);
       await disconnectAccount(row);
       return { id: row.id };
+    }),
+
+  /** Env defaults for the test-send form (`/whatsapp/test`). */
+  testConfig: orgProcedure.query(({ ctx }) => {
+    assertOrgAdmin(ctx.org);
+    return testSendConfig();
+  }),
+
+  /**
+   * Sends one message straight to Meta's Cloud API with the sandbox
+   * credentials, bypassing accounts and the queue. Returns the raw exchange
+   * so the screen can show exactly what went over the wire; a Meta error is
+   * part of that result rather than a thrown one.
+   */
+  sendTest: orgProcedure
+    .input(
+      z.object({
+        phoneNumberId: z.string().trim().min(1),
+        accessToken: z.string().optional(),
+        to: z.string().trim().min(5),
+        message: z.discriminatedUnion("type", [
+          z.object({
+            type: z.literal("text"),
+            body: z.string().min(1).max(4096),
+            previewUrl: z.boolean().optional(),
+          }),
+          z.object({
+            type: z.literal("template"),
+            name: z.string().trim().min(1),
+            language: z.string().trim().min(2),
+            bodyParameters: z.array(z.string()).max(20),
+          }),
+        ]),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      assertOrgAdmin(ctx.org);
+      try {
+        return await sendTestMessage(input);
+      } catch (cause) {
+        rethrow(cause);
+      }
     }),
 });

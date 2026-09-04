@@ -9,7 +9,8 @@ import { useEmbeddedSignup } from "@/hooks/use-embedded-signup";
 import type { SignupResult } from "@/hooks/use-embedded-signup";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusIcon } from "lucide-react";
+import { FlaskConicalIcon, PlusIcon } from "lucide-react";
+import Link from "next/link";
 import { useMemo } from "react";
 import { toast } from "sonner";
 
@@ -64,7 +65,22 @@ export function WhatsappView() {
 
   return (
     <>
-      <PageHeader href="/whatsapp" actions={connectButton} />
+      <PageHeader
+        href="/whatsapp"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/whatsapp/test" />}
+            >
+              <FlaskConicalIcon />
+              Test send
+            </Button>
+            {connectButton}
+          </>
+        }
+      />
 
       {config.isSuccess && !configured && (
         <Alert>
