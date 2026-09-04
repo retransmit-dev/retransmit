@@ -56,13 +56,14 @@ This is a pnpm + Turborepo monorepo.
 | `apps/dashboard` | Customer dashboard (API keys, domains, email logs) — port 3001 |
 | `apps/api` | Public HTTP API (Hono on Next.js) — port 3002 |
 | `apps/docs` | Documentation site (Nextra) |
-| `packages/sdk` | The published Node.js SDK ([`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev)) |
 | `packages/api` | Internal tRPC API |
 | `packages/auth` | Authentication (Better Auth) |
 | `packages/db` | Database schema and client (Drizzle + Postgres) |
 | `packages/email` | Email sending internals (SES, API keys, addresses) |
 | `packages/queue` | Job queue (pg-boss): sends, retries, webhooks |
 | `packages/config` | Shared TypeScript config |
+
+The Node.js SDK ([`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev) on npm) lives in its own repository: [retransmit-dev/retransmit-node](https://github.com/retransmit-dev/retransmit-node).
 
 ## Development
 
@@ -82,14 +83,18 @@ pnpm dev               # start everything
 - `pnpm db:push` / `pnpm db:generate` / `pnpm db:migrate` — schema management
 - `pnpm db:studio` — open Drizzle Studio
 
-### Publishing the SDK
+### Client SDKs
 
-```bash
-cd packages/sdk
-# bump "version" in package.json first
-pnpm publish   # prepublishOnly rebuilds dist/
-```
+SDKs live outside this repo, one repository per language:
+
+| Language | Repository | Package |
+| --- | --- | --- |
+| Node.js | [retransmit-dev/retransmit-node](https://github.com/retransmit-dev/retransmit-node) | [`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev) |
+
+They are hand-written, not generated. When a change to `apps/api` is visible to clients
+(new endpoint, field, status or error code), mirror it in each SDK and bump its version.
+Pushing a version bump to `main` in an SDK repo publishes it.
 
 ## License
 
-Retransmit is open source under the [GNU AGPL-3.0](LICENSE), the same license used by useSend and Plunk. The Node.js SDK in `packages/sdk` is published separately under MIT so client code can embed it without restrictions.
+Retransmit is open source under the [GNU AGPL-3.0](LICENSE), the same license used by useSend and Plunk. The Node.js SDK ([retransmit-node](https://github.com/retransmit-dev/retransmit-node)) is published separately under MIT so client code can embed it without restrictions.
