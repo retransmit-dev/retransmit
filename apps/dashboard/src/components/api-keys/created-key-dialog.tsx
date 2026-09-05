@@ -31,7 +31,7 @@ export function CreatedKeyDialog({
             now. It won&apos;t be shown again.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <code className="min-w-0 flex-1 truncate rounded-md border bg-muted px-3 py-2 font-mono text-sm">
             {createdKey?.key}
           </code>
