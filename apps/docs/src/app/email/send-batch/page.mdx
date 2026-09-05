@@ -14,6 +14,13 @@ retries are marked `failed`.
 Track progress with [Get Batch](/email/get-batch), on the dashboard's Emails
 page, or through per-email [Webhooks](/webhooks).
 
+## Request headers
+
+| Header | Required | Description |
+| --- | --- | --- |
+| `Authorization` | Yes | `Bearer` followed by your API key. |
+| `Idempotency-Key` | No | Makes the request safe to retry. One key covers the whole batch. See [Idempotency](#idempotency). |
+
 ## Request body
 
 | Field | Type | Required | Description |
@@ -77,6 +84,34 @@ curl -X POST https://api.retransmit.dev/v1/emails/batch \
 </Tabs.Tab>
 </Tabs>
 
+## Idempotency
+
+A batch that times out on your side may still have been queued. Send an
+`Idempotency-Key` header and retrying is safe: for 24 hours, the same key
+with the same body returns the original batch `id` instead of queuing 10,000
+emails again. Pick a key that represents the whole batch, such as
+`weekly-digest/2026-09-07` or `team-invites/<team-id>`.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+await retransmit.batch.send(emails, { idempotencyKey: "weekly-digest/2026-09-07" });
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails/batch \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: weekly-digest/2026-09-07" \
+  -d @batch.json
+```
+</Tabs.Tab>
+</Tabs>
+
+The rules are the same as for a single email. See
+[Send Email: Idempotency](/email/send#idempotency).
+
 ## Response
 
 `202 Accepted`
@@ -95,6 +130,9 @@ curl -X POST https://api.retransmit.dev/v1/emails/batch \
 | Status | Code | Cause |
 | --- | --- | --- |
 | `400` | `invalid_json` | Body is not valid JSON. |
+| `400` | `invalid_idempotency_key` | `Idempotency-Key` is empty or longer than 256 characters. |
 | `422` | `validation_error` | An email failed validation. The message includes its index, e.g. `emails.42.subject: ...`. Nothing is queued. |
 | `403` | `domain_not_found` / `domain_not_verified` | A `from` domain in the batch is missing or unverified. Nothing is queued. |
+| `409` | `invalid_idempotent_request` | `Idempotency-Key` was already used with a different body. |
+| `409` | `concurrent_idempotent_requests` | The first request with this `Idempotency-Key` is still running. Retry shortly. |
 | `401` | `unauthorized` | Missing, malformed, or revoked API key. |

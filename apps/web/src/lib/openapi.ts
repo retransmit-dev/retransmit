@@ -69,6 +69,9 @@ const ERROR_CODES = [
   "unauthorized",
   "domain_not_found",
   "domain_not_verified",
+  "invalid_idempotency_key",
+  "invalid_idempotent_request",
+  "concurrent_idempotent_requests",
   "no_route",
   "no_whatsapp_account",
   "not_found",
@@ -83,6 +86,23 @@ const errorResponse = (description: string) => ({
     },
   },
 });
+
+const idempotencyKeyHeader = {
+  name: "Idempotency-Key",
+  in: "header",
+  required: false,
+  description:
+    "Makes the request safe to retry. Retransmit remembers each key for 24 hours per organization: a retry with the same key and payload gets the original response back (with `Idempotent-Replayed: true`) instead of queuing a second send. 1 to 256 characters; a UUID or `<event>/<entity-id>` such as `welcome-user/123` works well.",
+  schema: { type: "string", minLength: 1, maxLength: 256 },
+} as const;
+
+const idempotentReplayedHeader = {
+  "Idempotent-Replayed": {
+    description:
+      "Present and `true` when this is the stored response from an earlier request with the same `Idempotency-Key`.",
+    schema: { type: "string", const: "true" },
+  },
+} as const;
 
 const addressListSchema = {
   description:
@@ -216,7 +236,8 @@ export const OPENAPI_DOCUMENT = {
         tags: ["Emails"],
         summary: "Queue one email",
         description:
-          "Returns 202 immediately; a rate-aware worker performs the send. Poll GET /v1/emails/{id} or subscribe to webhooks for the outcome. The `from` domain must be registered and verified on your account.",
+          "Returns 202 immediately; a rate-aware worker performs the send. Poll GET /v1/emails/{id} or subscribe to webhooks for the outcome. The `from` domain must be registered and verified on your account. Send an `Idempotency-Key` header to make retries safe.",
+        parameters: [idempotencyKeyHeader],
         requestBody: {
           required: true,
           content: {
@@ -227,17 +248,24 @@ export const OPENAPI_DOCUMENT = {
         },
         responses: {
           "202": {
-            description: "Email accepted and queued.",
+            description:
+              "Email accepted and queued, or the stored response of an earlier request with the same `Idempotency-Key`.",
+            headers: idempotentReplayedHeader,
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/QueuedEmail" },
               },
             },
           },
-          "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
+          "400": errorResponse(
+            "Body is not valid JSON (`invalid_json`), or `Idempotency-Key` is empty or longer than 256 characters (`invalid_idempotency_key`).",
+          ),
           "401": errorResponse("Missing, invalid, or revoked API key."),
           "403": errorResponse(
             "Sender domain not registered (`domain_not_found`) or not verified (`domain_not_verified`).",
+          ),
+          "409": errorResponse(
+            "`Idempotency-Key` was already used with a different payload (`invalid_idempotent_request`), or the first request with it is still running (`concurrent_idempotent_requests`; retry shortly).",
           ),
           "422": errorResponse("Schema validation failed (`validation_error`)."),
           "500": errorResponse("Unexpected server error."),
@@ -300,7 +328,8 @@ export const OPENAPI_DOCUMENT = {
         tags: ["Emails"],
         summary: "Queue up to 10,000 emails in one request",
         description:
-          "All emails are stored as `queued` and drained by the worker at your account's sending rate. Every message still gets its own id, log entry, and webhook events. Track progress with GET /v1/emails/batch/{id}.",
+          "All emails are stored as `queued` and drained by the worker at your account's sending rate. Every message still gets its own id, log entry, and webhook events. Track progress with GET /v1/emails/batch/{id}. Send an `Idempotency-Key` header that represents the whole batch to make retries safe.",
+        parameters: [idempotencyKeyHeader],
         requestBody: {
           required: true,
           content: {
@@ -322,17 +351,24 @@ export const OPENAPI_DOCUMENT = {
         },
         responses: {
           "202": {
-            description: "Batch accepted and queued.",
+            description:
+              "Batch accepted and queued, or the stored response of an earlier request with the same `Idempotency-Key`.",
+            headers: idempotentReplayedHeader,
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/QueuedBatch" },
               },
             },
           },
-          "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
+          "400": errorResponse(
+            "Body is not valid JSON (`invalid_json`), or `Idempotency-Key` is empty or longer than 256 characters (`invalid_idempotency_key`).",
+          ),
           "401": errorResponse("Missing, invalid, or revoked API key."),
           "403": errorResponse(
             "A sender domain is not registered (`domain_not_found`) or not verified (`domain_not_verified`).",
+          ),
+          "409": errorResponse(
+            "`Idempotency-Key` was already used with a different payload (`invalid_idempotent_request`), or the first request with it is still running (`concurrent_idempotent_requests`; retry shortly).",
           ),
           "422": errorResponse("Schema validation failed (`validation_error`)."),
           "500": errorResponse("Unexpected server error."),

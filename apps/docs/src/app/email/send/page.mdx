@@ -10,6 +10,13 @@ Queues an email from one of your verified domains. The request returns once
 the email is validated and stored. A worker sends it moments later and retries
 transient failures. For many emails at once, use [Send Batch](/email/send-batch).
 
+## Request headers
+
+| Header | Required | Description |
+| --- | --- | --- |
+| `Authorization` | Yes | `Bearer` followed by your API key. |
+| `Idempotency-Key` | No | Makes the request safe to retry. See [Idempotency](#idempotency). |
+
 ## Request body
 
 | Field | Type | Required | Description |
@@ -125,6 +132,65 @@ Rules:
 The headers you sent are returned by [Get Email](/email/get). Batch emails
 accept the same `headers` field.
 
+## Idempotency
+
+A request can succeed on our side and still fail on yours: a timeout, a
+dropped connection, a crashed worker. Retrying it blindly sends the email
+twice. Send an `Idempotency-Key` header and retries become safe. Retransmit
+remembers each key for 24 hours. A second request with the same key and the
+same body gets the first response back, with the same `id`, and nothing is
+queued again.
+
+Use a value that identifies this exact email, such as a UUID or
+`<event>/<entity-id>`. A key like `welcome-user/123` means the welcome email
+for user 123 goes out once, however many times that event fires.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+await retransmit.emails.send(
+  {
+    from: "Acme <hello@yourdomain.com>",
+    to: "user@example.com",
+    subject: "Welcome to Acme",
+    html: "<p>Glad to have you.</p>",
+  },
+  { idempotencyKey: "welcome-user/123" },
+);
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: welcome-user/123" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "user@example.com",
+    "subject": "Welcome to Acme",
+    "html": "<p>Glad to have you.</p>"
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+How it behaves:
+
+- Keys are 1 to 256 characters and are scoped to your organization, so every
+  API key you own shares the same keyspace.
+- A replayed response carries the header `Idempotent-Replayed: true`. The
+  body is identical to the original, including the `id`.
+- The same key with a different body is rejected with `409`
+  `invalid_idempotent_request`. Change the key or send the original body.
+- A retry that arrives while the first request is still running gets `409`
+  `concurrent_idempotent_requests`. Wait a moment and retry.
+- Only a successful `202` is remembered. If the first request failed with a
+  `4xx` or `5xx`, the key is free again and a retry runs normally.
+- Keys expire after 24 hours. Reusing one after that starts a new send.
+
+[Send Batch](/email/send-batch) accepts the same header for the whole batch.
+
 ## Response
 
 `202 Accepted`
@@ -148,7 +214,10 @@ fails, the status becomes `failed` with the provider error, and an
 | Status | Code | Cause |
 | --- | --- | --- |
 | `400` | `invalid_json` | Body is not valid JSON. |
+| `400` | `invalid_idempotency_key` | `Idempotency-Key` is empty or longer than 256 characters. |
 | `422` | `validation_error` | A field failed validation. The message names the field. |
 | `403` | `domain_not_found` | The `from` domain is not registered on your account. |
 | `403` | `domain_not_verified` | The `from` domain exists but is not verified yet. |
+| `409` | `invalid_idempotent_request` | `Idempotency-Key` was already used with a different body. |
+| `409` | `concurrent_idempotent_requests` | The first request with this `Idempotency-Key` is still running. Retry shortly. |
 | `401` | `unauthorized` | Missing, malformed, or revoked API key. |

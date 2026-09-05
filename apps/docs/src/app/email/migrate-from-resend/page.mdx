@@ -166,7 +166,7 @@ on), but the payload and the signature differ:
 | `tags` | `tags` | Same `{ name, value }` shape, up to 10. Filter by tag in [List Emails](/email/list). |
 | `attachments` | none | Not supported yet. Host the file and link to it from the body. |
 | `scheduledAt` | none | Not supported. Queue the send from your own scheduler. |
-| Idempotency key | none | Not supported. Deduplicate on your side before calling send. |
+| `idempotencyKey` | `idempotencyKey` | Same `Idempotency-Key` header, same 24 hour window and `409` codes. Passed as the second argument in both SDKs. See [Idempotency](/email/send#idempotency). |
 | none | `marketing` | Hosted unsubscribe link and suppression list. See [Marketing Email](/email/marketing-email). |
 
 ## Cutting over

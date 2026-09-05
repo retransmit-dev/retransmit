@@ -246,6 +246,47 @@ export const suppression = pgTable(
   ],
 );
 
+export const IDEMPOTENCY_STATUSES = ["in_progress", "completed"] as const;
+export type IdempotencyStatus = (typeof IDEMPOTENCY_STATUSES)[number];
+
+/**
+ * One `Idempotency-Key` header value seen on a send endpoint. Rows are
+ * scoped to the organization, so every API key of an organization shares
+ * the same keyspace. While the first request runs the row is `in_progress`;
+ * once it has queued the send the 202 response is stored and replayed to
+ * retries with the same key and payload for 24 hours. Expired rows are
+ * taken over by the next request that reuses the key and purged lazily.
+ */
+export const idempotencyKey = pgTable(
+  "idempotency_key",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** Caller-supplied key, 1 to 256 characters, as given. */
+    key: text("key").notNull(),
+    /**
+     * SHA-256 of the endpoint and canonical request body. A retry whose hash
+     * differs is rejected instead of replayed.
+     */
+    requestHash: text("request_hash").notNull(),
+    status: text("status").$type<IdempotencyStatus>().default("in_progress").notNull(),
+    /** HTTP status and JSON body of the original response, set once completed. */
+    responseStatus: integer("response_status"),
+    responseBody: jsonb("response_body").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idempotencyKey_organizationId_key_uidx").on(table.organizationId, table.key),
+    index("idempotencyKey_organizationId_expiresAt_idx").on(
+      table.organizationId,
+      table.expiresAt,
+    ),
+  ],
+);
+
 export const webhookEndpoint = pgTable(
   "webhook_endpoint",
   {

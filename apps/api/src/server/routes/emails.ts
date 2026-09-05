@@ -11,6 +11,7 @@ import z from "zod";
 
 import { apiKeyAuth } from "../auth";
 import type { ApiKeyEnv } from "../auth";
+import { readIdempotencyKey, runIdempotent, sendIdempotent } from "../idempotency";
 
 const addressList = z
   .union([z.string(), z.array(z.string()).min(1).max(50)])
@@ -280,6 +281,7 @@ emailRoutes.use("*", apiKeyAuth);
  * Submits up to 10,000 emails in one request. Rows are stored as `queued`
  * and handed to the worker, which sends them at the account's SES rate with
  * retries and a dead-letter queue. Track progress with GET /batch/:id.
+ * An `Idempotency-Key` header makes retries of the same request safe.
  */
 emailRoutes.post("/batch", async (c) => {
   let json: unknown;
@@ -288,6 +290,9 @@ emailRoutes.post("/batch", async (c) => {
   } catch {
     return c.json({ error: { code: "invalid_json", message: "Body must be valid JSON" } }, 400);
   }
+
+  const idempotency = readIdempotencyKey(c);
+  if (idempotency.error) return c.json(idempotency.error, 400);
 
   const parsed = batchSchema.safeParse(json);
   if (!parsed.success) {
@@ -310,36 +315,50 @@ emailRoutes.post("/batch", async (c) => {
   const resolved = await resolveSenderDomains(organizationId, inputs.map((input) => input.from));
   if (resolved.error) return c.json(resolved.error.body, resolved.error.status);
 
-  const batchId = createId("bt");
-  const [batch] = await db
-    .insert(emailBatch)
-    .values({ id: batchId, userId, apiKeyId, total: inputs.length })
-    .returning();
-  if (!batch) {
-    return c.json({ error: { code: "internal_error", message: "Could not create batch" } }, 500);
-  }
+  const result = await runIdempotent(
+    { organizationId, key: idempotency.key, endpoint: "POST /v1/emails/batch", body: parsed.data },
+    async () => {
+      const batchId = createId("bt");
+      const [batch] = await db
+        .insert(emailBatch)
+        .values({ id: batchId, userId, apiKeyId, total: inputs.length })
+        .returning();
+      if (!batch) {
+        return {
+          status: 500,
+          body: { error: { code: "internal_error", message: "Could not create batch" } },
+        };
+      }
 
-  const rows = inputs.map((input) => {
-    const name = extractEmailDomain(input.from) ?? "";
-    return toEmailRow(input, {
-      userId,
-      organizationId,
-      apiKeyId,
-      domainId: resolved.byName.get(name)!.id,
-      batchId,
-    });
-  });
+      const rows = inputs.map((input) => {
+        const name = extractEmailDomain(input.from) ?? "";
+        return toEmailRow(input, {
+          userId,
+          organizationId,
+          apiKeyId,
+          domainId: resolved.byName.get(name)!.id,
+          batchId,
+        });
+      });
 
-  const CHUNK = 500;
-  for (let i = 0; i < rows.length; i += CHUNK) {
-    await db.insert(email).values(rows.slice(i, i + CHUNK));
-  }
-  await enqueueEmailSendBatch(rows.map((row) => row.id));
+      const CHUNK = 500;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        await db.insert(email).values(rows.slice(i, i + CHUNK));
+      }
+      await enqueueEmailSendBatch(rows.map((row) => row.id));
 
-  return c.json(
-    { id: batchId, total: rows.length, status: "queued", created_at: batch.createdAt.toISOString() },
-    202,
+      return {
+        status: 202,
+        body: {
+          id: batchId,
+          total: rows.length,
+          status: "queued",
+          created_at: batch.createdAt.toISOString(),
+        },
+      };
+    },
   );
+  return sendIdempotent(c, result);
 });
 
 /** Batch progress: how many emails are in each status so far. */
@@ -377,6 +396,7 @@ emailRoutes.get("/batch/:id", async (c) => {
 /**
  * Queues a single email. Returns 202 immediately; the worker sends it at the
  * account's SES rate. Poll GET /:id or subscribe to webhooks for the outcome.
+ * An `Idempotency-Key` header makes retries of the same request safe.
  */
 emailRoutes.post("/", async (c) => {
   let json: unknown;
@@ -385,6 +405,9 @@ emailRoutes.post("/", async (c) => {
   } catch {
     return c.json({ error: { code: "invalid_json", message: "Body must be valid JSON" } }, 400);
   }
+
+  const idempotency = readIdempotencyKey(c);
+  if (idempotency.error) return c.json(idempotency.error, 400);
 
   const parsed = sendEmailSchema.safeParse(json);
   if (!parsed.success) {
@@ -407,20 +430,32 @@ emailRoutes.post("/", async (c) => {
   if (resolved.error) return c.json(resolved.error.body, resolved.error.status);
   const name = extractEmailDomain(input.from) ?? "";
 
-  const row = toEmailRow(input, {
-    userId,
-    organizationId,
-    apiKeyId: c.get("apiKeyId"),
-    domainId: resolved.byName.get(name)!.id,
-  });
-  const [created] = await db.insert(email).values(row).returning();
-  if (!created) {
-    return c.json({ error: { code: "internal_error", message: "Could not create email" } }, 500);
-  }
+  const result = await runIdempotent(
+    { organizationId, key: idempotency.key, endpoint: "POST /v1/emails", body: input },
+    async () => {
+      const row = toEmailRow(input, {
+        userId,
+        organizationId,
+        apiKeyId: c.get("apiKeyId"),
+        domainId: resolved.byName.get(name)!.id,
+      });
+      const [created] = await db.insert(email).values(row).returning();
+      if (!created) {
+        return {
+          status: 500,
+          body: { error: { code: "internal_error", message: "Could not create email" } },
+        };
+      }
 
-  await enqueueEmailSend(row.id);
+      await enqueueEmailSend(row.id);
 
-  return c.json({ id: row.id, status: "queued", created_at: created.createdAt.toISOString() }, 202);
+      return {
+        status: 202,
+        body: { id: row.id, status: "queued", created_at: created.createdAt.toISOString() },
+      };
+    },
+  );
+  return sendIdempotent(c, result);
 });
 
 /**

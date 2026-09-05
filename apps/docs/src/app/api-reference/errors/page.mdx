@@ -16,10 +16,13 @@ All errors share one shape:
 | HTTP status | Code | Meaning |
 | --- | --- | --- |
 | `400` | `invalid_json` | The request body could not be parsed as JSON. |
+| `400` | `invalid_idempotency_key` | `Idempotency-Key` is empty or longer than 256 characters. |
 | `401` | `unauthorized` | Missing, malformed, invalid, or revoked API key. |
 | `403` | `domain_not_found` | The `from` domain is not registered on your account. |
 | `403` | `domain_not_verified` | The `from` domain is registered but not verified. |
 | `404` | `not_found` | The resource or route does not exist. |
+| `409` | `invalid_idempotent_request` | `Idempotency-Key` was already used in the last 24 hours with a different body. Change the key or the body. |
+| `409` | `concurrent_idempotent_requests` | Another request with this `Idempotency-Key` is still running. Retry shortly. |
 | `422` | `validation_error` | A request field failed validation. The message names the field, e.g. `subject: String must contain at least 1 character(s)`. For batches it includes the index: `emails.42.subject: ...`. |
 | `422` | `no_route` | No SMS provider is configured for the destination country. |
 | `422` | `no_whatsapp_account` | No connected WhatsApp number matches the request. Connect one in the dashboard, or fix `from`. |
@@ -29,7 +32,12 @@ All errors share one shape:
 
 - Treat any non-2xx response as a failure and read `error.code`. Codes are
   stable. Messages are for humans and may change.
-- `500` responses are retryable.
+- `500` responses are retryable. Send an `Idempotency-Key` on email sends so
+  a retry cannot queue the same email twice. See
+  [Send Email: Idempotency](/email/send#idempotency).
+- `409 concurrent_idempotent_requests` is retryable after a short wait.
+  `409 invalid_idempotent_request` is not: the key was used with a different
+  body.
 - `403` domain errors are configuration problems. Fix them in the dashboard
   instead of retrying.
 - `422 no_route` means the destination country has no SMS provider yet.
