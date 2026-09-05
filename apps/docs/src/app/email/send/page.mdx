@@ -24,6 +24,7 @@ transient failures. For many emails at once, use [Send Batch](/email/send-batch)
 | `text` | string | Yes* | Plain-text body, up to 1,000,000 characters. |
 | `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
 | `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering in the dashboard and [List Emails](/email/list), e.g. `{ "name": "campaign", "value": "outreach-1" }`. Letters, digits, `_` and `-`, up to 256 characters each. Names must be unique per email. Tags are not sent to the recipient. |
+| `headers` | object | No | Custom message headers as `{ "Header-Name": "value" }`, up to 20. See [Custom headers](#custom-headers). |
 
 \* At least one of `html` or `text` is required. You can provide both.
 
@@ -66,6 +67,63 @@ curl -X POST https://api.retransmit.dev/v1/emails \
 ```
 </Tabs.Tab>
 </Tabs>
+
+## Custom headers
+
+Retransmit sets every header a message needs. `headers` adds your own on top,
+which is useful in two cases:
+
+- **Stop Gmail threading.** Gmail groups emails with the same subject into one
+  conversation. Give each email a unique `X-Entity-Ref-ID` and Gmail shows
+  them separately.
+- **Point `List-Unsubscribe` at your own page** on a transactional email.
+  Marketing emails already carry hosted unsubscribe headers, see
+  [Marketing Email](/email/marketing-email), and those take precedence.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Your order shipped",
+  html: "<p>Order #4821 is on its way.</p>",
+  headers: {
+    "X-Entity-Ref-ID": "order_4821",
+  },
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "user@example.com",
+    "subject": "Your order shipped",
+    "html": "<p>Order #4821 is on its way.</p>",
+    "headers": { "X-Entity-Ref-ID": "order_4821" }
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+Rules:
+
+- Up to 20 headers per email.
+- Names are printable ASCII without `:`, up to 126 characters. Header names
+  are case-insensitive, so a name may only appear once.
+- Values are a single line, up to 870 characters.
+- Headers Retransmit or the provider set are rejected with a
+  `validation_error`: `From`, `Sender`, `To`, `Cc`, `Bcc`, `Reply-To`,
+  `Subject`, `Date`, `Message-ID`, `Return-Path`, `MIME-Version`,
+  `Content-Type`, `Content-Transfer-Encoding`, `Content-Disposition`,
+  `DKIM-Signature`, `Received` and the `Resent-*` family.
+
+The headers you sent are returned by [Get Email](/email/get). Batch emails
+accept the same `headers` field.
 
 ## Response
 

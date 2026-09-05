@@ -57,6 +57,13 @@
       "when": 1788590244464,
       "tag": "0007_domain_mail_from",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788645030850,
+      "tag": "0008_email_headers",
+      "breakpoints": true
     }
   ]
 }

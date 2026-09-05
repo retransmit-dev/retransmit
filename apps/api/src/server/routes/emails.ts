@@ -1,7 +1,7 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { EMAIL_STATUSES, domain, email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
-import type { EmailTag } from "@retransmit/db/schema/email";
+import type { EmailHeaders, EmailTag } from "@retransmit/db/schema/email";
 import { extractEmailAddress, extractEmailDomain } from "@retransmit/email/address";
 import { enqueueEmailSend, enqueueEmailSendBatch } from "@retransmit/queue";
 import { and, asc, count, desc, eq, inArray, lt, sql } from "drizzle-orm";
@@ -39,6 +39,91 @@ const tagList = z
     message: "Tag names must be unique",
   });
 
+/**
+ * Headers Retransmit or SES set themselves. Letting callers override them
+ * would break delivery, authentication or our own bookkeeping, so they are
+ * rejected up front instead of silently overwritten.
+ */
+const RESERVED_HEADERS = new Set(
+  [
+    "From",
+    "Sender",
+    "To",
+    "Cc",
+    "Bcc",
+    "Reply-To",
+    "Subject",
+    "Date",
+    "Message-ID",
+    "Return-Path",
+    "MIME-Version",
+    "Content-Type",
+    "Content-Transfer-Encoding",
+    "Content-Disposition",
+    "DKIM-Signature",
+    "Received",
+    "Resent-From",
+    "Resent-To",
+    "Resent-Date",
+    "X-SES-CONFIGURATION-SET",
+  ].map((name) => name.toLowerCase()),
+);
+
+/** RFC 5322 field name: printable ASCII except colon and space. SES caps it at 126 bytes. */
+const HEADER_NAME_PATTERN = /^[!-9;-~]{1,126}$/;
+const HEADER_VALUE_MAX = 870;
+const HEADERS_MAX = 20;
+
+/**
+ * Custom headers as a name → value object, like `{ "X-Entity-Ref-ID": "..." }`.
+ * Names are kept as given; duplicates that differ only by case are rejected
+ * because header names are case-insensitive on the wire.
+ */
+const headersSchema = z
+  .record(
+    z.string(),
+    z
+      .string()
+      .min(1)
+      .max(HEADER_VALUE_MAX)
+      .refine((value) => !/[\r\n]/.test(value), {
+        message: "Header values may not contain line breaks",
+      }),
+  )
+  .superRefine((headers, ctx) => {
+    const names = Object.keys(headers);
+    if (names.length > HEADERS_MAX) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `At most ${HEADERS_MAX} headers` });
+      return;
+    }
+    const seen = new Set<string>();
+    for (const name of names) {
+      const key = name.toLowerCase();
+      if (!HEADER_NAME_PATTERN.test(name)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [name],
+          message: "Header names may only contain printable ASCII without `:` (up to 126 characters)",
+        });
+      }
+      if (RESERVED_HEADERS.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [name],
+          message: `\`${name}\` is set by Retransmit and cannot be overridden`,
+        });
+      }
+      if (seen.has(key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [name],
+          message: `\`${name}\` is given more than once (header names are case-insensitive)`,
+        });
+      }
+      seen.add(key);
+    }
+  });
+
 const sendEmailSchema = z
   .object({
     from: z.string().refine((value) => extractEmailAddress(value) !== null, {
@@ -53,6 +138,7 @@ const sendEmailSchema = z
     text: z.string().max(1_000_000).optional(),
     marketing: z.boolean().optional(),
     tags: tagList.optional(),
+    headers: headersSchema.optional(),
   })
   .refine((value) => value.html || value.text, {
     message: "Provide `html`, `text`, or both",
@@ -178,7 +264,12 @@ function toEmailRow(
     text: input.text,
     marketing: input.marketing ?? false,
     tags: input.tags && input.tags.length > 0 ? input.tags : null,
+    headers: toStoredHeaders(input.headers),
   };
+}
+
+function toStoredHeaders(headers: EmailHeaders | undefined): EmailHeaders | null {
+  return headers && Object.keys(headers).length > 0 ? headers : null;
 }
 
 export const emailRoutes = new Hono<ApiKeyEnv>();
@@ -444,6 +535,7 @@ emailRoutes.get("/:id", async (c) => {
     subject: row.subject,
     marketing: row.marketing,
     tags: row.tags ?? [],
+    headers: row.headers,
     status: row.status,
     error: row.error,
     created_at: row.createdAt.toISOString(),

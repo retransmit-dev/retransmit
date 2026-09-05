@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 import { CtaButton } from "@/components/marketing/cta-button";
 import { MessageDemo } from "@/components/marketing/message-demo";
+import { MigrationDemo } from "@/components/marketing/migration-demo";
 import { ProductIcon } from "@/components/marketing/product-icon";
 import { PRODUCTS, productHref } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
@@ -126,9 +127,29 @@ export default function Home() {
         </div>
       </section>
 
+      <section id="migrate" className="editorial-section">
+        <div className="editorial-section-heading">
+          <p className="editorial-label">03 / Migration</p>
+          <h2>
+            Coming from Resend?
+            <br />
+            Keep your templates.
+          </h2>
+          <p>
+            The send call has the same shape and the same result type. React
+            Email templates render to HTML with one call.
+          </p>
+          <Link href="/compare/retransmit-vs-resend" className="editorial-link">
+            Retransmit vs Resend
+            <ArrowUpRight className="size-4" aria-hidden />
+          </Link>
+        </div>
+        <MigrationDemo />
+      </section>
+
       <section id="pricing" className="editorial-section">
         <div className="editorial-section-heading">
-          <p className="editorial-label">03 / Deployment</p>
+          <p className="editorial-label">04 / Deployment</p>
           <h2>
             Hosted by us.
             <br />

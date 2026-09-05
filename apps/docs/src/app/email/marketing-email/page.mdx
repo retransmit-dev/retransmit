@@ -58,7 +58,9 @@ curl -X POST https://api.retransmit.dev/v1/emails \
 
 Write the placeholder exactly as `{{{unsubscribe_url}}}` (triple braces,
 lowercase). It works in `html` and `text`, any number of times. On
-non-marketing sends it is left untouched and no headers are added.
+non-marketing sends it is left untouched and no headers are added. If you pass
+your own `List-Unsubscribe` in [custom headers](/email/send#custom-headers) on
+a marketing email, the hosted one replaces it.
 
 > [!IMPORTANT]
 >

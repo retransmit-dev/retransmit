@@ -42,6 +42,13 @@ export type EmailStatus = (typeof EMAIL_STATUSES)[number];
  */
 export type EmailTag = { name: string; value: string };
 
+/**
+ * Caller-supplied message headers, keyed by header name as given (for
+ * example `{ "X-Entity-Ref-ID": "order_123" }`). Added to the message as-is;
+ * envelope headers such as From or Subject are rejected at the API.
+ */
+export type EmailHeaders = Record<string, string>;
+
 export const WEBHOOK_EVENT_TYPES = [
   "email.sent",
   "email.delivered",
@@ -172,6 +179,8 @@ export const email = pgTable(
     marketing: boolean("marketing").default(false).notNull(),
     /** Caller-supplied labels, filtered with jsonb containment. */
     tags: jsonb("tags").$type<EmailTag[]>(),
+    /** Custom message headers sent with the email, e.g. X-Entity-Ref-ID. */
+    headers: jsonb("headers").$type<EmailHeaders>(),
     /** Message id assigned by the upstream provider (SES). */
     providerMessageId: text("provider_message_id"),
     status: text("status").$type<EmailStatus>().default("queued").notNull(),

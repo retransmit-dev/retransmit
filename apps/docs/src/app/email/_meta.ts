@@ -7,4 +7,5 @@ export default {
   "get-batch": "Get Batch",
   domains: "Domains",
   "marketing-email": "Marketing Email",
+  "migrate-from-resend": "Migrate from Resend",
 };

@@ -68,6 +68,13 @@ async function filterSuppressedRecipients(row: typeof email.$inferSelect): Promi
   };
 }
 
+/** Replaces the header with this name (case-insensitively), or appends it. */
+function setHeader(headers: { name: string; value: string }[], name: string, value: string) {
+  const index = headers.findIndex((header) => header.name.toLowerCase() === name.toLowerCase());
+  if (index === -1) headers.push({ name, value });
+  else headers[index] = { name, value };
+}
+
 /**
  * Processes one `email-send` job: hands the email to SES and records the
  * outcome. Idempotent — a row that is no longer `queued` is skipped, so a
@@ -95,20 +102,20 @@ export async function processEmailSend(emailId: string): Promise<void> {
     return;
   }
 
-  // Marketing sends carry an unsubscribe link: the `{{{unsubscribe_url}}}`
+  // Caller-supplied headers (X-Entity-Ref-ID and the like) go first. Marketing
+  // sends then carry an unsubscribe link: the `{{{unsubscribe_url}}}`
   // placeholder in the body plus RFC 8058 one-click headers, which providers
   // like Gmail surface as an "Unsubscribe" action at the top of the message.
+  // Those override a caller's List-Unsubscribe so the hosted flow always works.
   let html = row.html ?? undefined;
   let text = row.text ?? undefined;
-  let headers: { name: string; value: string }[] | undefined;
+  const headers = Object.entries(row.headers ?? {}).map(([name, value]) => ({ name, value }));
   if (row.marketing) {
     const url = unsubscribeUrl(row.id);
     html = html?.replaceAll(UNSUBSCRIBE_URL_PLACEHOLDER, url);
     text = text?.replaceAll(UNSUBSCRIBE_URL_PLACEHOLDER, url);
-    headers = [
-      { name: "List-Unsubscribe", value: `<${url}>` },
-      { name: "List-Unsubscribe-Post", value: "List-Unsubscribe=One-Click" },
-    ];
+    setHeader(headers, "List-Unsubscribe", `<${url}>`);
+    setHeader(headers, "List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
   }
 
   // SES identities are regional: send out of the region the from-domain was
@@ -133,7 +140,7 @@ export async function processEmailSend(emailId: string): Promise<void> {
       subject: row.subject,
       html,
       text,
-      headers,
+      headers: headers.length > 0 ? headers : undefined,
     });
 
     await db

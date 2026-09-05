@@ -549,7 +549,15 @@ export const OPENAPI_DOCUMENT = {
               "Labels for filtering sends in the dashboard and API, e.g. `[{\"name\": \"campaign\", \"value\": \"outreach-1\"}]`. Names must be unique per email. Never sent to the recipient.",
             items: { $ref: "#/components/schemas/EmailTag" },
           },
+          headers: { $ref: "#/components/schemas/EmailHeaders" },
         },
+      },
+      EmailHeaders: {
+        type: "object",
+        maxProperties: 20,
+        description:
+          'Custom message headers, keyed by header name, e.g. `{"X-Entity-Ref-ID": "order_123"}` to stop Gmail threading related emails together. Up to 20 headers. Names are printable ASCII without `:` (up to 126 characters); values are single-line, up to 870 characters. Headers Retransmit sets itself (From, To, Cc, Bcc, Reply-To, Subject, Date, Message-ID, Return-Path, MIME/Content-* and DKIM-Signature) are rejected. On marketing emails the hosted List-Unsubscribe headers take precedence.',
+        additionalProperties: { type: "string", minLength: 1, maxLength: 870 },
       },
       EmailTag: {
         type: "object",
@@ -611,6 +619,10 @@ export const OPENAPI_DOCUMENT = {
           subject: { type: "string" },
           marketing: { type: "boolean" },
           tags: { type: "array", items: { $ref: "#/components/schemas/EmailTag" } },
+          headers: {
+            oneOf: [{ $ref: "#/components/schemas/EmailHeaders" }, { type: "null" }],
+            description: "Custom headers given at send time, or null.",
+          },
           status: { type: "string", enum: [...EMAIL_STATUSES] },
           error: {
             type: ["string", "null"],

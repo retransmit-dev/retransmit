@@ -1,0 +1,179 @@
+import { Steps, Tabs } from "nextra/components";
+
+# Migrate from Resend
+
+Resend and Retransmit send email the same way: one call with `from`, `to`,
+`subject`, and a body, returning `{ data, error }` instead of throwing. Most
+of a migration is swapping the client. The one real change is templates:
+Retransmit takes `html` and `text` strings, so React Email components are
+rendered in your code before the send.
+
+This guide covers email. SMS and WhatsApp use the same client and are
+documented under their own sections.
+
+<Steps>
+
+### Install the SDK
+
+```sh
+npm i retransmit.dev
+```
+
+Create an API key on the [dashboard](https://app.retransmit.dev) and put it in
+`RETRANSMIT_API_KEY`. Your Resend key keeps working until you remove it, so
+you can run both side by side while you switch traffic.
+
+### Verify your domain
+
+Domain verification does not carry over. Add your sending domain in the
+dashboard and publish the SPF and DKIM records it gives you. Sends from an
+unverified domain are rejected with `domain_not_verified`. See
+[Domains](/email/domains).
+
+### Swap the client
+
+The constructor and the send call have the same shape.
+
+<Tabs items={["Resend", "Retransmit"]}>
+<Tabs.Tab>
+```ts
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const { data, error } = await resend.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  replyTo: "support@yourdomain.com",
+  subject: "Your receipt",
+  html: "<p>Thanks for your order!</p>",
+  text: "Thanks for your order!",
+  tags: [{ name: "category", value: "receipt" }],
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```ts
+import { Retransmit } from "retransmit.dev";
+
+const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);
+
+const { data, error } = await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  replyTo: "support@yourdomain.com",
+  subject: "Your receipt",
+  html: "<p>Thanks for your order!</p>",
+  text: "Thanks for your order!",
+  tags: [{ name: "category", value: "receipt" }],
+});
+```
+</Tabs.Tab>
+</Tabs>
+
+`data.id` identifies the email in [Get Email](/email/get) and in webhook
+events. The response also carries `status` (`queued`) and `created_at`.
+Errors have a `code` and a `message`. The codes are listed under
+[Errors](/api-reference/errors).
+
+Batch sends move the same way: `resend.batch.send([...])` becomes
+`retransmit.batch.send([...])`. See [Send Batch](/email/send-batch).
+
+### Render React Email to HTML
+
+Resend accepts a `react` prop and renders it for you. Retransmit does not
+render templates, so call React Email's `render` yourself and pass the
+result as `html`. Your templates do not change.
+
+<Tabs items={["Resend", "Retransmit"]}>
+<Tabs.Tab>
+```tsx
+import { Resend } from "resend";
+import { WelcomeEmail } from "./emails/welcome";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+await resend.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Welcome to Acme",
+  react: <WelcomeEmail name="Jane" />,
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```tsx
+import { Retransmit } from "retransmit.dev";
+import { render } from "@react-email/components";
+import { WelcomeEmail } from "./emails/welcome";
+
+const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);
+
+const email = <WelcomeEmail name="Jane" />;
+
+await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Welcome to Acme",
+  html: await render(email),
+  text: await render(email, { plainText: true }),
+});
+```
+</Tabs.Tab>
+</Tabs>
+
+A few notes on `render`:
+
+- `render` is exported by `@react-email/components`, which you already have
+  if you use React Email. If you want a smaller dependency, install
+  `@react-email/render` and import it from there.
+- Since React Email 1.0, `render` returns a promise. On older versions it
+  returns the string directly, so drop the `await`.
+- `{ plainText: true }` produces the text body from the same component. It
+  is optional, but sending both `html` and `text` helps deliverability.
+- Rendering happens in your process, so a template error surfaces before
+  the request goes out. Nothing is queued.
+
+For a batch, render each email before building the array.
+
+### Move your webhooks
+
+Create an endpoint on the dashboard's Webhooks page and point it at your
+handler. Retransmit uses the same event names as Resend for email
+(`email.sent`, `email.delivered`, `email.bounced`, `email.opened`, and so
+on), but the payload and the signature differ:
+
+- Deliveries are signed with `retransmit-timestamp` and
+  `retransmit-signature` headers, not Svix headers. Replace the Svix
+  verification with the check in
+  [Verifying signatures](/webhooks#verifying-signatures).
+- The payload shape is described under [Webhooks](/webhooks). Update your
+  handler to read `data.emailId` and the event fields from there.
+
+</Steps>
+
+## Field reference
+
+| Resend | Retransmit | Notes |
+| --- | --- | --- |
+| `from` | `from` | Same format. The domain must be verified on Retransmit. |
+| `to`, `cc`, `bcc` | `to`, `cc`, `bcc` | String or array, up to 50 addresses each. |
+| `replyTo` | `replyTo` | `reply_to` on the HTTP API. |
+| `subject` | `subject` | Same. |
+| `html`, `text` | `html`, `text` | At least one is required. |
+| `react` | none | Render to a string first. See above. |
+| `headers` | `headers` | Same shape, up to 20. See [Custom headers](/email/send#custom-headers). |
+| `tags` | `tags` | Same `{ name, value }` shape, up to 10. Filter by tag in [List Emails](/email/list). |
+| `attachments` | none | Not supported yet. Host the file and link to it from the body. |
+| `scheduledAt` | none | Not supported. Queue the send from your own scheduler. |
+| Idempotency key | none | Not supported. Deduplicate on your side before calling send. |
+| none | `marketing` | Hosted unsubscribe link and suppression list. See [Marketing Email](/email/marketing-email). |
+
+## Cutting over
+
+1. Verify your domain on Retransmit while Resend keeps sending.
+2. Deploy the client swap behind a flag or an environment variable.
+3. Point your webhook handler at both providers during the switch. Event
+   names match, so most of the handler is shared.
+4. Move traffic, watch [Get Email](/email/get) and the dashboard for
+   `delivered` events, then remove the Resend key.

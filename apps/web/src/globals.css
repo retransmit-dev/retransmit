@@ -633,8 +633,18 @@
   line-height: 1.25;
   letter-spacing: -0.035em;
 }
+.editorial-section-heading > p:not(.editorial-label) {
+  max-width: 30ch;
+  margin-top: 16px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.7;
+}
 .editorial-section-heading .editorial-link {
   margin-top: 24px;
+}
+.migration-demo {
+  min-width: 0;
 }
 .channel-list {
   min-width: 0;

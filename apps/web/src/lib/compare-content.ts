@@ -260,7 +260,7 @@ export const COMPARE_CONTENT = {
       },
       {
         q: "Can I migrate from Resend to Retransmit?",
-        a: "The API shapes are close. Both SDKs return a { data, error } result instead of throwing, and both use domain verification with SPF and DKIM. Point your sends at the Retransmit API, verify your domain, and re-create your webhook endpoints.",
+        a: "The API shapes are close. Both SDKs return a { data, error } result instead of throwing, and both use domain verification with SPF and DKIM. Swap the client, verify your domain, and re-create your webhook endpoints. Retransmit takes html and text, not a react prop, so render React Email templates first with render() from @react-email/components. Custom headers and tags carry over as they are. Attachments and scheduled sends are not supported yet.",
       },
       {
         q: "Does Retransmit support marketing emails?",
