@@ -61,7 +61,7 @@ export function SiteNav() {
             <NavigationMenuItem value="products">
               <NavigationMenuTrigger>Product</NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="grid w-[660px] max-w-[calc(100vw-2rem)] grid-cols-[1fr_210px] gap-3 p-3">
+                <div className="grid w-165 max-w-[calc(100vw-2rem)] grid-cols-[1fr_210px] gap-3 p-3">
                   <div>
                     <p className="px-3 pt-2 pb-3 font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
                       Channels
