@@ -1,11 +1,12 @@
 import Link from "next/link";
 
+import { PRODUCTS, productHref } from "@/lib/products";
 import { pagesInGroup } from "@/lib/pages";
 import { siteConfig } from "@/lib/site";
 
 const COLUMNS = [
   {
-    title: "Product",
+    title: "Developers",
     links: [
       { label: "Dashboard", href: siteConfig.links.app },
       { label: "Documentation", href: siteConfig.links.docs },
@@ -32,17 +33,32 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border/60">
       <div className="mx-auto max-w-6xl px-4 py-12">
-        <div className="flex flex-col justify-between gap-10 md:flex-row">
+        <div className="flex flex-col justify-between gap-10">
           <div className="max-w-xs">
             <p className="font-heading text-lg font-extrabold tracking-tight">
               retransmit<span className="text-primary">.</span>
             </p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              One API. One balance. Every message. Email and SMS today,
-              WhatsApp next.
+              Email, SMS, and WhatsApp. Every message. One API.
             </p>
           </div>
-          <div className="flex flex-wrap gap-x-16 gap-y-10">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
+            <div>
+              <p className="text-sm font-medium">Product</p>
+              <ul className="mt-3 flex flex-col gap-2">
+                {PRODUCTS.map((product) => (
+                  <li key={product.slug}>
+                    <Link
+                      href={productHref(product)}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {product.name}
+                      {product.status === "coming-soon" ? " (soon)" : ""}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
             {COLUMNS.map((column) => (
               <div key={column.title}>
                 <p className="text-sm font-medium">{column.title}</p>
@@ -104,7 +120,7 @@ export function SiteFooter() {
             </div>
           </div>
         </div>
-        <p className="mt-12 text-xs text-muted-foreground/70">
+        <p className="mt-12 text-xs text-muted-foreground">
           © {new Date().getFullYear()} Retransmit. All rights reserved.
         </p>
       </div>

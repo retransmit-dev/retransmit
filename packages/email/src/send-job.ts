@@ -1,6 +1,6 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { email, emailEvent, suppression } from "@retransmit/db/schema/email";
+import { domain, email, emailEvent, suppression } from "@retransmit/db/schema/email";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
 import { extractEmailAddress } from "./address";
@@ -111,8 +111,20 @@ export async function processEmailSend(emailId: string): Promise<void> {
     ];
   }
 
+  // SES identities are regional: send out of the region the from-domain was
+  // verified in. Rows without a domain (legacy) use the platform default.
+  let region: string | undefined;
+  if (row.domainId) {
+    const [sender] = await db
+      .select({ region: domain.region })
+      .from(domain)
+      .where(eq(domain.id, row.domainId));
+    region = sender?.region;
+  }
+
   try {
     const { messageId } = await sendEmail({
+      region,
       from: row.from,
       to: recipients.to,
       cc: recipients.cc,

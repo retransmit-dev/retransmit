@@ -47,6 +47,7 @@ export function SiteStructuredData() {
         featureList: [
           "Transactional email API",
           "Transactional SMS API with per-country routing",
+          "WhatsApp API with incoming messages and read receipts",
           "Batch sending up to 10,000 emails per request",
           "Signed webhooks with automatic retries",
           "Domain verification with SPF and DKIM",

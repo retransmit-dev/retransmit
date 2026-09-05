@@ -101,9 +101,18 @@ export const domain = pgTable(
     }),
     name: text("name").notNull(),
     status: text("status").$type<DomainStatus>().default("pending").notNull(),
+    /** SES region the identity was created in. Sends from this domain go out of that region. */
     region: text("region").notNull(),
     /** DKIM tokens returned by SES when the identity is created. */
     dkimTokens: jsonb("dkim_tokens").$type<string[]>().default([]).notNull(),
+    /**
+     * Custom MAIL FROM (Return-Path) domain, e.g. `mail.example.com`. Null on
+     * rows created before return paths were configurable; SES then uses its
+     * own amazonses.com bounce domain.
+     */
+    mailFromDomain: text("mail_from_domain"),
+    /** Verification of the MAIL FROM domain's MX and SPF records, as reported by SES. */
+    mailFromStatus: text("mail_from_status").$type<DomainStatus>(),
     verifiedAt: timestamp("verified_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

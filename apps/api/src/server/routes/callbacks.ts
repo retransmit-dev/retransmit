@@ -115,7 +115,9 @@ async function recordSuppressions(
  * event destination at `https://api.retransmit.dev/v1/callbacks/ses`.
  *
  * TODO: verify the SNS message signature (SigningCertURL) before launch;
- * for now we only check the topic ARN against SES_SNS_TOPIC_ARN.
+ * for now we only check the topic ARN against SES_SNS_TOPIC_ARN. That
+ * variable may list several ARNs separated by commas: SNS topics are
+ * regional, so each SES region domains can be verified into has its own.
  */
 callbackRoutes.post("/ses", async (c) => {
   let envelope: SnsEnvelope;
@@ -125,8 +127,11 @@ callbackRoutes.post("/ses", async (c) => {
     return c.json({ error: { code: "invalid_json", message: "Body must be valid JSON" } }, 400);
   }
 
-  const expectedTopic = process.env.SES_SNS_TOPIC_ARN;
-  if (expectedTopic && envelope.TopicArn !== expectedTopic) {
+  const expectedTopics = (process.env.SES_SNS_TOPIC_ARN ?? "")
+    .split(",")
+    .map((arn) => arn.trim())
+    .filter(Boolean);
+  if (expectedTopics.length > 0 && !expectedTopics.includes(envelope.TopicArn ?? "")) {
     return c.json({ error: { code: "forbidden", message: "Unexpected topic" } }, 403);
   }
 

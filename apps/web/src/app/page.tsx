@@ -1,468 +1,193 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 
-import {
-  Check,
-  Fingerprint,
-  KeyRound,
-  Mail,
-  MailCheck,
-  MessageCircle,
-  MessageSquareText,
-  RefreshCw,
-  ScrollText,
-  ShieldCheck,
-  Webhook,
-} from "lucide-react";
-
-import { Card, CardTray } from "@/components/marketing/card";
-import { CodeWindow } from "@/components/marketing/code-window";
 import { CtaButton } from "@/components/marketing/cta-button";
-import { EventFeed } from "@/components/marketing/event-feed";
-import { Section, SectionHeading } from "@/components/marketing/section";
-import {
-  batchNode,
-  batchResponse,
-  selfHostTerminal,
-  sendCurl,
-  sendNode,
-  sendResponse,
-  smsNode,
-  smsResponse,
-  webhookPayload,
-} from "@/components/marketing/snippets";
+import { MessageDemo } from "@/components/marketing/message-demo";
+import { ProductIcon } from "@/components/marketing/product-icon";
+import { PRODUCTS, productHref } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
 
-/* The canonical lives here, not in the root layout: root metadata is
-   inherited, so a canonical there would make every page claim "/". */
 export const metadata: Metadata = {
-  alternates: {
-    canonical: "/",
-    /* .md sibling for agents that follow rel=alternate rather than
-       sending Accept: text/markdown. */
-    types: { "text/markdown": "/index.md" },
-  },
+  alternates: { canonical: "/", types: { "text/markdown": "/index.md" } },
 };
-
-function CheckItem({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
-        <Check className="size-3 text-primary" aria-hidden />
-      </span>
-      <span className="text-muted-foreground">{children}</span>
-    </li>
-  );
-}
-
-/* The channels, shipped and planned alike. The JSON-LD stays in sync by
-   hand, see structured-data.tsx. */
-const CHANNELS = [
-  {
-    icon: Mail,
-    title: "Email",
-    body: "Transactional email with domain verification, batch sending, and full event history.",
-  },
-  {
-    icon: MessageSquareText,
-    title: "SMS",
-    body: "Text messages routed per country to the cheapest provider, with delivery receipts.",
-  },
-  {
-    icon: MessageCircle,
-    title: "WhatsApp",
-    body: "Template and session messages through the same API and balance.",
-  },
-  {
-    icon: Fingerprint,
-    title: "OTP",
-    body: "One-time codes with generation, delivery, and verification handled for you.",
-  },
-] as const;
 
 const FEATURES = [
   {
-    icon: ShieldCheck,
-    title: "Domain verification",
-    body: "Verify your sending domain with SPF and DKIM. The dashboard gives you exact records to copy.",
+    title: "Queued delivery",
+    body: "Messages are queued and retried automatically when a provider fails.",
   },
   {
-    icon: MailCheck,
-    title: "Bounce & complaint handling",
-    body: "Hard bounces and complaints are caught automatically. Your sender reputation is protected without extra code.",
-  },
-  {
-    icon: RefreshCw,
-    title: "Queue with retries",
-    body: "Every send is queued, rate aware, and retried with exponential backoff.",
-  },
-  {
-    icon: Webhook,
     title: "Signed webhooks",
-    body: "Every event is delivered with an HMAC-SHA256 signature and retried up to 8 times with exponential backoff.",
+    body: "Delivery updates arrive at your endpoint with an HMAC signature.",
   },
   {
-    icon: ScrollText,
-    title: "Logs & status",
-    body: "Fetch any message by id and read its full event history, from queued to delivered, opened, or bounced.",
+    title: "Message history",
+    body: "Look up any message by ID. See its status and the events behind it.",
   },
-  {
-    icon: KeyRound,
-    title: "API keys",
-    body: "Scoped bearer keys you create and revoke from the dashboard. One header and you're authenticated.",
-  },
-] as const;
+];
 
 export default function Home() {
   return (
-    <>
-      {/* Hero */}
-      <section className="px-4 pt-14 pb-12 sm:pt-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-4xl text-balance md:text-6xl">
-            One API. Every message.
+    <div className="home-editorial">
+      <section className="editorial-hero">
+        <div className="hero-copy">
+          <p className="editorial-label">Messaging infrastructure</p>
+          <h1>
+            Email, SMS
+            <br />
+            &amp; WhatsApp.
+            <br />
+            <span>One API.</span>
           </h1>
-          <p className="mx-auto mt-5 max-w-[42ch] text-lg leading-relaxed text-balance text-muted-foreground">
-            Send transactional email and SMS from one API and one prepaid
-            balance. WhatsApp is next.
+          <p className="hero-description">
+            Send messages from your app with one API key and one Node.js SDK.
           </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
+          <div className="hero-actions">
             <CtaButton
               href={siteConfig.links.app}
               goal="start_signup"
               goalPlacement="home_hero"
             >
               Get your API key
+              <ArrowRight className="size-4" aria-hidden />
             </CtaButton>
-            <CtaButton
+            <a
               href={siteConfig.links.quickstart}
-              tone="quiet"
-              goal="start_quickstart"
-              goalPlacement="home_hero"
+              className="editorial-link"
+              data-wa-goal="start_quickstart"
+              data-wa-goal-placement="home_hero"
             >
-              Read the quickstart
-            </CtaButton>
+              Quickstart
+              <ArrowUpRight className="size-4" aria-hidden />
+            </a>
+          </div>
+          <a href={siteConfig.links.github} className="hero-source">
+            Open source / AGPL-3.0
+            <ArrowUpRight className="size-3" aria-hidden />
+          </a>
+        </div>
+        <div className="hero-example">
+          <MessageDemo />
+        </div>
+      </section>
+
+      <section id="channels" className="editorial-section">
+        <div className="editorial-section-heading">
+          <p className="editorial-label">01 / Channels</p>
+          <h2>
+            One integration.
+            <br />
+            Three ways to send.
+          </h2>
+        </div>
+        <div className="channel-list">
+          {PRODUCTS.map((product) => (
+            <Link
+              key={product.slug}
+              href={productHref(product)}
+              className="channel-row"
+            >
+              <ProductIcon
+                slug={product.slug}
+                className="channel-row-icon"
+                aria-hidden
+              />
+              <h3>{product.name}</h3>
+              <p>{product.summary}</p>
+              {product.status === "coming-soon" ? (
+                <span className="channel-soon">Coming soon</span>
+              ) : (
+                <ArrowUpRight className="channel-row-arrow" aria-hidden />
+              )}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section id="features" className="editorial-section">
+        <div className="editorial-section-heading">
+          <p className="editorial-label">02 / Infrastructure</p>
+          <h2>
+            After the API call,
+            <br />
+            we handle delivery.
+          </h2>
+          <a href={siteConfig.links.apiReference} className="editorial-link">
+            API reference
+            <ArrowUpRight className="size-4" aria-hidden />
+          </a>
+        </div>
+        <div className="infrastructure-list">
+          {FEATURES.map((feature) => (
+            <div key={feature.title}>
+              <h3>{feature.title}</h3>
+              <p>{feature.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="pricing" className="editorial-section">
+        <div className="editorial-section-heading">
+          <p className="editorial-label">03 / Deployment</p>
+          <h2>
+            Hosted by us.
+            <br />
+            Or run by you.
+          </h2>
+        </div>
+        <div className="deployment-list">
+          <div>
+            <div className="deployment-title">
+              <h3>Retransmit Cloud</h3>
+              <span>Pay per send</span>
+            </div>
+            <p>
+              Prepaid credits. No subscription or seat fees. Top up by bank
+              transfer or mobile money.
+            </p>
+            <a
+              href={siteConfig.links.app}
+              className="editorial-link"
+              data-wa-goal="start_signup"
+              data-wa-goal-placement="home_pricing"
+            >
+              Create an account
+              <ArrowUpRight className="size-4" aria-hidden />
+            </a>
+          </div>
+          <div>
+            <div className="deployment-title">
+              <h3>Self-hosted</h3>
+              <span>Free software</span>
+            </div>
+            <p>
+              Run the API and dashboard on your servers. Bring your own provider
+              credentials.
+            </p>
+            <a href={siteConfig.links.github} className="editorial-link">
+              Get the source
+              <ArrowUpRight className="size-4" aria-hidden />
+            </a>
           </div>
         </div>
       </section>
 
-      {/* Channels */}
-      <Section id="channels">
-        <SectionHeading
-          eyebrow="Channels"
-          title="Add channels, not vendors."
-          lead="Every channel shares the same key, SDK, webhooks, and balance."
-        />
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {CHANNELS.map((channel) => (
-            <Card key={channel.title} className="p-6">
-              <channel.icon className="size-5 text-primary" aria-hidden />
-              <h3 className="mt-4 text-base font-semibold tracking-tight">
-                {channel.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {channel.body}
-              </p>
-            </Card>
-          ))}
+      <section className="editorial-end">
+        <div>
+          <p className="editorial-label">Get started</p>
+          <h2>Send your first message.</h2>
         </div>
-      </Section>
-
-      {/* Send */}
-      <Section>
-        <SectionHeading
-          eyebrow="Email"
-          title="One request. Email delivered."
-          lead="Verify a domain, grab an API key, and send your first email in under five minutes."
-        />
-        <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
-          <div>
-            <ul className="flex flex-col gap-4 text-base leading-relaxed">
-              <CheckItem>
-                Every call returns{" "}
-                <code className="font-mono text-sm text-foreground">
-                  {"{ data, error }"}
-                </code>
-                . No thrown surprises.
-              </CheckItem>
-              <CheckItem>
-                Sends return a{" "}
-                <code className="font-mono text-sm text-foreground">202</code>{" "}
-                in milliseconds and are delivered by a rate-aware worker.
-              </CheckItem>
-              <CheckItem>
-                Zero-dependency SDK on npm as{" "}
-                <a
-                  href={siteConfig.links.npm}
-                  className="font-mono text-sm text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
-                >
-                  retransmit.dev
-                </a>
-                , or plain REST from any language.
-              </CheckItem>
-            </ul>
-            <a
-              href={siteConfig.links.docs}
-              className="mt-6 inline-block text-sm font-medium text-primary hover:underline"
-            >
-              Read the docs →
-            </a>
-          </div>
-          <CardTray>
-            <CodeWindow
-              tabs={[
-                { label: "send-email.ts", code: sendNode },
-                { label: "curl", code: sendCurl },
-                { label: "response", code: sendResponse },
-              ]}
-            />
-          </CardTray>
-        </div>
-      </Section>
-
-      {/* Batch */}
-      <Section>
-        <SectionHeading
-          eyebrow="Batch"
-          title="Send one, or send ten thousand."
-          lead="One request queues up to 10,000 emails. Poll the batch for per-status counts while the worker drains it at your provider's rate."
-        />
-        <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
-          <CardTray className="order-last lg:order-first">
-            <CodeWindow
-              tabs={[
-                { label: "batch.ts", code: batchNode },
-                { label: "response", code: batchResponse },
-              ]}
-            />
-          </CardTray>
-          <ul className="flex flex-col gap-4 text-base leading-relaxed">
-            <CheckItem>
-              One HTTP call for thousands of messages. No loops, no client-side
-              rate limiting.
-            </CheckItem>
-            <CheckItem>
-              Track progress with{" "}
-              <code className="font-mono text-sm text-foreground">
-                GET /v1/emails/batch/:id
-              </code>
-              . Counts per status, updated live.
-            </CheckItem>
-            <CheckItem>
-              Every message in the batch still gets its own id, log entry, and
-              webhook events.
-            </CheckItem>
-          </ul>
-        </div>
-      </Section>
-
-      {/* SMS */}
-      <Section>
-        <SectionHeading
-          eyebrow="SMS"
-          title="Text the same way you email."
-          lead="Same SDK, same response shape, same balance. Pass a number in international format and Retransmit routes the rest."
-        />
-        <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
-          <div>
-            <ul className="flex flex-col gap-4 text-base leading-relaxed">
-              <CheckItem>
-                The destination country is detected from the number and each
-                message is routed to the cheapest configured provider.
-              </CheckItem>
-              <CheckItem>
-                Set your own sender id, up to 11 characters, or use the
-                route&apos;s default.
-              </CheckItem>
-              <CheckItem>
-                Delivery receipts come back as{" "}
-                <code className="font-mono text-sm text-foreground">
-                  sms.delivered
-                </code>{" "}
-                webhooks and in the message&apos;s event history.
-              </CheckItem>
-            </ul>
-            <a
-              href={siteConfig.links.docs}
-              className="mt-6 inline-block text-sm font-medium text-primary hover:underline"
-            >
-              Read the docs →
-            </a>
-          </div>
-          <CardTray>
-            <CodeWindow
-              tabs={[
-                { label: "send-sms.ts", code: smsNode },
-                { label: "response", code: smsResponse },
-              ]}
-            />
-          </CardTray>
-        </div>
-      </Section>
-
-      {/* Webhooks */}
-      <Section>
-        <SectionHeading
-          eyebrow="Webhooks"
-          title="Know what happens to every message."
-          lead="Email and SMS events, signed and timestamped, delivered to your endpoint as they happen."
-        />
-        <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
-          <CardTray>
-            <Card className="p-3">
-              <EventFeed />
-            </Card>
-          </CardTray>
-          <div>
-            <CardTray>
-              <CodeWindow
-                tabs={[{ label: "email.delivered", code: webhookPayload }]}
-              />
-            </CardTray>
-            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-              Payloads are signed with HMAC-SHA256 over{" "}
-              <code className="font-mono text-xs">
-                {"`${timestamp}.${body}`"}
-              </code>{" "}
-              and retried up to 8 times with exponential backoff.{" "}
-              <a
-                href={siteConfig.links.webhooks}
-                className="font-medium text-primary hover:underline"
-              >
-                Verify in five lines →
-              </a>
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      {/* Features grid */}
-      <Section id="features">
-        <SectionHeading
-          eyebrow="Deliverability"
-          title="Reach the inbox, not the spam folder."
-          lead="Authentication, suppression, and retries handled correctly by default."
-        />
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((feature) => (
-            <Card key={feature.title} className="p-6">
-              <feature.icon className="size-5 text-primary" aria-hidden />
-              <h3 className="mt-4 text-base font-semibold tracking-tight">
-                {feature.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {feature.body}
-              </p>
-            </Card>
-          ))}
-        </div>
-      </Section>
-
-      {/* Open source / self-host */}
-      <Section>
-        <SectionHeading
-          eyebrow="Open source"
-          title="Run it yourself. Read every line."
-          lead="The API, dashboard, queue, and SDK live in one repository. Moving between cloud and self-hosted is a base URL change."
-        />
-        <div className="mt-12 grid items-center gap-8 lg:grid-cols-2">
-          <CardTray>
-            <CodeWindow tabs={[{ label: "terminal", code: selfHostTerminal }]} />
-          </CardTray>
-          <div className="grid gap-4">
-            <Card className="p-6">
-              <h3 className="text-base font-semibold tracking-tight">
-                Retransmit Cloud
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Managed sending on our infrastructure. Fund one prepaid balance
-                by bank transfer or mobile money. No international card
-                required.
-              </p>
-            </Card>
-            <Card className="p-6">
-              <h3 className="text-base font-semibold tracking-tight">
-                Self-hosted
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Your servers, your keys, your data. Bring your own provider
-                credentials and keep the same SDK, dashboard, and webhooks.
-              </p>
-            </Card>
-          </div>
-        </div>
-      </Section>
-
-      {/* Pricing */}
-      <Section id="pricing">
-        <SectionHeading
-          eyebrow="Pricing"
-          title="Pay for what you send."
-          lead="No subscriptions, no seats, no charge for storing contacts. Top up a credit balance and it only moves when a message does."
-        />
-        <div className="mx-auto mt-12 grid max-w-3xl gap-4 sm:grid-cols-2">
-          <Card className="p-8">
-            <h3 className="text-lg font-semibold tracking-tight">Self-hosted</h3>
-            <p className="mt-1 font-heading text-3xl font-extrabold tracking-tight">
-              Free
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Forever, on your own infrastructure. Every feature, no license
-              key, no phone-home.
-            </p>
-            <CtaButton
-              href={siteConfig.links.github}
-              tone="quiet"
-              size="sm"
-              external
-              className="mt-6"
-            >
-              View on GitHub
-            </CtaButton>
-          </Card>
-          <Card className="p-8">
-            <h3 className="text-lg font-semibold tracking-tight">Cloud</h3>
-            <p className="mt-1 font-heading text-3xl font-extrabold tracking-tight">
-              Prepaid credits
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              One balance across every channel. Fund it in your local currency,
-              including bank transfer and mobile money.
-            </p>
-            <CtaButton
-              href={siteConfig.links.app}
-              size="sm"
-              goal="start_signup"
-              goalPlacement="home_pricing"
-              className="mt-6"
-            >
-              Create your account
-            </CtaButton>
-          </Card>
-        </div>
-      </Section>
-
-      {/* Final CTA */}
-      <Section>
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl text-balance md:text-5xl">Ready to send?</h2>
-          <p className="mx-auto mt-5 max-w-[46ch] text-lg leading-relaxed text-balance text-muted-foreground">
-            Grab an API key and send your first email or SMS in under five
-            minutes.
-          </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
-            <CtaButton
-              href={siteConfig.links.app}
-              goal="start_signup"
-              goalPlacement="home_final"
-            >
-              Get your API key
-            </CtaButton>
-            <CtaButton href={siteConfig.links.docs} tone="quiet">
-              Read the docs
-            </CtaButton>
-          </div>
-        </div>
-      </Section>
-    </>
+        <CtaButton
+          href={siteConfig.links.app}
+          goal="start_signup"
+          goalPlacement="home_final"
+        >
+          Get your API key
+          <ArrowRight className="size-4" aria-hidden />
+        </CtaButton>
+      </section>
+    </div>
   );
 }

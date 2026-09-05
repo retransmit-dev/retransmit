@@ -10,17 +10,24 @@ export type DnsRecord = {
   required: boolean;
 };
 
+const PURPOSE_LABELS: Record<string, string> = {
+  dkim: "DKIM",
+  dmarc: "DMARC",
+  return_path: "Return-Path",
+  spf: "SPF",
+};
+
 export function DnsRecords({ records }: { records: DnsRecord[] }) {
   return (
     <div className="flex flex-col gap-2">
       {records.map((record) => (
-        <div key={record.name} className="rounded-md border p-3 text-sm">
+        <div key={`${record.type}:${record.name}`} className="rounded-md border p-3 text-sm">
           <div className="mb-2 flex items-center gap-2">
             <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
               {record.type}
             </span>
-            <span className="text-xs uppercase text-muted-foreground">
-              {record.purpose}
+            <span className="text-xs text-muted-foreground">
+              {PURPOSE_LABELS[record.purpose] ?? record.purpose.toUpperCase()}
             </span>
             {!record.required && (
               <span className="text-xs text-muted-foreground">(recommended)</span>

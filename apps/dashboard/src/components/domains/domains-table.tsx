@@ -24,6 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 import { GlobeIcon, PlusIcon } from "lucide-react";
 
 import { DeleteDomainDialog } from "./delete-domain-dialog";
+import { RegionLabel } from "./region-label";
 
 export function DomainsTable({
   onSelect,
@@ -78,8 +79,8 @@ export function DomainsTable({
             <TableCell>
               <DomainStatusBadge status={row.status} />
             </TableCell>
-            <TableCell className="hidden text-muted-foreground sm:table-cell">
-              {row.region}
+            <TableCell className="hidden sm:table-cell">
+              <RegionLabel region={row.region} />
             </TableCell>
             <TableCell className="hidden text-muted-foreground sm:table-cell">
               {formatDate(row.createdAt)}

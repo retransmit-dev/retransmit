@@ -2,7 +2,7 @@ export const siteConfig = {
   name: "Retransmit",
   tagline: "Messaging API for developers",
   description:
-    "Transactional email and SMS for developers: one API, one typed Node.js SDK, one prepaid balance. Batch sending, signed webhooks, WhatsApp next. Use the cloud or self-host the whole stack.",
+    "Email, SMS, and WhatsApp for developers. One API, one typed Node.js SDK, signed webhooks, and a prepaid balance. Use the cloud or self-host. Telegram is coming soon.",
   url: "https://retransmit.dev",
   links: {
     /* The dashboard: sign-in and sign-up both land here, and a signed-in

@@ -1,17 +1,22 @@
 # Retransmit
 
-> Retransmit is a transactional email API for developers. It offers a REST API and a typed Node.js SDK (npm: retransmit.dev), batch sending up to 10,000 emails per request, domain verification with SPF and DKIM, per-email logs with full event history, and nine webhook event types signed with HMAC-SHA256. The platform is open source under AGPL-3.0 (the SDK itself is MIT) and the whole stack can be self-hosted for free. The hosted cloud runs on prepaid credits that can be funded by bank transfer or mobile money in local currencies.
+> Retransmit is an Email, SMS, and WhatsApp API for developers. Telegram is coming soon. It offers a REST API and a typed Node.js SDK (npm: retransmit.dev), batch sending up to 10,000 emails per request, domain verification with SPF and DKIM, per-email logs with full event history, and nine webhook event types signed with HMAC-SHA256. The platform is open source under AGPL-3.0 (the SDK itself is MIT) and the whole stack can be self-hosted for free. The hosted cloud runs on prepaid credits that can be funded by bank transfer or mobile money in local currencies.
 
 Key facts:
-- Transactional email only today. No marketing campaigns, templates, contact storage, automations, inbound email, or SMTP relay yet.
+- Email, SMS, and WhatsApp are available. Telegram is coming soon.
+- Email supports transactional sending and batch requests. SMS supports per-country routing and delivery receipts. WhatsApp supports templates, text, images, documents, incoming messages, and read receipts.
 - Batch endpoint accepts up to 10,000 emails in one request, with per-status counts at GET /v1/emails/batch/:id.
-- Webhooks cover nine event types (sent, delivered, delivery_delayed, opened, clicked, bounced, complained, rejected, failed), signed over `timestamp.body` and retried up to 8 times with exponential backoff.
+- Email webhooks cover nine event types (sent, delivered, delivery_delayed, opened, clicked, bounced, complained, rejected, failed), signed over `timestamp.body` and retried up to 8 times with exponential backoff.
 - Cloud pricing is a prepaid balance. No subscriptions, no seats, no charge for storing anything.
 - Self-hosting is free forever, uses your own Amazon SES credentials, and switching between cloud and self-hosted is a base URL change.
 - Retransmit is not an email marketing tool and not a general SMTP provider.
 
 Site map for agents:
 - https://retransmit.dev/ : product overview and pricing model
+- https://retransmit.dev/products/email : Email API
+- https://retransmit.dev/products/sms : SMS API
+- https://retransmit.dev/products/whatsapp : WhatsApp API
+- https://retransmit.dev/products/telegram : Telegram, coming soon
 - https://retransmit.dev/compare : comparison hub
 - https://retransmit.dev/compare/resend-alternatives : Resend alternatives roundup with verified pricing
 - https://retransmit.dev/compare/open-source-email-api : open source email API comparison

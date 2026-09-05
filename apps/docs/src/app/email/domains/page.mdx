@@ -6,9 +6,45 @@ and verified.
 ## Adding a domain
 
 1. Open **Domains** in the dashboard.
-2. Add your domain, e.g. `yourdomain.com`.
-3. Publish the DNS records shown (SPF / DKIM) at your DNS provider.
-4. Wait for verification to complete.
+2. Enter your domain, e.g. `yourdomain.com`.
+3. Pick the region the domain sends from (see below).
+4. Choose a Return-Path subdomain. The default `mail` gives `mail.yourdomain.com`.
+5. Publish the DNS records shown at your DNS provider.
+6. Wait for verification to complete, then check the status from the domain's details.
+
+## Regions
+
+Email is sent out of the region a domain was verified in. The region cannot be
+changed after the domain is added; delete the domain and add it again to move it.
+
+| Region | Location |
+| --- | --- |
+| `eu-central-1` | Frankfurt |
+| `us-east-1` | N. Virginia |
+| `ap-southeast-1` | Singapore |
+| `af-south-1` | Cape Town |
+
+Pick the region closest to most of your recipients, or the one your data
+residency rules require.
+
+## Return-Path
+
+The Return-Path is the address bounces and delivery reports go back to. Using
+a subdomain you control, instead of the provider's default, aligns SPF with
+your domain and keeps your DMARC policy intact.
+
+It must be a subdomain of the sending domain. The root domain is not accepted.
+
+## DNS records
+
+| Record | Name | Purpose | Required |
+| --- | --- | --- | --- |
+| `CNAME` (x3) | `<token>._domainkey.yourdomain.com` | DKIM signing | Yes |
+| `MX` | `mail.yourdomain.com` | Return-Path, routes bounces back to the sending region | Yes |
+| `TXT` | `mail.yourdomain.com` | SPF for the Return-Path (`v=spf1 include:amazonses.com ~all`) | Yes |
+| `TXT` | `_dmarc.yourdomain.com` | DMARC policy | Recommended |
+
+The exact values are shown in the dashboard and can be copied one by one.
 
 ## Domain statuses
 

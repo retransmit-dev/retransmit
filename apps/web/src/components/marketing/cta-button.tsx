@@ -1,18 +1,14 @@
 import { cn } from "@/lib/utils";
 
-/* The ledge button: one surface with the slab drawn inside it. `signal` is
-   the coral primary with the bevel + coral ring cast in shadow-ledge; `quiet`
-   is a flat bordered card surface. Sizes follow the shape rule: md 14px
-   radius, sm 10px. */
+/* Shared marketing links: solid primary action or a bordered secondary. */
 
 const SIZE = {
-  md: "h-12 rounded-[14px] px-5 text-base",
-  sm: "h-9 rounded-[10px] px-3.5 text-sm",
+  md: "h-11 rounded-md px-4 text-sm",
+  sm: "h-9 rounded-md px-3.5 text-sm",
 } as const;
 
 const TONE = {
-  signal:
-    "bg-primary text-primary-foreground shadow-ledge hover:bg-primary-emphasis hover:shadow-ledge-hover active:shadow-ledge-pressed",
+  signal: "bg-foreground text-background hover:bg-foreground/85",
   quiet: "border border-border bg-card text-foreground hover:bg-muted",
 } as const;
 

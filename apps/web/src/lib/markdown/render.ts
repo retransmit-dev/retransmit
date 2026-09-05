@@ -6,6 +6,7 @@ import type {
 import { COMPARE_CONTENT } from "@/lib/compare-content";
 import { LEGAL_DOCS, type LegalDoc } from "@/lib/legal-content";
 import { getPage, publishedPages } from "@/lib/pages";
+import { PRODUCTS, productHref, type Product } from "@/lib/products";
 import { absoluteUrl, siteConfig } from "@/lib/site";
 
 /* Markdown representations of every indexable page, served to agents via
@@ -96,71 +97,72 @@ export function seoPageMarkdown(props: SeoContentPageProps): string {
   return parts.join("\n");
 }
 
-/* Mirrors the copy in src/app/page.tsx. Update both together. */
+/* Product descriptions are shared with the HTML pages and navigation. */
 export function homeMarkdown(): string {
   return [
-    `# ${siteConfig.name}: ${siteConfig.tagline.toLowerCase()}`,
+    `# ${siteConfig.name}: Email, SMS & WhatsApp. One API.`,
     "",
-    "One API. Every message. Send transactional email and SMS from one API and one prepaid balance. WhatsApp is next.",
-    "",
-    siteConfig.description,
+    "Send messages from your app with one API key and one Node.js SDK.",
     "",
     "## Channels",
     "",
-    "Every channel shares the same key, SDK, webhooks, and balance. New ones arrive as an SDK update, not another account.",
+    ...PRODUCTS.map(
+      (product) =>
+        `- [${product.name}](${absoluteUrl(productHref(product))}): ${product.summary}`,
+    ),
     "",
-    "- Email: live. Transactional email with domain verification, batch sending, and full event history.",
-    "- SMS: live. Text messages routed per country to the cheapest provider, with delivery receipts.",
-    "- WhatsApp: coming soon. Template and session messages through the same API and balance.",
-    "- OTP: planned. One-time codes with generation, delivery, and verification handled for you.",
+    "## Infrastructure",
     "",
-    "## Email",
+    "- One API key and typed SDK across your channels.",
+    "- Queued sending with automatic retries.",
+    "- Signed webhooks for message updates.",
     "",
-    "One request, email delivered. Verify a domain, grab an API key, and send your first email in under five minutes.",
+    "## Deployment",
     "",
-    "- Every SDK call returns `{ data, error }`. No thrown surprises.",
-    "- Sends return a `202` in milliseconds and are delivered by a rate-aware worker.",
-    `- Zero-dependency SDK on npm as [retransmit.dev](${siteConfig.links.npm}), or plain REST from any language.`,
+    "- Retransmit Cloud: pay for what you send. Top up with bank transfer or mobile money. No subscription or seat fees.",
+    `- [Self-hosted](${siteConfig.links.github}): free to self-host. Your servers, providers, and data.`,
     "",
-    "## Batch",
+    "## Send your first message",
     "",
-    "Send one, or send ten thousand. One request queues up to 10,000 emails; poll the batch for per-status counts while the worker drains it at your provider's rate. Every message in the batch still gets its own id, log entry, and webhook events.",
-    "",
-    "## SMS",
-    "",
-    "Text the same way you email: same SDK, same response shape, same balance. The destination country is detected from the number and each message is routed to the cheapest configured provider. Set your own sender id, up to 11 characters. Delivery receipts come back as `sms.delivered` webhooks and in the message's event history.",
-    "",
-    "## Webhooks",
-    "",
-    "Email events (sent, delivered, delivery_delayed, opened, clicked, bounced, complained, rejected, failed) and SMS events (sent, delivered, undelivered, failed), signed with HMAC-SHA256 over `timestamp.body` and retried up to 8 times with exponential backoff.",
-    "",
-    "## Deliverability",
-    "",
-    "- Domain verification with SPF and DKIM; the dashboard gives you exact records to copy.",
-    "- Hard bounces and complaints are caught automatically to protect sender reputation.",
-    "- Every send is queued, rate aware, and retried with exponential backoff.",
-    "- Fetch any message by id and read its full event history.",
-    "- Scoped bearer API keys you create and revoke from the dashboard.",
-    "",
-    "## Open source and self-hosting",
-    "",
-    `The API, dashboard, queue, and SDK live in [one repository](${siteConfig.links.github}) under AGPL-3.0 (the SDK is MIT). Self-hosting is free forever with every feature, using your own provider credentials. Moving between cloud and self-hosted is a base URL change.`,
-    "",
-    "## Pricing",
-    "",
-    "- Self-hosted: free forever, every feature, no license key, no phone-home.",
-    "- Cloud: prepaid credits, no subscriptions or seats. Fund the balance in your local currency, including bank transfer and mobile money.",
-    "",
-    "## Get started",
-    "",
-    `- [Dashboard: create an account and get an API key](${siteConfig.links.app})`,
+    `- [Get your API key](${siteConfig.links.app})`,
     `- [Quickstart](${siteConfig.links.quickstart})`,
     `- [Documentation](${siteConfig.links.docs})`,
-    `- [API reference](${siteConfig.links.apiReference})`,
-    `- [Compare email APIs](${absoluteUrl("/compare")})`,
     "",
     footer("/"),
   ].join("\n");
+}
+
+export function productMarkdown(product: Product): string {
+  const parts = [
+    `# ${product.name}: ${product.headline}`,
+    "",
+    ...(product.status === "coming-soon" ? ["Coming soon.", ""] : []),
+    product.description,
+    "",
+    ...product.useCases.map((useCase) => `- ${useCase}`),
+    "",
+  ];
+  for (const feature of product.features) {
+    parts.push(`## ${feature.title}`, "", feature.description, "");
+  }
+  if (product.example) {
+    parts.push(
+      "## Example",
+      "",
+      "```typescript",
+      `const { data, error } = await retransmit.${product.example.method}({`,
+    );
+    for (const field of product.example.fields)
+      parts.push(`  ${field.name}: ${JSON.stringify(field.value)},`);
+    parts.push("});", "```", "");
+    if (product.example.note) parts.push(product.example.note, "");
+  }
+  parts.push(
+    `[API documentation](${siteConfig.links.apiReference})`,
+    "",
+    footer(productHref(product)),
+  );
+  return parts.join("\n");
 }
 
 export function compareHubMarkdown(): string {
@@ -226,6 +228,10 @@ export function notFoundMarkdown(pathname: string): string {
 const RENDERERS = new Map<string, () => string>([
   ["/", homeMarkdown],
   ["/compare", compareHubMarkdown],
+  ...PRODUCTS.map(
+    (product) =>
+      [productHref(product), () => productMarkdown(product)] as const,
+  ),
   ...Object.values(COMPARE_CONTENT).map(
     (content) =>
       [content.href as string, () => seoPageMarkdown(content)] as const,

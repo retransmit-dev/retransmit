@@ -18,6 +18,7 @@ import { RefreshCwIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { DnsRecords } from "./dns-records";
+import { RegionLabel } from "./region-label";
 
 export function DomainDetailsSheet({
   domainId,
@@ -66,7 +67,7 @@ function DomainDetailsBody({ domainId }: { domainId: string }) {
         <SheetDescription>
           {isVerified
             ? "Ready to send. Keep these DKIM records published."
-            : "Publish these DNS records, then check again. Changes may take 72 hours."}
+            : "Publish these DNS records, then check again. Changes may take up to 72 hours."}
         </SheetDescription>
       </SheetHeader>
       {details.isLoading ? (
@@ -77,6 +78,23 @@ function DomainDetailsBody({ domainId }: { domainId: string }) {
         </div>
       ) : domain ? (
         <>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt className="text-muted-foreground">Region</dt>
+            <dd>
+              <RegionLabel region={domain.region} />
+            </dd>
+            {domain.mailFromDomain && (
+              <>
+                <dt className="text-muted-foreground">Return-Path</dt>
+                <dd className="flex min-w-0 items-center gap-2">
+                  <span className="truncate font-mono text-xs">{domain.mailFromDomain}</span>
+                  {domain.mailFromStatus && (
+                    <DomainStatusBadge status={domain.mailFromStatus} />
+                  )}
+                </dd>
+              </>
+            )}
+          </dl>
           <DnsRecords records={domain.dnsRecords} />
           <Button
             variant={isVerified ? "outline" : "default"}

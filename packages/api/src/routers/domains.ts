@@ -2,18 +2,21 @@ import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { domain } from "@retransmit/db/schema/email";
 import { DOMAIN_NAME_REGEX } from "@retransmit/email/address";
+import { DEFAULT_SES_REGION, SES_REGIONS, SES_REGION_IDS } from "@retransmit/email/regions";
 import {
   createDomainIdentity,
   deleteDomainIdentity,
   dnsRecordsForDomain,
   getDomainIdentity,
-  sesRegion,
 } from "@retransmit/email/ses";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import z from "zod";
 
 import { assertOrgAdmin, orgProcedure, router } from "../index";
+
+/** One DNS label: the `mail` in `mail.example.com`. */
+const RETURN_PATH_LABEL_REGEX = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
 
 async function findOwnedDomain(id: string, organizationId: string) {
   const [row] = await db
@@ -24,7 +27,17 @@ async function findOwnedDomain(id: string, organizationId: string) {
   return row;
 }
 
+function withDnsRecords<T extends Parameters<typeof dnsRecordsForDomain>[0]>(row: T) {
+  return { ...row, dnsRecords: dnsRecordsForDomain(row) };
+}
+
 export const domainRouter = router({
+  /** Regions a domain can be verified into, with the default pre-selected. */
+  regions: orgProcedure.query(() => ({
+    regions: SES_REGIONS,
+    defaultRegion: DEFAULT_SES_REGION,
+  })),
+
   list: orgProcedure.query(async ({ ctx }) => {
     return await db
       .select()
@@ -34,8 +47,7 @@ export const domainRouter = router({
   }),
 
   get: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-    const row = await findOwnedDomain(input.id, ctx.org.id);
-    return { ...row, dnsRecords: dnsRecordsForDomain(row.name, row.dkimTokens) };
+    return withDnsRecords(await findOwnedDomain(input.id, ctx.org.id));
   }),
 
   create: orgProcedure
@@ -46,6 +58,18 @@ export const domainRouter = router({
           .trim()
           .toLowerCase()
           .regex(DOMAIN_NAME_REGEX, "Enter a valid domain, e.g. mail.example.com"),
+        region: z.enum(SES_REGION_IDS),
+        /**
+         * Subdomain label for the custom Return-Path (MAIL FROM) domain.
+         * SES requires it to be a subdomain of the sending domain, so the
+         * root domain itself is not accepted.
+         */
+        returnPath: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .regex(RETURN_PATH_LABEL_REGEX, "Use letters, digits and hyphens only, e.g. mail")
+          .default("mail"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -60,13 +84,16 @@ export const domainRouter = router({
         });
       }
 
-      const { dkimTokens } = await createDomainIdentity(input.name);
+      const mailFromDomain = `${input.returnPath}.${input.name}`;
+      const { dkimTokens } = await createDomainIdentity(input.name, {
+        region: input.region,
+        mailFromDomain,
+      });
       // The identity may already be verified in SES (e.g. re-adding a
       // known domain) — pick that up right away instead of waiting for
       // a manual verify.
-      const { status } = await getDomainIdentity(input.name).catch(() => ({
-        status: "pending" as const,
-      }));
+      const identity = await getDomainIdentity(input.name, input.region).catch(() => null);
+      const status = identity?.status ?? "pending";
       const [created] = await db
         .insert(domain)
         .values({
@@ -74,14 +101,16 @@ export const domainRouter = router({
           userId: ctx.session.user.id,
           organizationId: ctx.org.id,
           name: input.name,
-          region: sesRegion,
+          region: input.region,
           dkimTokens,
+          mailFromDomain,
+          mailFromStatus: identity?.mailFromStatus ?? "pending",
           status,
           verifiedAt: status === "verified" ? new Date() : null,
         })
         .returning();
       if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      return { ...created, dnsRecords: dnsRecordsForDomain(created.name, created.dkimTokens) };
+      return withDnsRecords(created);
     }),
 
   /** Re-checks verification status with SES and stores the result. */
@@ -89,18 +118,22 @@ export const domainRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const row = await findOwnedDomain(input.id, ctx.org.id);
-      const { status, dkimTokens } = await getDomainIdentity(row.name);
+      const identity = await getDomainIdentity(row.name, row.region);
       const [updated] = await db
         .update(domain)
         .set({
-          status,
-          dkimTokens: dkimTokens.length > 0 ? dkimTokens : row.dkimTokens,
-          verifiedAt: status === "verified" ? (row.verifiedAt ?? new Date()) : row.verifiedAt,
+          status: identity.status,
+          dkimTokens: identity.dkimTokens.length > 0 ? identity.dkimTokens : row.dkimTokens,
+          // Rows from before return paths existed have no MAIL FROM domain;
+          // keep them that way rather than inventing one.
+          mailFromStatus: row.mailFromDomain ? identity.mailFromStatus : null,
+          verifiedAt:
+            identity.status === "verified" ? (row.verifiedAt ?? new Date()) : row.verifiedAt,
         })
         .where(eq(domain.id, row.id))
         .returning();
       if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      return { ...updated, dnsRecords: dnsRecordsForDomain(updated.name, updated.dkimTokens) };
+      return withDnsRecords(updated);
     }),
 
   delete: orgProcedure
@@ -108,7 +141,7 @@ export const domainRouter = router({
     .mutation(async ({ ctx, input }) => {
       assertOrgAdmin(ctx.org);
       const row = await findOwnedDomain(input.id, ctx.org.id);
-      await deleteDomainIdentity(row.name);
+      await deleteDomainIdentity(row.name, row.region);
       await db.delete(domain).where(eq(domain.id, row.id));
       return { id: row.id };
     }),

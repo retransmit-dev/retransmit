@@ -1,11 +1,12 @@
 import type { Route } from "next";
+import { PRODUCTS, productHref } from "@/lib/products";
 
 /* Every indexable route is declared once here and read by four consumers:
    the footer (labels and hrefs), sitemap.ts (which URLs to submit), each
    route's metadata (title, description, canonical), and the compare hub.
    `typedRoutes` checks `href`, so a deleted page.tsx fails the build. */
 
-export type PageGroup = "compare" | "legal";
+export type PageGroup = "product" | "compare" | "legal";
 
 export type SitePage = {
   href: Route;
@@ -23,6 +24,16 @@ export type SitePage = {
 };
 
 export const SITE_PAGES: readonly SitePage[] = [
+  ...PRODUCTS.map((product): SitePage => ({
+    href: productHref(product),
+    label: product.name,
+    title: `${product.name} API${product.status === "coming-soon" ? ": coming soon" : " for developers"}`,
+    description: product.description,
+    group: "product",
+    published: true,
+    priority: product.status === "available" ? 0.8 : 0.4,
+    changeFrequency: "monthly",
+  })),
   {
     href: "/compare",
     label: "Compare",
