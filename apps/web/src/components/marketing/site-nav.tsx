@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { ArrowRight, BookOpen, Menu, Radio } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, BookOpen, Menu, Radio } from "lucide-react";
+import { useState } from "react";
 
 import { CtaButton } from "@/components/marketing/cta-button";
 import { ProductIcon } from "@/components/marketing/product-icon";
@@ -57,7 +57,7 @@ export function SiteNav() {
           value={menuValue}
           onValueChange={setMenuValue}
         >
-          <NavigationMenuList>
+          <NavigationMenuList className="gap-3">
             <NavigationMenuItem value="products">
               <NavigationMenuTrigger>Product</NavigationMenuTrigger>
               <NavigationMenuContent>
