@@ -52,7 +52,7 @@ export default async function ProductPage({ params }: Props) {
             <span className="text-sm font-semibold">{product.name}</span>
             {upcoming ? <Badge variant="secondary">Coming soon</Badge> : null}
           </div>
-          <h1 className="mt-7 text-4xl leading-[1.06] text-balance tracking-[-0.05em] sm:text-6xl lg:text-7xl">
+          <h1 className="mt-7 text-4xl leading-[1.06] text-balance tracking-tighter sm:text-6xl lg:text-7xl">
             {product.headline}
           </h1>
           <p className="mx-auto mt-6 max-w-[48ch] text-base leading-relaxed text-balance text-muted-foreground sm:text-lg">

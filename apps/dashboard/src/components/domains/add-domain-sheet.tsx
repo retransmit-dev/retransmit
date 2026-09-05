@@ -14,6 +14,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -66,8 +67,8 @@ export function AddDomainSheet({
         reset();
         toast.success(
           created.status === "verified"
-            ? `${created.name} added and already verified`
-            : `${created.name} added. Publish its DNS records to verify it.`,
+            ? `${created.name} added and verified`
+            : `${created.name} added. Publish its DNS records.`,
         );
         onCreated(created.id);
       },
@@ -88,14 +89,12 @@ export function AddDomainSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="overflow-y-auto p-4 sm:max-w-md">
+      <SheetContent side="right" className="overflow-y-auto p-4 data-[side=right]:sm:max-w-xl">
         <SheetHeader className="p-0">
           <SheetTitle>Add a domain</SheetTitle>
-          <SheetDescription>
-            Pick where the domain sends from, then publish its DNS records to verify it.
-          </SheetDescription>
+          <SheetDescription>Choose a sending region, then verify with DNS.</SheetDescription>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5">
           <div className="flex flex-col gap-2">
             <Label htmlFor="domain-name">Domain</Label>
             <Input
@@ -156,9 +155,7 @@ export function AddDomainSheet({
                 })}
               </RadioGroup>
             )}
-            <p className="text-xs text-muted-foreground">
-              Email from this domain is sent out of the chosen region. It cannot be changed later.
-            </p>
+            <p className="text-xs text-muted-foreground">Cannot be changed later.</p>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -181,16 +178,17 @@ export function AddDomainSheet({
               </InputGroupAddon>
             </InputGroup>
             <p className="text-xs text-muted-foreground">
-              Bounces and delivery reports are routed through this subdomain, so it must be a
-              subdomain and not the root domain. Keep <code className="font-mono">mail</code>{" "}
-              unless it is already in use.
+              Subdomain for bounces. Keep <code className="font-mono">mail</code> unless it is
+              taken.
             </p>
           </div>
 
-          <Button type="submit" disabled={pending || !isValid}>
-            {pending ? <Spinner /> : <PlusIcon />}
-            Add domain
-          </Button>
+          <SheetFooter className="p-0">
+            <Button type="submit" disabled={pending || !isValid}>
+              {pending ? <Spinner /> : <PlusIcon />}
+              Add domain
+            </Button>
+          </SheetFooter>
         </form>
       </SheetContent>
     </Sheet>

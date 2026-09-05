@@ -15,12 +15,16 @@ import type { ReactNode } from "react";
  * The column is left-aligned, not centred. On a wide screen the content stays
  * against the sidebar rather than floating in the middle, so the eye returns
  * to the same x every time it moves between screens. `size` caps line length;
- * it never centres.
+ * it never centres, and the default cap lifts on `2xl` screens.
  */
 
 const widths = {
-  /** Lists, tables, dashboards — most screens. */
-  default: "max-w-6xl",
+  /**
+   * Lists, tables, dashboards — most screens. Capped on laptop widths so a
+   * table does not stretch into a sparse row, but from the `2xl` breakpoint
+   * up the cap would leave a third of the inset empty, so it fills the inset.
+   */
+  default: "max-w-6xl 2xl:max-w-none",
   /** Prose and forms, where a short measure reads better. */
   narrow: "max-w-3xl",
   /** Wide tables and split layouts that need the whole inset. */
@@ -39,7 +43,7 @@ export function PageShell({
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 flex-col gap-6 ",
+        "flex w-full min-w-0 flex-col gap-6",
         widths[size],
         className,
       )}

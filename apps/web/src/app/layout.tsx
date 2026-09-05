@@ -8,6 +8,7 @@ import Providers from "@/components/providers";
 import { SiteStructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/site";
 import Script from "next/script";
+import { TailwindIndicator } from "@/components/tailwind-indicator";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -109,6 +110,7 @@ export default function RootLayout({
           <SiteFooter />
           <SiteStructuredData />
         </Providers>
+        <TailwindIndicator />
       </body>
     </html>
   );
