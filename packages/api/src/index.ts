@@ -1,3 +1,4 @@
+import { isAdminEmail } from "@retransmit/auth/admin";
 import { resolveActiveOrganization } from "@retransmit/auth/organization";
 import { initTRPC, TRPCError } from "@trpc/server";
 
@@ -36,6 +37,20 @@ export const orgProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     ctx.session.session.activeOrganizationId,
   );
   return next({ ctx: { ...ctx, org } });
+});
+
+/**
+ * Like `protectedProcedure`, but only for the product's operators. Reads the
+ * allowlist in `@retransmit/auth/admin`; anyone else gets a 403.
+ */
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!isAdminEmail(ctx.session.user.email)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required",
+    });
+  }
+  return next({ ctx });
 });
 
 /** Throws unless the caller is an owner or admin of the active organization. */

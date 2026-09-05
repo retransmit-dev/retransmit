@@ -1,4 +1,5 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
+import { adminRouter } from "./admin";
 import { analyticsRouter } from "./analytics";
 import { apiKeyRouter } from "./api-keys";
 import { domainRouter } from "./domains";
@@ -19,6 +20,7 @@ export const appRouter = router({
       user: ctx.session.user,
     };
   }),
+  admin: adminRouter,
   analytics: analyticsRouter,
   apiKey: apiKeyRouter,
   domain: domainRouter,

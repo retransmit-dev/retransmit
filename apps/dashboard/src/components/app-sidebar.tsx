@@ -18,7 +18,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { navGroups } from "@/lib/navigation";
+import { visibleNavGroups } from "@/lib/navigation";
 import { BookOpenIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -28,13 +28,17 @@ export function AppSidebar({
   user,
   workspaces,
   activeWorkspaceId,
+  isAdmin = false,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: SidebarUser;
   workspaces: WorkspaceSummary[];
   activeWorkspaceId: string;
+  /** Adds the operator-only rows. Decided on the server from the session. */
+  isAdmin?: boolean;
 }) {
   const { open } = useSidebar();
+  const groups = visibleNavGroups(isAdmin);
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
@@ -72,7 +76,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        {navGroups.map((group) => (
+        {groups.map((group) => (
           <NavMain key={group.label ?? group.sections[0].href} group={group} />
         ))}
       </SidebarContent>

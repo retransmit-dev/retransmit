@@ -10,9 +10,22 @@ import { protectedProcedure, router } from "../index";
 
 const eventTypesSchema = z.array(z.enum(WEBHOOK_EVENT_TYPES)).min(1);
 
+/**
+ * Everything about an endpoint except its secret. The secret leaves the
+ * server exactly twice: when the endpoint is created and when it is rotated.
+ */
+const endpointColumns = {
+  id: webhookEndpoint.id,
+  url: webhookEndpoint.url,
+  eventTypes: webhookEndpoint.eventTypes,
+  enabled: webhookEndpoint.enabled,
+  createdAt: webhookEndpoint.createdAt,
+  updatedAt: webhookEndpoint.updatedAt,
+};
+
 async function findOwnedEndpoint(id: string, userId: string) {
   const [row] = await db
-    .select()
+    .select(endpointColumns)
     .from(webhookEndpoint)
     .where(and(eq(webhookEndpoint.id, id), eq(webhookEndpoint.userId, userId)));
   if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Webhook endpoint not found" });
@@ -22,16 +35,14 @@ async function findOwnedEndpoint(id: string, userId: string) {
 export const webhookRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     return await db
-      .select({
-        id: webhookEndpoint.id,
-        url: webhookEndpoint.url,
-        eventTypes: webhookEndpoint.eventTypes,
-        enabled: webhookEndpoint.enabled,
-        createdAt: webhookEndpoint.createdAt,
-      })
+      .select(endpointColumns)
       .from(webhookEndpoint)
       .where(eq(webhookEndpoint.userId, ctx.session.user.id))
       .orderBy(desc(webhookEndpoint.createdAt));
+  }),
+
+  get: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    return await findOwnedEndpoint(input.id, ctx.session.user.id);
   }),
 
   create: protectedProcedure
@@ -71,7 +82,24 @@ export const webhookRouter = router({
           enabled: input.enabled ?? row.enabled,
         })
         .where(eq(webhookEndpoint.id, row.id))
-        .returning();
+        .returning(endpointColumns);
+      if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+      return updated;
+    }),
+
+  /**
+   * Replaces the signing secret. Deliveries signed from now on use the new
+   * one, so the consumer must switch before the next event arrives.
+   */
+  rotateSecret: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const row = await findOwnedEndpoint(input.id, ctx.session.user.id);
+      const [updated] = await db
+        .update(webhookEndpoint)
+        .set({ secret: generateWebhookSecret() })
+        .where(eq(webhookEndpoint.id, row.id))
+        .returning({ id: webhookEndpoint.id, url: webhookEndpoint.url, secret: webhookEndpoint.secret });
       if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       return updated;
     }),

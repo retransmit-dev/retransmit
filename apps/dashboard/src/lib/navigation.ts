@@ -27,6 +27,7 @@ import {
   MailIcon,
   MessageCircleIcon,
   Settings2Icon,
+  ShieldCheckIcon,
   WebhookIcon,
 } from "lucide-react";
 import type { Metadata, Route } from "next";
@@ -44,6 +45,11 @@ export type NavSection = NavPage & {
   icon: LucideIcon;
   /** Child screens. Tabs inside a section rather than rows in the menu. */
   items?: NavPage[];
+  /**
+   * Shown only to the product's operators (see `@retransmit/auth/admin`).
+   * The sidebar drops the row for everyone else; the page itself 404s.
+   */
+  adminOnly?: boolean;
 };
 
 /** A block of the sidebar. Unlabelled groups render as bare rows. */
@@ -147,12 +153,31 @@ const settings: NavSection = {
   ],
 };
 
+const admin: NavSection = {
+  href: "/admin",
+  title: "Admin",
+  description: "Registered users and when they last connected.",
+  icon: ShieldCheckIcon,
+  adminOnly: true,
+};
+
 export const navGroups: NavGroup[] = [
   { sections: [overview] },
   { label: "Messages", sections: [emails, batches, whatsapp] },
   { label: "Configure", sections: [domains, apiKeys, webhooks, suppressions] },
-  { label: "Account", sections: [settings] },
+  { label: "Account", sections: [settings, admin] },
 ];
+
+/** The sidebar groups a viewer may see: admin-only rows drop out for everyone else. */
+export function visibleNavGroups(isAdmin: boolean): NavGroup[] {
+  if (isAdmin) return navGroups;
+  return navGroups
+    .map((group) => ({
+      ...group,
+      sections: group.sections.filter((section) => !section.adminOnly),
+    }))
+    .filter((group) => group.sections.length > 0);
+}
 
 /** Every menu row, in sidebar order, groups flattened away. */
 export const navSections: NavSection[] = navGroups.flatMap(

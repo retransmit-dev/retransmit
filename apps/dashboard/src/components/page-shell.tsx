@@ -6,25 +6,27 @@ import type { ReactNode } from "react";
 /**
  * The one frame every screen under `(dashboard)` sits in.
  *
- * Two pieces: `PageShell` owns the column — its width, its left edge and the
- * rhythm between the blocks inside it — and `PageHeader` owns the title row.
- * A page renders a shell, a header and its content; nothing else sets page
- * padding or picks a heading size, which is what keeps `/company` and
- * `/opportunity` from drifting apart.
+ * Two pieces: `PageShell` owns the column — its width, its horizontal
+ * position and the rhythm between the blocks inside it — and `PageHeader`
+ * owns the title row. A page renders a shell, a header and its content;
+ * nothing else sets page padding or picks a heading size, which is what keeps
+ * `/company` and `/opportunity` from drifting apart.
  *
- * The column is left-aligned, not centred. On a wide screen the content stays
- * against the sidebar rather than floating in the middle, so the eye returns
- * to the same x every time it moves between screens. `size` caps line length;
- * it never centres, and the default cap lifts on `2xl` screens.
+ * The column fills whatever the inset gives it, so collapsing the sidebar
+ * hands the freed space to the page. Only past the `size` cap does it stop
+ * growing and centre, so on a very wide monitor the content sits in the
+ * middle rather than hugging the sidebar with a void on the right. The cap
+ * is a plain width, not a breakpoint: what matters is the space left after
+ * the sidebar, which no viewport query can see.
  */
 
 const widths = {
   /**
-   * Lists, tables, dashboards — most screens. Capped on laptop widths so a
-   * table does not stretch into a sparse row, but from the `2xl` breakpoint
-   * up the cap would leave a third of the inset empty, so it fills the inset.
+   * Lists, tables, dashboards — most screens. Wide enough that a 1440px
+   * display with the sidebar collapsed, or a 1920px one with it open, still
+   * uses the whole inset.
    */
-  default: "max-w-6xl 2xl:max-w-none",
+  default: "max-w-[100rem]",
   /** Prose and forms, where a short measure reads better. */
   narrow: "max-w-3xl",
   /** Wide tables and split layouts that need the whole inset. */
@@ -43,7 +45,7 @@ export function PageShell({
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 flex-col gap-6",
+        "mx-auto flex w-full min-w-0 flex-col gap-6",
         widths[size],
         className,
       )}
