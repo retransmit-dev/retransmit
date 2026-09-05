@@ -34,9 +34,7 @@ export default function Home() {
         <div className="hero-copy">
           <p className="editorial-label">Messaging infrastructure</p>
           <h1>
-            Email, SMS
-            <br />
-            &amp; WhatsApp.
+            Email, SMS &amp; WhatsApp.
             <br />
             <span>One API.</span>
           </h1>

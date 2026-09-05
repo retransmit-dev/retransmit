@@ -1,3 +1,4 @@
+/// <reference types="react-syntax-highlighter" />
 "use client";
 
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/light";

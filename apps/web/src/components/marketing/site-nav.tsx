@@ -48,7 +48,7 @@ export function SiteNav() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl">
       <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-3 px-5 sm:px-6">
         <Wordmark />
         <NavigationMenu
@@ -64,7 +64,7 @@ export function SiteNav() {
                 <div className="grid w-[660px] max-w-[calc(100vw-2rem)] grid-cols-[1fr_210px] gap-3 p-3">
                   <div>
                     <p className="px-3 pt-2 pb-3 font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
-                      Find your channel
+                      Channels
                     </p>
                     <div className="grid grid-cols-2 gap-1">
                       {PRODUCTS.map((product) => (
@@ -99,10 +99,10 @@ export function SiteNav() {
                       <p className="mt-5 text-xl font-semibold leading-tight tracking-tight">
                         One API key.
                         <br />
-                        Three channels.
+                        Every channel.
                       </p>
                       <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-                        One API key and one SDK across your channels.
+                        Email, SMS, and WhatsApp with one SDK.
                       </p>
                     </div>
                     <NavigationMenuLink
@@ -119,9 +119,6 @@ export function SiteNav() {
                   </div>
                 </div>
               </NavigationMenuContent>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink href="/#pricing">Pricing</NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink render={<Link href="/compare" />}>
@@ -162,7 +159,7 @@ export function SiteNav() {
             </SheetTrigger>
             <SheetContent className="overflow-y-auto">
               <SheetHeader>
-                <SheetTitle>Explore Retransmit</SheetTitle>
+                <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <nav
                 aria-label="Mobile navigation"
@@ -192,13 +189,6 @@ export function SiteNav() {
                     )}
                   </Link>
                 ))}
-                <a
-                  href="/#pricing"
-                  className="rounded-lg p-3 hover:bg-muted"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Pricing
-                </a>
                 <Link
                   href="/compare"
                   className="rounded-lg p-3 hover:bg-muted"

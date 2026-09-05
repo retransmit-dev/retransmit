@@ -39,7 +39,7 @@ export function SiteFooter() {
               retransmit<span className="text-primary">.</span>
             </p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Email, SMS, and WhatsApp. Every message. One API.
+              Email, SMS, and WhatsApp. One API.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">

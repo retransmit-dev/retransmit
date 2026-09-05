@@ -27,23 +27,23 @@ export const PRODUCTS: readonly Product[] = [
     summary: "Receipts, welcome emails, and account updates.",
     headline: "Transactional email from your domain.",
     description:
-      "Welcome emails, receipts, and account updates. Send from your own domain and follow every delivery.",
+      "Welcome emails, receipts, and account updates, sent from your own domain.",
     useCases: ["Welcome emails", "Order receipts", "Account updates"],
     features: [
       {
-        title: "Your domain. Your name.",
+        title: "Your own domain",
         description:
-          "Verify your domain with SPF and DKIM. We give you the DNS records to copy.",
+          "Verify it with SPF and DKIM. We give you the DNS records to add.",
       },
       {
-        title: "One email or 10,000.",
+        title: "Batch sending",
         description:
-          "Queue a whole batch in one request, with a separate ID and event history for each email.",
+          "Queue up to 10,000 emails in one request. Each one gets its own ID and event history.",
       },
       {
-        title: "Know where it landed.",
+        title: "Delivery tracking",
         description:
-          "Track deliveries, opens, and bounces. Signed webhooks bring the updates to your app.",
+          "Deliveries, opens, and bounces reach your webhook, signed.",
       },
     ],
     example: {
@@ -51,11 +51,11 @@ export const PRODUCTS: readonly Product[] = [
       fields: [
         { name: "from", value: "Acme <hello@acme.com>" },
         { name: "to", value: "jane@example.com" },
-        { name: "subject", value: "You're in. Welcome to Acme." },
-        { name: "html", value: "<p>Make yourself at home.</p>" },
+        { name: "subject", value: "Welcome to Acme" },
+        { name: "html", value: "<p>Your account is ready.</p>" },
       ],
-      previewTitle: "You're in. Welcome to Acme.",
-      previewBody: "Make yourself at home.",
+      previewTitle: "Welcome to Acme",
+      previewBody: "Your account is ready.",
     },
   },
   {
@@ -65,7 +65,7 @@ export const PRODUCTS: readonly Product[] = [
     summary: "Verification codes and time-sensitive alerts.",
     headline: "SMS from the same API.",
     description:
-      "Send verification codes, delivery updates, and reminders. One request, with routing handled for you.",
+      "Verification codes, delivery updates, and reminders. Routing is handled per country.",
     useCases: [
       "Verification codes",
       "Delivery updates",
@@ -73,19 +73,19 @@ export const PRODUCTS: readonly Product[] = [
     ],
     features: [
       {
-        title: "The route is handled.",
+        title: "Routing",
         description:
-          "The destination number determines the country. Retransmit picks the lowest-cost configured provider.",
+          "The destination number sets the country. We pick the cheapest configured provider for it.",
       },
       {
-        title: "A familiar sender.",
+        title: "Sender ID",
         description:
-          "Use your own sender ID where supported, or the default sender for the route.",
+          "Use your own sender ID where the country allows it, or the default for the route.",
       },
       {
-        title: "Follow every text.",
+        title: "Delivery receipts",
         description:
-          "Receive delivery receipts through signed webhooks and look up a message's event history.",
+          "Receipts arrive by signed webhook. Every message keeps its event history.",
       },
     ],
     example: {
@@ -93,10 +93,10 @@ export const PRODUCTS: readonly Product[] = [
       fields: [
         { name: "from", value: "Acme" },
         { name: "to", value: "+237670000000" },
-        { name: "text", value: "Your order is on its way. See you soon!" },
+        { name: "text", value: "Your order is on its way." },
       ],
       previewTitle: "Acme",
-      previewBody: "Your order is on its way. See you soon!",
+      previewBody: "Your order is on its way.",
     },
   },
   {
@@ -106,23 +106,21 @@ export const PRODUCTS: readonly Product[] = [
     summary: "Templates, media, and customer replies.",
     headline: "Send and receive WhatsApp messages.",
     description:
-      "Connect your WhatsApp Business number. Send messages, share documents, and receive replies through the same API.",
+      "Connect your WhatsApp Business number. Send templates, media, and replies through the same API.",
     useCases: ["Customer support", "Order updates", "Documents and images"],
     features: [
       {
-        title: "Start with a template.",
+        title: "Templates",
         description:
-          "Use approved templates to reach out. Send free-form replies within the 24-hour customer service window.",
+          "Open a conversation with an approved template. Reply free-form inside the 24-hour window.",
       },
       {
-        title: "Send more than words.",
-        description:
-          "Share images and documents alongside text, using the same SDK and API key.",
+        title: "Media",
+        description: "Send images and documents with the same call.",
       },
       {
-        title: "A conversation, both ways.",
-        description:
-          "Receive incoming messages and read receipts through webhooks so your app can respond.",
+        title: "Replies",
+        description: "Incoming messages and read receipts reach your webhook.",
       },
     ],
     example: {
@@ -132,7 +130,7 @@ export const PRODUCTS: readonly Product[] = [
         { name: "type", value: "text" },
         { name: "text", value: "Of course. How can we help?" },
       ],
-      note: "Text replies require an open 24-hour service window.",
+      note: "Text replies need an open 24-hour service window.",
       previewTitle: "Acme Support",
       previewBody: "Of course. How can we help?",
     },
@@ -142,9 +140,8 @@ export const PRODUCTS: readonly Product[] = [
     name: "Telegram",
     status: "coming-soon",
     summary: "Telegram support is planned.",
-    headline: "Telegram is coming next.",
-    description:
-      "We're bringing Telegram to Retransmit. It isn't available yet. Start building with Email, SMS, and WhatsApp today.",
+    headline: "Telegram is next.",
+    description: "Telegram isn't available yet. Email, SMS, and WhatsApp are.",
     useCases: [],
     features: [],
   },

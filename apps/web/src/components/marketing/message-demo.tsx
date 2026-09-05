@@ -88,7 +88,7 @@ export function MessageExample({ product }: { product: Product }) {
             </p>
             {product.slug === "email" ? (
               <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium">
-                Explore your account
+                Open your account
                 <ArrowRight className="size-3" aria-hidden />
               </div>
             ) : null}
@@ -98,7 +98,7 @@ export function MessageExample({ product }: { product: Product }) {
               <CheckCheck className="size-3.5 text-primary" aria-hidden />
               Delivered
             </span>
-            <span>Illustrative preview</span>
+            <span>Sample</span>
           </div>
         </div>
       </div>
@@ -154,19 +154,12 @@ function SendExample({ product }: { product: Product }) {
         </Button>
       </div>
       <SyntaxCode code={source} label={`${product.name} code example`} />
-      <div className="example-result">
-        <span>Response</span>
-        <code>
-          202 <span>Accepted</span>
-        </code>
-      </div>
-      <p className="example-note" role="status">
+      <p className="sr-only" role="status">
         {copyState === "copied"
           ? "Code copied."
           : copyState === "failed"
             ? "Couldn't copy. Select the code above to copy it."
-            : (example.note ??
-              "Example request. Messages are queued for delivery.")}
+            : ""}
       </p>
     </div>
   );

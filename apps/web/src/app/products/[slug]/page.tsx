@@ -8,13 +8,14 @@ import { MessageExample } from "@/components/marketing/message-demo";
 import { ProductIcon } from "@/components/marketing/product-icon";
 import { Badge } from "@/components/ui/badge";
 import { JsonLd, breadcrumbSchema } from "@/components/structured-data";
+import { pageMetadata } from "@/lib/page-metadata";
 import {
   AVAILABLE_PRODUCTS,
   PRODUCTS,
   getProduct,
   productHref,
 } from "@/lib/products";
-import { OG_IMAGE, siteConfig } from "@/lib/site";
+import { siteConfig } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -25,27 +26,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = getProduct((await params).slug);
   if (!product) notFound();
-  const title = `${product.name} API${product.status === "coming-soon" ? ": coming soon" : " for developers"}`;
-  return {
-    title,
-    description: product.description,
-    alternates: {
-      canonical: productHref(product),
-      types: { "text/markdown": `${productHref(product)}.md` },
-    },
-    openGraph: {
-      title,
-      description: product.description,
-      url: productHref(product),
-      images: [OG_IMAGE],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description: product.description,
-      images: [OG_IMAGE],
-    },
-  };
+  return pageMetadata(productHref(product));
 }
 
 export default async function ProductPage({ params }: Props) {
@@ -83,9 +64,7 @@ export default async function ProductPage({ params }: Props) {
               goal={upcoming ? undefined : "start_signup"}
               goalPlacement={`product_${product.slug}`}
             >
-              {upcoming
-                ? "Explore available channels"
-                : `Start with ${product.name}`}
+              {upcoming ? "See what's available" : `Start with ${product.name}`}
               <ArrowRight className="size-4" aria-hidden />
             </CtaButton>
             {!upcoming ? (
@@ -146,12 +125,10 @@ export default async function ProductPage({ params }: Props) {
             <div>
               <Radio className="size-6 text-primary" aria-hidden />
               <h2 className="mt-4 text-2xl tracking-tight sm:text-3xl">
-                {upcoming
-                  ? "Build with what's here."
-                  : "There's more to the conversation."}
+                {upcoming ? "Available now" : "Add another channel"}
               </h2>
               <p className="mt-3 text-sm text-muted-foreground">
-                Keep the same key. Add another channel.
+                Same API key. Same SDK.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
