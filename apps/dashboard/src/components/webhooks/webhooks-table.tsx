@@ -1,6 +1,6 @@
 "use client";
 
-import { StatusDot } from "@/components/status-badges";
+import { WebhookEndpointStatusBadge } from "@/components/status-badges";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,26 +23,14 @@ import { formatDate } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 import { PlusIcon, WebhookIcon } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { DeleteEndpointDialog } from "./delete-endpoint-dialog";
 import { channelCounts } from "./event-types";
 
-export function WebhookEnabledBadge({ enabled }: { enabled: boolean }) {
-  return (
-    <Badge variant="outline">
-      <StatusDot className={enabled ? "bg-emerald-500" : "bg-zinc-400"} />
-      {enabled ? "Enabled" : "Disabled"}
-    </Badge>
-  );
-}
-
-export function WebhooksTable({
-  onSelect,
-  onAdd,
-}: {
-  onSelect: (id: string) => void;
-  onAdd: () => void;
-}) {
+export function WebhooksTable() {
+  const router = useRouter();
   const endpoints = useQuery(trpc.webhook.list.queryOptions());
 
   if (endpoints.isLoading) return <TableSkeleton rows={2} />;
@@ -56,11 +44,10 @@ export function WebhooksTable({
           </EmptyMedia>
           <EmptyTitle>No endpoints yet</EmptyTitle>
           <EmptyDescription>
-            Add a URL and pick the events it receives. One endpoint and one signing secret
-            cover email, SMS, and WhatsApp.
+            Get email, SMS, and WhatsApp events at a URL.
           </EmptyDescription>
         </EmptyHeader>
-        <Button onClick={onAdd}>
+        <Button nativeButton={false} render={<Link href="/webhooks/new" />}>
           <PlusIcon />
           Add endpoint
         </Button>
@@ -84,7 +71,7 @@ export function WebhooksTable({
           <TableRow
             key={row.id}
             className="cursor-pointer"
-            onClick={() => onSelect(row.id)}
+            onClick={() => router.push(`/webhooks/${row.id}`)}
           >
             <TableCell className="max-w-xs">
               <div className="flex min-w-0 flex-col">
@@ -107,16 +94,24 @@ export function WebhooksTable({
               </div>
             </TableCell>
             <TableCell>
-              <WebhookEnabledBadge enabled={row.enabled} />
+              <WebhookEndpointStatusBadge enabled={row.enabled} />
             </TableCell>
             <TableCell className="hidden text-muted-foreground sm:table-cell">
               {formatDate(row.createdAt)}
             </TableCell>
-            <TableCell onClick={(e) => e.stopPropagation()}>
+            <TableCell
+              className="flex justify-end"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center justify-end gap-1">
-                <Button variant="ghost" size="sm" onClick={() => onSelect(row.id)}>
+                {/* <Button
+                  variant="ghost"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href={`/webhooks/${row.id}`} />}
+                >
                   Details
-                </Button>
+                </Button> */}
                 <DeleteEndpointDialog endpoint={row} />
               </div>
             </TableCell>

@@ -94,3 +94,12 @@ export function SuppressionReasonBadge({ reason }: { reason: string }) {
     </Badge>
   );
 }
+
+export function WebhookEndpointStatusBadge({ enabled }: { enabled: boolean }) {
+  return (
+    <Badge variant="outline">
+      <StatusDot className={enabled ? "bg-emerald-500" : "bg-zinc-400"} />
+      {enabled ? "Enabled" : "Paused"}
+    </Badge>
+  );
+}

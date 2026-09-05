@@ -70,7 +70,8 @@ Every delivery is signed. Two headers accompany each request:
 | `retransmit-timestamp` | Unix timestamp (seconds) when the delivery was signed. |
 | `retransmit-signature` | `v1=<hex>`. HMAC-SHA256 of `` `${timestamp}.${body}` `` using your endpoint's secret (`whsec_...`). |
 
-The secret is shown once when you create the endpoint.
+The secret is shown once, when you create the endpoint or rotate its secret
+in the dashboard. Rotating signs every later delivery with the new secret.
 
 ```ts filename="verify-webhook.ts"
 import { createHmac, timingSafeEqual } from "node:crypto";

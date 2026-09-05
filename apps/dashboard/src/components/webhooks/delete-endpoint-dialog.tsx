@@ -17,12 +17,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
-/** The trash icon in an endpoint row and the confirmation it opens. */
+/** Trash icon in a row, or a labelled button on the endpoint page. */
 export function DeleteEndpointDialog({
   endpoint,
+  labelled = false,
   onDeleted,
 }: {
   endpoint: { id: string; url: string };
+  labelled?: boolean;
   onDeleted?: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -40,24 +42,27 @@ export function DeleteEndpointDialog({
     <AlertDialog>
       <AlertDialogTrigger
         render={
-          <Button variant="ghost" size="icon" aria-label={`Delete ${endpoint.url}`} />
+          labelled ? (
+            <Button variant="outline" size="sm" />
+          ) : (
+            <Button variant="ghost" size="icon" aria-label={`Delete ${endpoint.url}`} />
+          )
         }
       >
         <Trash2Icon className="size-4 text-destructive" />
+        {labelled && "Delete"}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Remove this endpoint?</AlertDialogTitle>
-          <AlertDialogDescription>
-            <span className="break-all font-mono text-xs">{endpoint.url}</span>
-            <br />
-            Stops all deliveries to it and drops its delivery history. This cannot be undone.
+          <AlertDialogDescription className="break-all">
+            Deliveries to {endpoint.url} stop. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={() => deleteMutation.mutate({ id: endpoint.id })}>
-            Remove endpoint
+            Remove
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

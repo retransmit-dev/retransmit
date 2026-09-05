@@ -121,8 +121,15 @@ const apiKeys: NavSection = {
 const webhooks: NavSection = {
   href: "/webhooks",
   title: "Webhooks",
-  description: "Receive delivery, bounce, and complaint events.",
+  description: "Push email, SMS, and WhatsApp events to your app.",
   icon: WebhookIcon,
+  items: [
+    {
+      href: "/webhooks/new",
+      title: "Add endpoint",
+      description: "One URL and one secret for every channel.",
+    },
+  ],
 };
 
 const suppressions: NavSection = {

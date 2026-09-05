@@ -68,7 +68,7 @@ export function EventTypePicker({
                 {selectedCount} of {events.length}
               </span>
             </label>
-            <div className="grid gap-px sm:grid-cols-2">
+            <div className="grid gap-px sm:grid-cols-2 xl:grid-cols-3">
               {options.map((option) => {
                 const id = `webhook-event-${option.value}`;
                 return (

@@ -1,29 +1,18 @@
-import { PageHeader, PageShell } from "@/components/page-shell";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
+import { PageShell } from "@/components/page-shell";
+import { WebhooksView } from "@/components/webhooks/webhooks-view";
 import { navMetadata } from "@/lib/navigation";
-import { WebhookIcon } from "lucide-react";
+import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 
 export const metadata = navMetadata("/webhooks");
 
 export default function WebhooksPage() {
+  prefetch(trpc.webhook.list.queryOptions());
+
   return (
-    <PageShell>
-      <PageHeader href="/webhooks" />
-      <Empty className="border py-16">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <WebhookIcon />
-          </EmptyMedia>
-          <EmptyTitle>Coming soon</EmptyTitle>
-          <EmptyDescription>Webhook management is coming soon.</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    </PageShell>
+    <HydrateClient>
+      <PageShell>
+        <WebhooksView />
+      </PageShell>
+    </HydrateClient>
   );
 }
