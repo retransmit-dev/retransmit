@@ -116,7 +116,7 @@ export const SITE_PAGES: readonly SitePage[] = [
     label: "Privacy policy",
     title: "Privacy policy",
     description:
-      "What Retransmit collects, why, and what you can do about it. Covers account data from Google and GitHub sign-in, email logs, retention, and deletion.",
+      "What Retransmit collects, why, and what you can do about it. Covers account data from Google and GitHub sign-in, email, SMS, and WhatsApp message logs, data received from Meta, retention, and deletion.",
     group: "legal",
     published: true,
     priority: 0.3,
@@ -128,6 +128,17 @@ export const SITE_PAGES: readonly SitePage[] = [
     title: "Terms of service",
     description:
       "The terms that govern the Retransmit hosted service: accounts, acceptable use, prepaid credits, suspension, and liability.",
+    group: "legal",
+    published: true,
+    priority: 0.3,
+    changeFrequency: "yearly",
+  },
+  {
+    href: "/data-deletion",
+    label: "Data deletion",
+    title: "Data deletion",
+    description:
+      "How to delete the data Retransmit holds about you: disconnect a WhatsApp Business number, delete your account, or ask about a message you received.",
     group: "legal",
     published: true,
     priority: 0.3,

@@ -3,6 +3,15 @@ import Link from "next/link";
 import { breadcrumbSchema, JsonLd } from "@/components/structured-data";
 import type { LegalDoc } from "@/lib/legal-content";
 
+/* "Deleting your account" -> "deleting-your-account", so Meta's data deletion
+   instructions URL can point at /privacy#deleting-your-account. */
+function sectionId(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export function LegalPage({ doc }: { doc: LegalDoc }) {
   const trail = [
     { name: "Home", href: "/" },
@@ -39,7 +48,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
 
       <div className="mt-10 flex flex-col gap-10">
         {doc.sections.map((section) => (
-          <section key={section.title}>
+          <section key={section.title} id={sectionId(section.title)} className="scroll-mt-24">
             <h2 className="text-xl tracking-tight">{section.title}</h2>
             {section.body.map((paragraph) => (
               <p
