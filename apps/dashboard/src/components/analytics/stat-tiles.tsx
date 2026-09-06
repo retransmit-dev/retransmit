@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 import type { Metric } from "./chart-config";
-import { chartConfig, METRICS, rate } from "./chart-config";
+import { chartConfig, rate } from "./chart-config";
 import type { AnalyticsFilters } from "./use-overview";
 import { useOverview } from "./use-overview";
 
@@ -20,7 +20,7 @@ export function StatTiles({ filters }: { filters: AnalyticsFilters }) {
       )}
     >
       {query.isLoading ? (
-        METRICS.map((metric) => (
+        Array.from({ length: 5 }).map((_, metric) => (
           <Skeleton key={metric} className="h-24 w-full" />
         ))
       ) : (
