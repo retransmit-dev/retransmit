@@ -218,9 +218,14 @@ const BATCH_MAX = 10_000;
 /** Batch emails take the same fields minus attachments (as on Resend). */
 const batchEmailSchema = emailFields
   .extend({
-    attachments: z.custom<undefined>((value) => value === undefined, {
-      message: "Attachments are not supported on the batch endpoint. Use POST /v1/emails.",
-    }),
+    // `.optional()` matters: without it zod 4 treats the field as required
+    // and a body that simply omits `attachments` fails with
+    // "expected nonoptional, received undefined".
+    attachments: z
+      .custom<undefined>((value) => value === undefined, {
+        message: "Attachments are not supported on the batch endpoint. Use POST /v1/emails.",
+      })
+      .optional(),
   })
   .refine((value) => value.html || value.text, hasBody);
 
