@@ -15,6 +15,8 @@ import { normalizePhone } from "@retransmit/sms/phone";
 import { and, eq } from "drizzle-orm";
 import z from "zod";
 
+import { applyTemplateStatusUpdate } from "./templates";
+
 interface MappedStatus {
   status: WhatsappStatus;
   webhook: WebhookEventType;
@@ -151,6 +153,12 @@ const metaChangeSchema = z
           .optional(),
         statuses: z.array(metaStatusSchema).optional(),
         messages: z.array(metaInboundSchema).optional(),
+        // message_template_status_update
+        event: z.string().optional(),
+        message_template_id: z.union([z.string(), z.number()]).optional(),
+        message_template_name: z.string().optional(),
+        message_template_language: z.string().optional(),
+        reason: z.string().nullable().optional(),
       })
       .loose(),
   })
@@ -291,7 +299,8 @@ async function recordInboundMessage(
 
 /**
  * Applies one Meta webhook notification: message statuses move our rows
- * forward, inbound messages are stored and fanned out. Anything unknown,
+ * forward, inbound messages are stored and fanned out, template reviews
+ * update the template's status. Anything unknown,
  * malformed or already applied is ignored (`applied` counts what changed) so
  * the endpoint can always 200 — Meta retries and eventually disables the
  * subscription on anything else.
@@ -303,6 +312,23 @@ export async function processMetaWebhook(payload: unknown): Promise<{ applied: n
   let applied = 0;
   for (const entry of parsed.data.entry) {
     for (const change of entry.changes) {
+      if (change.field === "message_template_status_update") {
+        const value = change.value;
+        if (entry.id && value.event && value.message_template_name && value.message_template_language) {
+          const changed = await applyTemplateStatusUpdate({
+            provider: "meta",
+            wabaId: entry.id,
+            templateId:
+              value.message_template_id === undefined ? undefined : String(value.message_template_id),
+            name: value.message_template_name,
+            language: value.message_template_language,
+            event: value.event,
+            reason: value.reason,
+          });
+          if (changed) applied += 1;
+        }
+        continue;
+      }
       if (change.field !== "messages") continue;
 
       for (const status of change.value.statuses ?? []) {

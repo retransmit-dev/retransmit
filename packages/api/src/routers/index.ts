@@ -9,6 +9,7 @@ import { suppressionRouter } from "./suppressions";
 import { todoRouter } from "./todo";
 import { webhookRouter } from "./webhooks";
 import { whatsappAccountRouter } from "./whatsapp-accounts";
+import { whatsappTemplateRouter } from "./whatsapp-templates";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -29,6 +30,7 @@ export const appRouter = router({
   suppression: suppressionRouter,
   webhook: webhookRouter,
   whatsappAccount: whatsappAccountRouter,
+  whatsappTemplate: whatsappTemplateRouter,
   todo: todoRouter,
 });
 export type AppRouter = typeof appRouter;

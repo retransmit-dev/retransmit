@@ -5,3 +5,4 @@ export * from "./accounts";
 export * from "./delivery";
 export * from "./meta-signup";
 export * from "./provider";
+export * from "./templates";

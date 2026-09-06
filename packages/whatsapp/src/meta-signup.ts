@@ -47,7 +47,8 @@ interface GraphError {
   };
 }
 
-async function graph<T>(
+/** One Graph API call with the usual auth, JSON and error handling. */
+export async function graph<T>(
   path: string,
   init: RequestInit & { token?: string; query?: Record<string, string> } = {},
 ): Promise<T> {

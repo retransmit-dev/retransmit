@@ -70,6 +70,72 @@ export const whatsappAccount = pgTable(
   ],
 );
 
+/**
+ * Approval state of a message template as reported by the provider. Meta
+ * reports more (`in_appeal`, `pending_deletion`, `limit_exceeded`); anything
+ * unlisted is kept verbatim and rendered as-is.
+ */
+export const WHATSAPP_TEMPLATE_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+  "paused",
+  "disabled",
+] as const;
+export type WhatsappTemplateStatus = (typeof WHATSAPP_TEMPLATE_STATUSES)[number] | (string & {});
+
+export const WHATSAPP_TEMPLATE_CATEGORIES = ["utility", "marketing", "authentication"] as const;
+export type WhatsappTemplateCategory = (typeof WHATSAPP_TEMPLATE_CATEGORIES)[number];
+
+/**
+ * A message template on a WhatsApp Business Account. Templates are created
+ * from the dashboard (or synced from ones made in WhatsApp Manager), submitted
+ * to Meta for review and then referenced by `name` + `language` when sending
+ * a `template` message through the API. Rows mirror Meta; the status moves
+ * with the `message_template_status_update` webhook.
+ */
+export const whatsappTemplate = pgTable(
+  "whatsapp_template",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** Connected number whose credentials manage the template. Null once disconnected. */
+    accountId: text("account_id").references(() => whatsappAccount.id, { onDelete: "set null" }),
+    provider: text("provider").notNull(),
+    /** Business account the template lives on; templates are per WABA, not per number. */
+    wabaId: text("waba_id").notNull(),
+    /** Provider-side template id (Meta `id`). */
+    providerTemplateId: text("provider_template_id"),
+    name: text("name").notNull(),
+    /** Meta language code, e.g. `en_US`. */
+    language: text("language").notNull(),
+    category: text("category").$type<WhatsappTemplateCategory>().notNull(),
+    status: text("status").$type<WhatsappTemplateStatus>().default("pending").notNull(),
+    /** Meta's reason when rejected or paused. */
+    rejectedReason: text("rejected_reason"),
+    /** Meta `components` array exactly as submitted or synced (header, body, footer, buttons). */
+    components: jsonb("components").$type<Record<string, unknown>[]>().notNull(),
+    lastSyncedAt: timestamp("last_synced_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("whatsappTemplate_provider_wabaId_name_language_idx").on(
+      table.provider,
+      table.wabaId,
+      table.name,
+      table.language,
+    ),
+    index("whatsappTemplate_organizationId_idx").on(table.organizationId),
+    index("whatsappTemplate_providerTemplateId_idx").on(table.providerTemplateId),
+  ],
+);
+
 export const WHATSAPP_STATUSES = ["queued", "sent", "delivered", "read", "failed"] as const;
 export type WhatsappStatus = (typeof WHATSAPP_STATUSES)[number];
 
@@ -210,6 +276,18 @@ export const whatsappAccountRelations = relations(whatsappAccount, ({ one, many 
   user: one(user, { fields: [whatsappAccount.userId], references: [user.id] }),
   messages: many(whatsappMessage),
   inbound: many(whatsappInbound),
+  templates: many(whatsappTemplate),
+}));
+
+export const whatsappTemplateRelations = relations(whatsappTemplate, ({ one }) => ({
+  organization: one(organization, {
+    fields: [whatsappTemplate.organizationId],
+    references: [organization.id],
+  }),
+  account: one(whatsappAccount, {
+    fields: [whatsappTemplate.accountId],
+    references: [whatsappAccount.id],
+  }),
 }));
 
 export const whatsappMessageRelations = relations(whatsappMessage, ({ one, many }) => ({

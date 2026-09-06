@@ -88,6 +88,16 @@ const whatsapp: NavSection = {
   icon: MessageCircleIcon,
   items: [
     {
+      href: "/whatsapp/templates",
+      title: "Templates",
+      description: "Templates for messages outside the 24-hour window.",
+    },
+    {
+      href: "/whatsapp/templates/new",
+      title: "New template",
+      description: "Submit a message template to Meta for review.",
+    },
+    {
       href: "/whatsapp/test",
       title: "Test send",
       description: "Send one message through the Meta Cloud API sandbox.",

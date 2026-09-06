@@ -78,6 +78,27 @@ export function WhatsappAccountStatusBadge({ status }: { status: string }) {
   );
 }
 
+const WHATSAPP_TEMPLATE_STATUS: Record<string, { label: string; dot: string }> = {
+  pending: { label: "In review", dot: "bg-amber-500" },
+  approved: { label: "Approved", dot: "bg-emerald-500" },
+  rejected: { label: "Rejected", dot: "bg-red-500" },
+  paused: { label: "Paused", dot: "bg-orange-500" },
+  disabled: { label: "Disabled", dot: "bg-zinc-500" },
+  in_appeal: { label: "In appeal", dot: "bg-sky-500" },
+  pending_deletion: { label: "Deleting", dot: "bg-zinc-400" },
+  limit_exceeded: { label: "Limit exceeded", dot: "bg-red-600" },
+};
+
+export function WhatsappTemplateStatusBadge({ status }: { status: string }) {
+  const option = WHATSAPP_TEMPLATE_STATUS[status];
+  return (
+    <Badge variant="outline">
+      <StatusDot className={option?.dot} />
+      {option?.label ?? status.replace(/_/g, " ")}
+    </Badge>
+  );
+}
+
 export const SUPPRESSION_REASON: Record<string, { label: string; dot: string }> = {
   bounce: { label: "Bounced", dot: "bg-red-500" },
   complaint: { label: "Complained", dot: "bg-amber-500" },

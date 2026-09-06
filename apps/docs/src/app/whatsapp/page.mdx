@@ -52,8 +52,15 @@ await retransmit.whatsapp.send({
 });
 ```
 
-Templates are created and approved in WhatsApp Manager on the business you
-connected. `name` and `language` must match the approved template exactly.
+Create templates under **WhatsApp → Templates** in the dashboard. Write the
+header, body, footer and buttons, put `{{1}}`, `{{2}}`… where a value changes
+per message, and give each placeholder an example. The preview shows the
+message as the recipient will see it, and submitting sends the template to
+Meta for review. Once it is approved, open it to copy the send call with one
+`parameters` entry per placeholder.
+
+Templates made in WhatsApp Manager show up after **Sync from Meta**. `name`
+and `language` must match the approved template exactly.
 
 A free-form message sent outside the window is accepted by the API but comes
 back as `failed` with the provider's error once the worker sends it.

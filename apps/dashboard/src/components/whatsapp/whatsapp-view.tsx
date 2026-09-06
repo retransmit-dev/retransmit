@@ -9,7 +9,7 @@ import { useEmbeddedSignup } from "@/hooks/use-embedded-signup";
 import type { SignupResult } from "@/hooks/use-embedded-signup";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FlaskConicalIcon, PlusIcon } from "lucide-react";
+import { FlaskConicalIcon, LayoutTemplateIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { toast } from "sonner";
@@ -72,6 +72,14 @@ export function WhatsappView() {
             <Button
               variant="outline"
               nativeButton={false}
+              render={<Link href="/whatsapp/templates" />}
+            >
+              <LayoutTemplateIcon />
+              Templates
+            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
               render={<Link href="/whatsapp/test" />}
             >
               <FlaskConicalIcon />
@@ -97,8 +105,8 @@ export function WhatsappView() {
       </ErrorBoundary>
 
       <p className="text-xs text-muted-foreground">
-        Manage templates in WhatsApp Manager. Remove numbers from the WhatsApp
-        Business app before connecting them.
+        Create message templates under Templates. Remove numbers from the
+        WhatsApp Business app before connecting them.
       </p>
     </>
   );
