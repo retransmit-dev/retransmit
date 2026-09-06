@@ -59,9 +59,14 @@ export const TEMPLATE_LANGUAGES = [
   { value: "zh_CN", label: "Chinese (Simplified)" },
 ] as const;
 
+export type TemplateHeaderMediaFormat = "image" | "video" | "document" | "location";
+
 /** What the preview shows: text pieces with placeholders already filled. */
 export interface TemplatePreviewContent {
+  /** Text header. Ignored when `headerMedia` is set. */
   header?: string;
+  /** Media header. `url` is Meta's sample handle when the template was synced. */
+  headerMedia?: { format: TemplateHeaderMediaFormat; url?: string };
   body: string;
   footer?: string;
   buttons: { type: TemplateButtonType; text: string }[];
@@ -85,16 +90,24 @@ export function previewFromComponents(components: Record<string, unknown>[]): Te
     const type = String(component.type ?? "").toUpperCase();
     const text = typeof component.text === "string" ? component.text : "";
     const example = component.example as
-      | { header_text?: string[]; body_text?: string[][] }
+      | { header_text?: string[]; body_text?: string[][]; header_handle?: string[] }
       | undefined;
     switch (type) {
-      case "HEADER":
-        if (String(component.format ?? "TEXT").toUpperCase() === "TEXT") {
+      case "HEADER": {
+        const format = String(component.format ?? "TEXT").toLowerCase();
+        if (format === "text") {
           content.header = fillPlaceholders(text, example?.header_text ?? []);
-        } else {
-          content.header = `[${String(component.format).toLowerCase()}]`;
+        } else if (
+          format === "image" ||
+          format === "video" ||
+          format === "document" ||
+          format === "location"
+        ) {
+          const url = example?.header_handle?.[0];
+          content.headerMedia = { format, url: typeof url === "string" ? url : undefined };
         }
         break;
+      }
       case "BODY":
         content.body = fillPlaceholders(text, example?.body_text?.[0] ?? []);
         break;

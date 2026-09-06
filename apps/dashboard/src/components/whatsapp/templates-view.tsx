@@ -176,10 +176,10 @@ export function TemplatesView() {
       )}
 
       <Sheet open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="flex w-full flex-col gap-4 overflow-y-auto sm:max-w-lg">
+        <SheetContent className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-3xl">
           {selected && (
             <>
-              <SheetHeader>
+              <SheetHeader className="pr-12">
                 <SheetTitle className="font-mono">{selected.name}</SheetTitle>
                 <SheetDescription className="flex flex-wrap items-center gap-2">
                   <WhatsappTemplateStatusBadge status={selected.status} />
@@ -188,17 +188,39 @@ export function TemplatesView() {
                   </span>
                 </SheetDescription>
               </SheetHeader>
-              {selected.rejectedReason && (
-                <Alert variant="destructive">
-                  <AlertDescription>{selected.rejectedReason}</AlertDescription>
-                </Alert>
-              )}
-              <TemplatePreview senderName={senderName} content={previewFromComponents(selected.components)} />
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">API</span>
-                <pre className="overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
-                  {sendSnippet(selected)}
-                </pre>
+              <div className="grid gap-6 px-4 pb-6 md:grid-cols-[22rem_minmax(0,1fr)]">
+                <TemplatePreview
+                  senderName={senderName}
+                  content={previewFromComponents(selected.components)}
+                  className="w-full max-w-[22rem] justify-self-center md:justify-self-start"
+                />
+                <div className="flex min-w-0 flex-col gap-5">
+                  {selected.rejectedReason && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{selected.rejectedReason}</AlertDescription>
+                    </Alert>
+                  )}
+                  <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-sm">
+                    <dt className="text-muted-foreground">Category</dt>
+                    <dd>{CATEGORY_LABEL[selected.category] ?? selected.category}</dd>
+                    <dt className="text-muted-foreground">Language</dt>
+                    <dd>{selected.language}</dd>
+                    <dt className="text-muted-foreground">Updated</dt>
+                    <dd>{formatDate(selected.updatedAt)}</dd>
+                    {selected.lastSyncedAt && (
+                      <>
+                        <dt className="text-muted-foreground">Synced</dt>
+                        <dd>{formatDate(selected.lastSyncedAt)}</dd>
+                      </>
+                    )}
+                  </dl>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-sm font-medium">Send it</span>
+                    <pre className="overflow-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
+                      {sendSnippet(selected)}
+                    </pre>
+                  </div>
+                </div>
               </div>
             </>
           )}
