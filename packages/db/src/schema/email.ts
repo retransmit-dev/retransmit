@@ -217,6 +217,42 @@ export const emailEvent = pgTable(
 );
 
 /**
+ * A file attached to an email. The bytes live in the S3 bucket of the region
+ * the sending domain was verified in (`${ATTACHMENTS_BUCKET_PREFIX}-${region}`)
+ * and are deleted 30 days after upload by the bucket's lifecycle rule. This
+ * row outlives the object so the dashboard and API can still list what was
+ * sent; `expiresAt` mirrors the lifecycle so a download link is only offered
+ * while the object exists.
+ */
+export const emailAttachment = pgTable(
+  "email_attachment",
+  {
+    id: text("id").primaryKey(),
+    emailId: text("email_id")
+      .notNull()
+      .references(() => email.id, { onDelete: "cascade" }),
+    /** Name the recipient sees, as given by the caller. */
+    filename: text("filename").notNull(),
+    contentType: text("content_type").notNull(),
+    /** Size in bytes of the raw (not base64) content. */
+    size: integer("size").notNull(),
+    /** Content-ID for inline images referenced as `cid:` in the HTML body. */
+    contentId: text("content_id"),
+    /** Inline disposition (embedded image) rather than a regular attachment. */
+    inline: boolean("inline").default(false).notNull(),
+    /** S3 region and object key the bytes were uploaded to. */
+    storageRegion: text("storage_region").notNull(),
+    storageKey: text("storage_key").notNull(),
+    /** Remote URL the file was fetched from, when given as `path`. */
+    sourceUrl: text("source_url"),
+    /** When the S3 object is deleted by the lifecycle rule. */
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("emailAttachment_emailId_idx").on(table.emailId)],
+);
+
+/**
  * Addresses an organization will not send to. Hard bounces and spam
  * complaints are added automatically by the SES callback; members can add or
  * import addresses manually. Shared by every member of the organization.
@@ -340,6 +376,7 @@ export const emailRelations = relations(email, ({ one, many }) => ({
   domain: one(domain, { fields: [email.domainId], references: [domain.id] }),
   batch: one(emailBatch, { fields: [email.batchId], references: [emailBatch.id] }),
   events: many(emailEvent),
+  attachments: many(emailAttachment),
 }));
 
 export const emailBatchRelations = relations(emailBatch, ({ one, many }) => ({
@@ -349,6 +386,10 @@ export const emailBatchRelations = relations(emailBatch, ({ one, many }) => ({
 
 export const emailEventRelations = relations(emailEvent, ({ one }) => ({
   email: one(email, { fields: [emailEvent.emailId], references: [email.id] }),
+}));
+
+export const emailAttachmentRelations = relations(emailAttachment, ({ one }) => ({
+  email: one(email, { fields: [emailAttachment.emailId], references: [email.id] }),
 }));
 
 export const suppressionRelations = relations(suppression, ({ one }) => ({

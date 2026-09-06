@@ -72,6 +72,8 @@ const ERROR_CODES = [
   "invalid_idempotency_key",
   "invalid_idempotent_request",
   "concurrent_idempotent_requests",
+  "invalid_attachment",
+  "payload_too_large",
   "no_route",
   "no_whatsapp_account",
   "not_found",
@@ -267,7 +269,79 @@ export const OPENAPI_DOCUMENT = {
           "409": errorResponse(
             "`Idempotency-Key` was already used with a different payload (`invalid_idempotent_request`), or the first request with it is still running (`concurrent_idempotent_requests`; retry shortly).",
           ),
-          "422": errorResponse("Schema validation failed (`validation_error`)."),
+          "413": errorResponse(
+            "Request body is larger than 43 MB (`payload_too_large`). Attachments may total 30 MB before base64 encoding.",
+          ),
+          "422": errorResponse(
+            "Schema validation failed (`validation_error`), or an attachment could not be used: blocked file type, over the size budget, or a `path` that could not be fetched (`invalid_attachment`).",
+          ),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
+    "/v1/emails/{id}/attachments": {
+      get: {
+        operationId: "listEmailAttachments",
+        tags: ["Emails"],
+        summary: "List the attachments of an email with download links",
+        description:
+          "Files are kept for 30 days after the send. Each `download_url` is signed and valid for one hour; after the retention window it is null and only the metadata remains.",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            description: "Email id, e.g. `em_...`.",
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Attachments in the order they were given at send time.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/EmailAttachmentList" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "404": errorResponse("No email with this id on your account."),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
+    "/v1/emails/{id}/attachments/{attachmentId}": {
+      get: {
+        operationId: "getEmailAttachment",
+        tags: ["Emails"],
+        summary: "Get one attachment with a download link",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            description: "Email id, e.g. `em_...`.",
+            schema: { type: "string" },
+          },
+          {
+            name: "attachmentId",
+            in: "path",
+            required: true,
+            description: "Attachment id, e.g. `att_...`.",
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "The attachment. `download_url` is null once the file has expired.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/EmailAttachmentWithDownload" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "404": errorResponse("No such email or attachment on your account."),
           "500": errorResponse("Unexpected server error."),
         },
       },
@@ -328,7 +402,7 @@ export const OPENAPI_DOCUMENT = {
         tags: ["Emails"],
         summary: "Queue up to 10,000 emails in one request",
         description:
-          "All emails are stored as `queued` and drained by the worker at your account's sending rate. Every message still gets its own id, log entry, and webhook events. Track progress with GET /v1/emails/batch/{id}. Send an `Idempotency-Key` header that represents the whole batch to make retries safe.",
+          "All emails are stored as `queued` and drained by the worker at your account's sending rate. Every message still gets its own id, log entry, and webhook events. Track progress with GET /v1/emails/batch/{id}. Send an `Idempotency-Key` header that represents the whole batch to make retries safe. Batch emails cannot carry `attachments`; use POST /v1/emails for those.",
         parameters: [idempotencyKeyHeader],
         requestBody: {
           required: true,
@@ -586,6 +660,96 @@ export const OPENAPI_DOCUMENT = {
             items: { $ref: "#/components/schemas/EmailTag" },
           },
           headers: { $ref: "#/components/schemas/EmailHeaders" },
+          attachments: {
+            type: "array",
+            maxItems: 20,
+            description:
+              "Files to attach, up to 20 per email and 30 MB in total before base64 encoding. Each needs a `filename` and either `content` (base64) or `path` (a public URL fetched while the request runs). Add `content_id` to embed an image inline via `<img src=\"cid:...\">`. File types email providers refuse (executables, scripts, installers) are rejected with `invalid_attachment`. Not accepted on the batch endpoint.",
+            items: { $ref: "#/components/schemas/EmailAttachmentInput" },
+          },
+        },
+      },
+      EmailAttachmentInput: {
+        type: "object",
+        required: ["filename"],
+        description: "Provide exactly one of `content` and `path`.",
+        properties: {
+          filename: {
+            type: "string",
+            minLength: 1,
+            maxLength: 255,
+            description:
+              "Name shown to the recipient; its extension also decides the content type when `content_type` is omitted. No path separators.",
+          },
+          content: {
+            type: "string",
+            contentEncoding: "base64",
+            description: "The file, base64 encoded.",
+          },
+          path: {
+            type: "string",
+            format: "uri",
+            maxLength: 2048,
+            description:
+              "Public http(s) URL to fetch the file from. Fetched once, when the request is made, with a 15 second budget. Private and internal hosts are refused.",
+          },
+          content_type: {
+            type: "string",
+            maxLength: 255,
+            description: "MIME type, e.g. `application/pdf`. Inferred from the filename when omitted.",
+          },
+          content_id: {
+            type: "string",
+            minLength: 1,
+            maxLength: 128,
+            pattern: "^[A-Za-z0-9._@-]+$",
+            description:
+              "Marks the file as an inline image and sets its Content-ID. Reference it in `html` as `<img src=\"cid:the-id\">`. Unique per email.",
+          },
+        },
+      },
+      EmailAttachment: {
+        type: "object",
+        required: ["id", "filename", "content_type", "size", "content_id", "inline"],
+        properties: {
+          id: { type: "string", description: "Attachment id, e.g. `att_...`." },
+          filename: { type: "string" },
+          content_type: { type: "string" },
+          size: { type: "integer", description: "Size in bytes of the decoded file." },
+          content_id: { type: ["string", "null"] },
+          inline: { type: "boolean", description: "True for images embedded via `content_id`." },
+        },
+      },
+      EmailAttachmentWithDownload: {
+        allOf: [
+          { $ref: "#/components/schemas/EmailAttachment" },
+          {
+            type: "object",
+            required: ["expires_at", "download_url"],
+            properties: {
+              expires_at: {
+                type: "string",
+                format: "date-time",
+                description: "When the stored file is deleted, 30 days after the send.",
+              },
+              download_url: {
+                type: ["string", "null"],
+                format: "uri",
+                description:
+                  "Signed link to download the file, valid for one hour. Null once the file has expired.",
+              },
+            },
+          },
+        ],
+      },
+      EmailAttachmentList: {
+        type: "object",
+        required: ["attachments"],
+        properties: {
+          attachments: {
+            type: "array",
+            items: { $ref: "#/components/schemas/EmailAttachmentWithDownload" },
+          },
         },
       },
       EmailHeaders: {
@@ -643,7 +807,7 @@ export const OPENAPI_DOCUMENT = {
       },
       Email: {
         type: "object",
-        required: ["id", "from", "to", "subject", "status", "created_at", "events"],
+        required: ["id", "from", "to", "subject", "status", "created_at", "events", "attachments"],
         properties: {
           id: { type: "string" },
           batch_id: { type: ["string", "null"] },
@@ -669,6 +833,12 @@ export const OPENAPI_DOCUMENT = {
           events: {
             type: "array",
             items: { $ref: "#/components/schemas/EmailEvent" },
+          },
+          attachments: {
+            type: "array",
+            description:
+              "Attachments given at send time, without download links. Use GET /v1/emails/{id}/attachments for those.",
+            items: { $ref: "#/components/schemas/EmailAttachment" },
           },
         },
       },

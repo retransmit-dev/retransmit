@@ -28,6 +28,16 @@ export function getSesClient(region: string = DEFAULT_SES_REGION): SESv2Client {
   return client;
 }
 
+/** A file to attach, bytes already in hand (see attachments.ts for storage). */
+export interface OutgoingAttachment {
+  filename: string;
+  contentType: string;
+  content: Uint8Array;
+  /** Set for inline images referenced as `cid:` in the HTML body. */
+  contentId?: string;
+  inline?: boolean;
+}
+
 export interface SendEmailInput {
   from: string;
   to: string[];
@@ -38,6 +48,7 @@ export interface SendEmailInput {
   html?: string;
   text?: string;
   headers?: { name: string; value: string }[];
+  attachments?: OutgoingAttachment[];
   /** Region the `from` domain is verified in. Defaults to the platform region. */
   region?: string;
 }
@@ -61,6 +72,14 @@ export async function sendEmail(input: SendEmailInput): Promise<{ messageId?: st
             ...(input.html ? { Html: { Data: input.html, Charset: "UTF-8" } } : {}),
             ...(input.text ? { Text: { Data: input.text, Charset: "UTF-8" } } : {}),
           },
+          Attachments: input.attachments?.map((attachment) => ({
+            FileName: attachment.filename,
+            ContentType: attachment.contentType,
+            RawContent: attachment.content,
+            ContentDisposition: attachment.inline ? "INLINE" : "ATTACHMENT",
+            ContentId: attachment.contentId,
+            ContentTransferEncoding: "BASE64",
+          })),
         },
       },
     }),

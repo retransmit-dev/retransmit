@@ -1,9 +1,16 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { domain, email, emailEvent, suppression } from "@retransmit/db/schema/email";
+import {
+  domain,
+  email,
+  emailAttachment,
+  emailEvent,
+  suppression,
+} from "@retransmit/db/schema/email";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
 import { extractEmailAddress } from "./address";
+import { AttachmentMissingError, getAttachment } from "./attachments";
 import { sendEmail } from "./ses";
 import { UNSUBSCRIBE_URL_PLACEHOLDER, unsubscribeUrl } from "./unsubscribe";
 import { dispatchEmailEvent } from "./webhooks";
@@ -129,6 +136,37 @@ export async function processEmailSend(emailId: string): Promise<void> {
     region = sender?.region;
   }
 
+  // Attachment bytes were parked in S3 by the API. An object that is gone
+  // (past the 30-day lifecycle) will not come back, so that is a permanent
+  // failure rather than something to retry.
+  const attachmentRows = await db
+    .select()
+    .from(emailAttachment)
+    .where(eq(emailAttachment.emailId, emailId));
+  let attachments;
+  try {
+    attachments = await Promise.all(
+      attachmentRows.map(async (attachment) => ({
+        filename: attachment.filename,
+        contentType: attachment.contentType,
+        contentId: attachment.contentId ?? undefined,
+        inline: attachment.inline,
+        content: await getAttachment({
+          region: attachment.storageRegion,
+          key: attachment.storageKey,
+        }),
+      })),
+    );
+  } catch (cause) {
+    if (!(cause instanceof AttachmentMissingError)) throw cause;
+    await db
+      .update(email)
+      .set({ error: `An attachment is no longer available: ${cause.message}` })
+      .where(eq(email.id, emailId));
+    await markEmailPermanentlyFailed(emailId);
+    return;
+  }
+
   try {
     const { messageId } = await sendEmail({
       region,
@@ -141,6 +179,7 @@ export async function processEmailSend(emailId: string): Promise<void> {
       html,
       text,
       headers: headers.length > 0 ? headers : undefined,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     await db

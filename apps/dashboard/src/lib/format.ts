@@ -12,3 +12,10 @@ export function formatDateTime(value: string | Date): string {
 export function formatDate(value: string | Date): string {
   return new Date(value).toLocaleDateString();
 }
+
+/** "1.2 MB" / "340 KB" / "12 B" for attachment sizes. */
+export function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
+}

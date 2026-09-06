@@ -1,7 +1,8 @@
 import { db } from "@retransmit/db";
-import { email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
+import { email, emailAttachment, emailBatch, emailEvent } from "@retransmit/db/schema/email";
 import { EMAIL_STATUSES } from "@retransmit/db/schema/email";
 import type { EmailStatus, EmailTag } from "@retransmit/db/schema/email";
+import { attachmentDownloadUrl } from "@retransmit/email/attachments";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
@@ -169,6 +170,31 @@ export const emailRouter = router({
       .where(eq(emailEvent.emailId, row.id))
       .orderBy(asc(emailEvent.createdAt));
 
-    return { ...row, events };
+    // Files stay in S3 for 30 days after the send; the row stays for good.
+    // The link is signed per request and lives for an hour.
+    const attachmentRows = await db
+      .select()
+      .from(emailAttachment)
+      .where(eq(emailAttachment.emailId, row.id))
+      .orderBy(asc(emailAttachment.createdAt));
+    const attachments = await Promise.all(
+      attachmentRows.map(async (attachment) => ({
+        id: attachment.id,
+        filename: attachment.filename,
+        contentType: attachment.contentType,
+        size: attachment.size,
+        inline: attachment.inline,
+        expiresAt: attachment.expiresAt,
+        downloadUrl:
+          attachment.expiresAt.getTime() > Date.now()
+            ? await attachmentDownloadUrl(
+                { region: attachment.storageRegion, key: attachment.storageKey },
+                { filename: attachment.filename, contentType: attachment.contentType },
+              )
+            : null,
+      })),
+    );
+
+    return { ...row, events, attachments };
   }),
 });

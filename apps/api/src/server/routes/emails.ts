@@ -1,12 +1,28 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { EMAIL_STATUSES, domain, email, emailBatch, emailEvent } from "@retransmit/db/schema/email";
+import {
+  EMAIL_STATUSES,
+  domain,
+  email,
+  emailAttachment,
+  emailBatch,
+  emailEvent,
+} from "@retransmit/db/schema/email";
 import type { EmailHeaders, EmailTag } from "@retransmit/db/schema/email";
 import { extractEmailAddress, extractEmailDomain } from "@retransmit/email/address";
+import {
+  ATTACHMENTS_MAX,
+  ATTACHMENTS_TOTAL_MAX_BYTES,
+  AttachmentError,
+  attachmentDownloadUrl,
+  formatBytes,
+  storeAttachments,
+} from "@retransmit/email/attachments";
 import { enqueueEmailSend, enqueueEmailSendBatch } from "@retransmit/queue";
 import { and, asc, count, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import z from "zod";
 
 import { apiKeyAuth } from "../auth";
@@ -125,33 +141,95 @@ const headersSchema = z
     }
   });
 
-const sendEmailSchema = z
+/** Base64 of ATTACHMENTS_TOTAL_MAX_BYTES, with some slack for line breaks. */
+const ATTACHMENT_CONTENT_MAX = Math.ceil((ATTACHMENTS_TOTAL_MAX_BYTES * 4) / 3) + 4096;
+/**
+ * Request body ceiling for single sends: the attachment budget once base64
+ * encoded, plus bodies and headers. Enforced before parsing so an oversized
+ * upload is refused instead of buffered.
+ */
+const SEND_BODY_MAX_BYTES = ATTACHMENT_CONTENT_MAX + 3 * 1024 * 1024;
+
+const attachmentSchema = z
   .object({
-    from: z.string().refine((value) => extractEmailAddress(value) !== null, {
-      message: "`from` must be an email address or `Name <address>`",
-    }),
-    to: addressList,
-    cc: addressList.optional(),
-    bcc: addressList.optional(),
-    reply_to: addressList.optional(),
-    subject: z.string().min(1).max(998),
-    html: z.string().max(1_000_000).optional(),
-    text: z.string().max(1_000_000).optional(),
-    marketing: z.boolean().optional(),
-    tags: tagList.optional(),
-    headers: headersSchema.optional(),
+    filename: z
+      .string()
+      .min(1)
+      .max(255)
+      .refine((value) => !/[\\/\u0000-\u001f]/.test(value) && value.trim() === value, {
+        message: "Filename may not contain path separators or control characters",
+      }),
+    content: z.string().min(1).max(ATTACHMENT_CONTENT_MAX).optional(),
+    path: z.url({ protocol: /^https?$/ }).max(2048).optional(),
+    content_type: z
+      .string()
+      .max(255)
+      .regex(/^[\w.+-]+\/[\w.+-]+$/, { message: "Must be a MIME type such as application/pdf" })
+      .optional(),
+    content_id: z
+      .string()
+      .min(1)
+      .max(128)
+      .regex(/^[A-Za-z0-9._@-]+$/, {
+        message: "Content ids may only contain letters, digits, `.`, `_`, `@` and `-`",
+      })
+      .optional(),
   })
-  .refine((value) => value.html || value.text, {
-    message: "Provide `html`, `text`, or both",
+  .refine((value) => (value.content === undefined) !== (value.path === undefined), {
+    message: "Provide either `content` (base64) or `path` (URL), not both",
   });
+
+const emailFields = z.object({
+  from: z.string().refine((value) => extractEmailAddress(value) !== null, {
+    message: "`from` must be an email address or `Name <address>`",
+  }),
+  to: addressList,
+  cc: addressList.optional(),
+  bcc: addressList.optional(),
+  reply_to: addressList.optional(),
+  subject: z.string().min(1).max(998),
+  html: z.string().max(1_000_000).optional(),
+  text: z.string().max(1_000_000).optional(),
+  marketing: z.boolean().optional(),
+  tags: tagList.optional(),
+  headers: headersSchema.optional(),
+});
+
+const hasBody = { message: "Provide `html`, `text`, or both" };
+
+const sendEmailSchema = emailFields
+  .extend({
+    attachments: z
+      .array(attachmentSchema)
+      .max(ATTACHMENTS_MAX)
+      .refine(
+        (attachments) => {
+          const ids = attachments.map((a) => a.content_id).filter((id) => id !== undefined);
+          return new Set(ids).size === ids.length;
+        },
+        { message: "Content ids must be unique" },
+      )
+      .optional(),
+  })
+  .refine((value) => value.html || value.text, hasBody);
 
 const BATCH_MAX = 10_000;
 
+/** Batch emails take the same fields minus attachments (as on Resend). */
+const batchEmailSchema = emailFields
+  .extend({
+    attachments: z.custom<undefined>((value) => value === undefined, {
+      message: "Attachments are not supported on the batch endpoint. Use POST /v1/emails.",
+    }),
+  })
+  .refine((value) => value.html || value.text, hasBody);
+
 const batchSchema = z.object({
-  emails: z.array(sendEmailSchema).min(1).max(BATCH_MAX),
+  emails: z.array(batchEmailSchema).min(1).max(BATCH_MAX),
 });
 
 type SendEmailInput = z.infer<typeof sendEmailSchema>;
+type EmailFieldsInput = z.infer<typeof emailFields>;
 
 const LIST_MAX = 100;
 const LIST_DEFAULT = 50;
@@ -239,8 +317,9 @@ async function resolveSenderDomains(organizationId: string, froms: string[]) {
 }
 
 function toEmailRow(
-  input: SendEmailInput,
+  input: EmailFieldsInput,
   ctx: {
+    id?: string;
     userId: string;
     organizationId: string;
     apiKeyId: string;
@@ -249,7 +328,7 @@ function toEmailRow(
   },
 ) {
   return {
-    id: createId("em"),
+    id: ctx.id ?? createId("em"),
     userId: ctx.userId,
     organizationId: ctx.organizationId,
     apiKeyId: ctx.apiKeyId,
@@ -398,7 +477,22 @@ emailRoutes.get("/batch/:id", async (c) => {
  * account's SES rate. Poll GET /:id or subscribe to webhooks for the outcome.
  * An `Idempotency-Key` header makes retries of the same request safe.
  */
-emailRoutes.post("/", async (c) => {
+emailRoutes.post(
+  "/",
+  bodyLimit({
+    maxSize: SEND_BODY_MAX_BYTES,
+    onError: (c) =>
+      c.json(
+        {
+          error: {
+            code: "payload_too_large",
+            message: `Request body exceeds ${formatBytes(SEND_BODY_MAX_BYTES)}. Attachments may total ${formatBytes(ATTACHMENTS_TOTAL_MAX_BYTES)} before base64 encoding.`,
+          },
+        },
+        413,
+      ),
+  }),
+  async (c) => {
   let json: unknown;
   try {
     json = await c.req.json();
@@ -429,17 +523,51 @@ emailRoutes.post("/", async (c) => {
   const resolved = await resolveSenderDomains(organizationId, [input.from]);
   if (resolved.error) return c.json(resolved.error.body, resolved.error.status);
   const name = extractEmailDomain(input.from) ?? "";
+  const sender = resolved.byName.get(name)!;
 
   const result = await runIdempotent(
     { organizationId, key: idempotency.key, endpoint: "POST /v1/emails", body: input },
     async () => {
+      const emailId = createId("em");
+
+      // Attachment bytes go to the bucket of the sending domain's region now,
+      // so a bad file or unreachable URL is a 422 here rather than a failed
+      // send later. The worker reads them back when it sends.
+      let attachments;
+      try {
+        attachments = await storeAttachments(
+          (input.attachments ?? []).map((attachment) => ({
+            filename: attachment.filename,
+            content: attachment.content,
+            path: attachment.path,
+            contentType: attachment.content_type,
+            contentId: attachment.content_id,
+          })),
+          { organizationId, emailId, region: sender.region, createId: () => createId("att") },
+        );
+      } catch (error) {
+        if (error instanceof AttachmentError) {
+          return { status: 422, body: { error: { code: error.code, message: error.message } } };
+        }
+        throw error;
+      }
+
       const row = toEmailRow(input, {
+        id: emailId,
         userId,
         organizationId,
         apiKeyId: c.get("apiKeyId"),
-        domainId: resolved.byName.get(name)!.id,
+        domainId: sender.id,
       });
-      const [created] = await db.insert(email).values(row).returning();
+      const created = await db.transaction(async (tx) => {
+        const [inserted] = await tx.insert(email).values(row).returning();
+        if (inserted && attachments.length > 0) {
+          await tx
+            .insert(emailAttachment)
+            .values(attachments.map((attachment) => ({ ...attachment, emailId })));
+        }
+        return inserted;
+      });
       if (!created) {
         return {
           status: 500,
@@ -456,7 +584,8 @@ emailRoutes.post("/", async (c) => {
     },
   );
   return sendIdempotent(c, result);
-});
+  },
+);
 
 /**
  * Lists the account's emails, newest first, filtered by tag, status or batch.
@@ -558,6 +687,11 @@ emailRoutes.get("/:id", async (c) => {
     .from(emailEvent)
     .where(eq(emailEvent.emailId, row.id))
     .orderBy(asc(emailEvent.createdAt));
+  const attachments = await db
+    .select()
+    .from(emailAttachment)
+    .where(eq(emailAttachment.emailId, row.id))
+    .orderBy(asc(emailAttachment.createdAt));
 
   return c.json({
     id: row.id,
@@ -579,5 +713,80 @@ emailRoutes.get("/:id", async (c) => {
       type: event.type,
       created_at: event.createdAt.toISOString(),
     })),
+    attachments: attachments.map(attachmentSummary),
   });
+});
+
+type AttachmentRow = typeof emailAttachment.$inferSelect;
+
+function attachmentSummary(row: AttachmentRow) {
+  return {
+    id: row.id,
+    filename: row.filename,
+    content_type: row.contentType,
+    size: row.size,
+    content_id: row.contentId,
+    inline: row.inline,
+  };
+}
+
+/** Summary plus a signed download link while the file is still stored. */
+async function attachmentWithDownload(row: AttachmentRow) {
+  const expired = row.expiresAt.getTime() <= Date.now();
+  return {
+    ...attachmentSummary(row),
+    expires_at: row.expiresAt.toISOString(),
+    download_url: expired
+      ? null
+      : await attachmentDownloadUrl(
+          { region: row.storageRegion, key: row.storageKey },
+          { filename: row.filename, contentType: row.contentType },
+        ),
+  };
+}
+
+async function ownedEmailId(c: { req: { param: (name: string) => string | undefined }; get: (key: "userId") => string }) {
+  const [row] = await db
+    .select({ id: email.id })
+    .from(email)
+    .where(and(eq(email.id, c.req.param("id") ?? ""), eq(email.userId, c.get("userId"))));
+  return row?.id ?? null;
+}
+
+/**
+ * Attachments of one email with signed download links. Files are kept for 30
+ * days after the send; after that `download_url` is null and only the
+ * metadata remains.
+ */
+emailRoutes.get("/:id/attachments", async (c) => {
+  const emailId = await ownedEmailId(c);
+  if (!emailId) {
+    return c.json({ error: { code: "not_found", message: "Email not found" } }, 404);
+  }
+  const rows = await db
+    .select()
+    .from(emailAttachment)
+    .where(eq(emailAttachment.emailId, emailId))
+    .orderBy(asc(emailAttachment.createdAt));
+  return c.json({ attachments: await Promise.all(rows.map(attachmentWithDownload)) });
+});
+
+emailRoutes.get("/:id/attachments/:attachmentId", async (c) => {
+  const emailId = await ownedEmailId(c);
+  if (!emailId) {
+    return c.json({ error: { code: "not_found", message: "Email not found" } }, 404);
+  }
+  const [row] = await db
+    .select()
+    .from(emailAttachment)
+    .where(
+      and(
+        eq(emailAttachment.emailId, emailId),
+        eq(emailAttachment.id, c.req.param("attachmentId")),
+      ),
+    );
+  if (!row) {
+    return c.json({ error: { code: "not_found", message: "Attachment not found" } }, 404);
+  }
+  return c.json(await attachmentWithDownload(row));
 });

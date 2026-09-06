@@ -48,9 +48,22 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
   "events": [
     { "type": "email.sent", "created_at": "2026-09-01T12:00:01.000Z" },
     { "type": "email.delivered", "created_at": "2026-09-01T12:00:03.000Z" }
+  ],
+  "attachments": [
+    {
+      "id": "att_xxxxxxxxxxxx",
+      "filename": "invoice.pdf",
+      "content_type": "application/pdf",
+      "size": 48213,
+      "content_id": null,
+      "inline": false
+    }
   ]
 }
 ```
+
+`attachments` lists what was sent, without download links. To download a file,
+use [Attachments](/email/attachments#download-attachments).
 
 ## Email statuses
 

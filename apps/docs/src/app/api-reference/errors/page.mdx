@@ -23,7 +23,9 @@ All errors share one shape:
 | `404` | `not_found` | The resource or route does not exist. |
 | `409` | `invalid_idempotent_request` | `Idempotency-Key` was already used in the last 24 hours with a different body. Change the key or the body. |
 | `409` | `concurrent_idempotent_requests` | Another request with this `Idempotency-Key` is still running. Retry shortly. |
+| `413` | `payload_too_large` | The request body is over 43 MB. Attachments may total 30 MB before base64 encoding. |
 | `422` | `validation_error` | A request field failed validation. The message names the field, e.g. `subject: String must contain at least 1 character(s)`. For batches it includes the index: `emails.42.subject: ...`. |
+| `422` | `invalid_attachment` | An attachment has a blocked file type, is over the size budget, or its `path` could not be fetched. The message names the file. |
 | `422` | `no_route` | No SMS provider is configured for the destination country. |
 | `422` | `no_whatsapp_account` | No connected WhatsApp number matches the request. Connect one in the dashboard, or fix `from`. |
 | `500` | `internal_error` | Something went wrong on Retransmit's side. Safe to retry. |

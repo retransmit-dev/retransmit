@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { RouterOutputs } from "@/lib/api-types";
-import { formatDateTime } from "@/lib/format";
+import { formatBytes, formatDateTime } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
+import { FileIcon, FileSpreadsheetIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { Fragment } from "react";
 
 type EmailDetails = RouterOutputs["email"]["get"];
@@ -73,6 +74,7 @@ function EmailDetailsBody({ emailId }: { emailId: string }) {
           )}
 
           <EmailBody html={email.html} text={email.text} />
+          <EmailAttachments attachments={email.attachments} />
           <EmailEvents events={email.events} />
         </div>
       ) : null}
@@ -140,6 +142,59 @@ function EmailBody({
           {text}
         </pre>
       )}
+    </div>
+  );
+}
+
+function attachmentIcon(contentType: string) {
+  if (contentType.startsWith("image/")) return ImageIcon;
+  if (contentType === "application/pdf" || contentType.startsWith("text/")) return FileTextIcon;
+  if (contentType.includes("spreadsheet") || contentType.includes("excel") || contentType === "text/csv") {
+    return FileSpreadsheetIcon;
+  }
+  return FileIcon;
+}
+
+function EmailAttachments({ attachments }: { attachments: EmailDetails["attachments"] }) {
+  if (attachments.length === 0) return null;
+  return (
+    <div>
+      <h3 className="mb-2 font-medium">Attachments</h3>
+      <ul className="flex flex-col gap-1.5">
+        {attachments.map((attachment) => {
+          const Icon = attachmentIcon(attachment.contentType);
+          return (
+            <li
+              key={attachment.id}
+              className="flex items-center gap-3 rounded-md border px-3 py-2"
+            >
+              <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="truncate">{attachment.filename}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatBytes(attachment.size)}
+                  {attachment.inline ? " · inline" : ""}
+                </p>
+              </div>
+              {attachment.downloadUrl ? (
+                <a
+                  href={attachment.downloadUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 text-xs font-medium underline-offset-4 hover:underline"
+                >
+                  Download
+                </a>
+              ) : (
+                <span className="shrink-0 text-xs text-muted-foreground">Expired</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        Files are kept for 30 days after sending.
+      </p>
     </div>
   );
 }

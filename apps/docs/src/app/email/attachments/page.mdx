@@ -1,0 +1,218 @@
+import { Tabs } from "nextra/components";
+
+# Attachments
+
+Attach files to an email with the `attachments` field of
+[Send Email](/email/send). Each attachment has a `filename` and the file
+itself, given one of two ways:
+
+- `content`: the file, base64 encoded. Use this for files you already have
+  in memory or on disk.
+- `path`: a public URL. Retransmit downloads it while your request runs and
+  attaches the bytes. The recipient never sees the URL.
+
+Either way the file travels inside the email as a normal MIME attachment.
+
+## Send a local file
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+import { readFile } from "node:fs/promises";
+
+const invoice = await readFile("./invoice.pdf");
+
+await retransmit.emails.send({
+  from: "Acme <billing@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Your invoice",
+  html: "<p>Your invoice is attached.</p>",
+  attachments: [{ filename: "invoice.pdf", content: invoice }],
+});
+```
+
+`content` accepts a `Buffer`, a `Uint8Array`, or an already base64 encoded
+string. The SDK encodes bytes for you.
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"from\": \"Acme <billing@yourdomain.com>\",
+    \"to\": \"user@example.com\",
+    \"subject\": \"Your invoice\",
+    \"html\": \"<p>Your invoice is attached.</p>\",
+    \"attachments\": [
+      { \"filename\": \"invoice.pdf\", \"content\": \"$(base64 -i invoice.pdf)\" }
+    ]
+  }"
+```
+</Tabs.Tab>
+</Tabs>
+
+## Send a remote file
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+await retransmit.emails.send({
+  from: "Acme <billing@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Your invoice",
+  html: "<p>Your invoice is attached.</p>",
+  attachments: [
+    { filename: "invoice.pdf", path: "https://files.yourdomain.com/invoice.pdf" },
+  ],
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <billing@yourdomain.com>",
+    "to": "user@example.com",
+    "subject": "Your invoice",
+    "html": "<p>Your invoice is attached.</p>",
+    "attachments": [
+      { "filename": "invoice.pdf", "path": "https://files.yourdomain.com/invoice.pdf" }
+    ]
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+The URL is fetched once, when you call the API, with a 15 second budget and
+up to 3 redirects. If it cannot be fetched, the request fails with `422`
+`invalid_attachment` and nothing is queued. Private and internal hosts are
+refused.
+
+## Embed an image inline
+
+Give an attachment a `content_id` and reference it from the HTML body with
+`cid:`. The image renders inside the message instead of appearing as a file.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Welcome to Acme",
+  html: '<p><img src="cid:logo" alt="Acme" /> Glad to have you.</p>',
+  attachments: [
+    { filename: "logo.png", path: "https://yourdomain.com/logo.png", contentId: "logo" },
+  ],
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "user@example.com",
+    "subject": "Welcome to Acme",
+    "html": "<p><img src=\"cid:logo\" alt=\"Acme\" /> Glad to have you.</p>",
+    "attachments": [
+      { "filename": "logo.png", "path": "https://yourdomain.com/logo.png", "content_id": "logo" }
+    ]
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+Content ids are letters, digits, `.`, `_`, `@` and `-`, up to 128 characters,
+and must be unique within one email.
+
+## Attachment fields
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `filename` | string | Yes | Name the recipient sees, up to 255 characters, no path separators. Its extension sets the content type when `content_type` is omitted. |
+| `content` | string | Yes* | The file, base64 encoded. |
+| `path` | string | Yes* | Public `http` or `https` URL to fetch the file from. |
+| `content_type` | string | No | MIME type such as `application/pdf`. Inferred from the filename when omitted. |
+| `content_id` | string | No | Embeds the file inline. Reference it as `<img src="cid:...">`. `contentId` in the SDK. |
+
+\* Exactly one of `content` or `path`.
+
+## Limits
+
+- Up to 20 attachments per email.
+- 30 MB in total before base64 encoding. The request body may not exceed
+  43 MB, or the API answers `413` `payload_too_large`.
+- File types email providers refuse are rejected with `422`
+  `invalid_attachment`: executables, scripts and installers such as `.exe`,
+  `.bat`, `.cmd`, `.js`, `.vbs`, `.msi`, `.ps1` and `.scr`. Zip them if you
+  must send them.
+- [Send Batch](/email/send-batch) does not accept attachments. Send those
+  emails one at a time.
+
+## Download attachments
+
+Retransmit keeps each file for 30 days after the send so you can see what
+went out. Open the email in the dashboard and click the attachment, or ask the
+API for a signed link.
+
+```http
+GET /v1/emails/:id/attachments
+GET /v1/emails/:id/attachments/:attachmentId
+```
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data } = await retransmit.emails.attachments("em_xxxxxxxxxxxx");
+
+for (const attachment of data!.attachments) {
+  console.log(attachment.filename, attachment.download_url);
+}
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx/attachments \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+```
+</Tabs.Tab>
+</Tabs>
+
+`200 OK`
+
+```json
+{
+  "attachments": [
+    {
+      "id": "att_xxxxxxxxxxxx",
+      "filename": "invoice.pdf",
+      "content_type": "application/pdf",
+      "size": 48213,
+      "content_id": null,
+      "inline": false,
+      "expires_at": "2026-10-01T12:00:00.000Z",
+      "download_url": "https://retransmit-attachments-...amazonaws.com/...?X-Amz-Signature=..."
+    }
+  ]
+}
+```
+
+`download_url` is valid for one hour. Request the list again for a fresh
+link. After `expires_at` the file is deleted, `download_url` becomes `null`,
+and only the metadata remains. [Get Email](/email/get) returns the same
+metadata without links.
+
+## Errors
+
+| Status | Code | Cause |
+| --- | --- | --- |
+| `413` | `payload_too_large` | The request body is over 43 MB. |
+| `422` | `validation_error` | A field is malformed: missing `filename`, both or neither of `content` and `path`, a bad `content_id`. |
+| `422` | `invalid_attachment` | Blocked file type, over the size budget, invalid base64, or a `path` that could not be fetched. The message names the file. |
+| `404` | `not_found` | No such email or attachment on your account. |

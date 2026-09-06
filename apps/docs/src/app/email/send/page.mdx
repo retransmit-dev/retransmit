@@ -32,6 +32,7 @@ transient failures. For many emails at once, use [Send Batch](/email/send-batch)
 | `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
 | `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering in the dashboard and [List Emails](/email/list), e.g. `{ "name": "campaign", "value": "outreach-1" }`. Letters, digits, `_` and `-`, up to 256 characters each. Names must be unique per email. Tags are not sent to the recipient. |
 | `headers` | object | No | Custom message headers as `{ "Header-Name": "value" }`, up to 20. See [Custom headers](#custom-headers). |
+| `attachments` | array | No | Up to 20 files, 30 MB in total. Each has a `filename` and either `content` (base64) or `path` (public URL). See [Attachments](/email/attachments). |
 
 \* At least one of `html` or `text` is required. You can provide both.
 
@@ -215,7 +216,9 @@ fails, the status becomes `failed` with the provider error, and an
 | --- | --- | --- |
 | `400` | `invalid_json` | Body is not valid JSON. |
 | `400` | `invalid_idempotency_key` | `Idempotency-Key` is empty or longer than 256 characters. |
+| `413` | `payload_too_large` | The request body is over 43 MB. Attachments may total 30 MB before base64 encoding. |
 | `422` | `validation_error` | A field failed validation. The message names the field. |
+| `422` | `invalid_attachment` | An attachment has a blocked file type, is over the size budget, or its `path` could not be fetched. |
 | `403` | `domain_not_found` | The `from` domain is not registered on your account. |
 | `403` | `domain_not_verified` | The `from` domain exists but is not verified yet. |
 | `409` | `invalid_idempotent_request` | `Idempotency-Key` was already used with a different body. |
