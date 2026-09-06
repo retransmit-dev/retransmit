@@ -13,6 +13,8 @@ export const siteConfig = {
     apiReference: "https://docs.retransmit.dev/api-reference",
     webhooks: "https://docs.retransmit.dev/webhooks",
     github: "https://github.com/retransmit-dev/retransmit",
+    license: "https://github.com/retransmit-dev/retransmit/blob/main/LICENSE",
+    selfHost: "/#self-host",
     npm: "https://www.npmjs.com/package/retransmit.dev",
   },
 } as const;

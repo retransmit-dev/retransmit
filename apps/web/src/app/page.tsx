@@ -61,10 +61,11 @@ export default function Home() {
               <ArrowUpRight className="size-4" aria-hidden />
             </a>
           </div>
-          <a href={siteConfig.links.github} className="hero-source">
-            Open source / AGPL-3.0
-            <ArrowUpRight className="size-3" aria-hidden />
-          </a>
+          <p className="hero-source">
+            Or run it yourself. The whole stack is open source under AGPL-3.0.
+            No account needed.{" "}
+            <a href={siteConfig.links.github}>Clone it from GitHub</a>.
+          </p>
         </div>
         <div className="hero-example">
           <MessageDemo />
@@ -127,9 +128,55 @@ export default function Home() {
         </div>
       </section>
 
+      <section id="self-host" className="editorial-section">
+        <div className="editorial-section-heading">
+          <p className="editorial-label">03 / Cloud or self-hosted</p>
+          <h2>
+            Same API.
+            <br />
+            Your choice of who runs it.
+          </h2>
+          <p>The cloud runs the code in the repo. Same SDK either way.</p>
+        </div>
+        <div className="deployment-list">
+          <div>
+            <div className="deployment-title">
+              <h3>Retransmit Cloud</h3>
+              <span>Pay per message</span>
+            </div>
+            <p>
+              No AWS, Twilio, or Meta accounts. Top up a balance and send. No
+              subscription.
+            </p>
+            <a
+              href={siteConfig.links.app}
+              className="editorial-link"
+              data-wa-goal="start_signup"
+              data-wa-goal-placement="home_pricing"
+            >
+              Create an account
+              <ArrowUpRight className="size-4" aria-hidden />
+            </a>
+          </div>
+          <div>
+            <div className="deployment-title">
+              <h3>Self-hosted</h3>
+              <span>Free, AGPL-3.0</span>
+            </div>
+            <p>
+              Your servers, your provider accounts, your data. Nothing to pay.
+            </p>
+            <a href={siteConfig.links.github} className="editorial-link">
+              Get the source
+              <ArrowUpRight className="size-4" aria-hidden />
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section id="migrate" className="editorial-section">
         <div className="editorial-section-heading">
-          <p className="editorial-label">03 / Migration</p>
+          <p className="editorial-label">04 / Migration</p>
           <h2>
             Coming from Resend?
             <br />
@@ -145,52 +192,6 @@ export default function Home() {
           </Link>
         </div>
         <MigrationDemo />
-      </section>
-
-      <section id="pricing" className="editorial-section">
-        <div className="editorial-section-heading">
-          <p className="editorial-label">04 / Deployment</p>
-          <h2>
-            Hosted by us.
-            <br />
-            Or run by you.
-          </h2>
-        </div>
-        <div className="deployment-list">
-          <div>
-            <div className="deployment-title">
-              <h3>Retransmit Cloud</h3>
-              <span>Pay per send</span>
-            </div>
-            <p>
-              Prepaid credits. No subscription or seat fees. Top up by bank
-              transfer or mobile money.
-            </p>
-            <a
-              href={siteConfig.links.app}
-              className="editorial-link"
-              data-wa-goal="start_signup"
-              data-wa-goal-placement="home_pricing"
-            >
-              Create an account
-              <ArrowUpRight className="size-4" aria-hidden />
-            </a>
-          </div>
-          <div>
-            <div className="deployment-title">
-              <h3>Self-hosted</h3>
-              <span>Free software</span>
-            </div>
-            <p>
-              Run the API and dashboard on your servers. Bring your own provider
-              credentials.
-            </p>
-            <a href={siteConfig.links.github} className="editorial-link">
-              Get the source
-              <ArrowUpRight className="size-4" aria-hidden />
-            </a>
-          </div>
-        </div>
       </section>
 
       <section className="editorial-end">

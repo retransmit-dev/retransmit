@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { SyntaxCode, WindowDots } from "@/components/marketing/syntax-code";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const RESEND_SEND = [
@@ -14,10 +14,10 @@ const RESEND_SEND = [
   "const resend = new Resend(process.env.RESEND_API_KEY);",
   "",
   "const { data, error } = await resend.emails.send({",
-  '  from: "Acme <hello@acme.com>",',
-  '  to: "jane@example.com",',
-  '  subject: "Welcome to Acme",',
-  '  react: <WelcomeEmail name="Jane" />,',
+  '     from: "Acme <hello@acme.com>",',
+  '     to: "jane@example.com",',
+  '     subject: "Welcome to Acme",',
+  '     react: <WelcomeEmail name="Jane" />,',
   "});",
 ].join("\n");
 
@@ -29,10 +29,10 @@ const RETRANSMIT_SEND = [
   "const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);",
   "",
   "const { data, error } = await retransmit.emails.send({",
-  '  from: "Acme <hello@acme.com>",',
-  '  to: "jane@example.com",',
-  '  subject: "Welcome to Acme",',
-  '  html: await render(<WelcomeEmail name="Jane" />),',
+  '     from: "Acme <hello@acme.com>",',
+  '     to: "jane@example.com",',
+  '     subject: "Welcome to Acme",',
+  '     html: await render(<WelcomeEmail name="Jane" />),',
   "});",
 ].join("\n");
 
@@ -48,11 +48,11 @@ const REACT_EMAIL_RENDER = [
   "const text = await render(email, { plainText: true });",
   "",
   "await retransmit.emails.send({",
-  '  from: "Acme <hello@acme.com>",',
-  '  to: "jane@example.com",',
-  '  subject: "Welcome to Acme",',
-  "  html,",
-  "  text,",
+  '     from: "Acme <hello@acme.com>",',
+  '     to: "jane@example.com",',
+  '     subject: "Welcome to Acme",',
+  "     html,",
+  "     text,",
   "});",
 ].join("\n");
 
@@ -71,7 +71,6 @@ const TABS = [
     code: REACT_EMAIL_RENDER,
   },
 ] as const;
-
 
 function CodePane({
   file,

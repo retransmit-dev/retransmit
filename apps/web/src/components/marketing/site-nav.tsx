@@ -49,7 +49,7 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-18 max-w-6xl items-center justify-between gap-3 px-5 sm:px-6">
+      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-3 px-5 sm:px-6">
         <Wordmark />
         <NavigationMenu
           aria-label="Main navigation"
@@ -126,6 +126,13 @@ export function SiteNav() {
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
+              <NavigationMenuLink
+                render={<Link href={siteConfig.links.selfHost} />}
+              >
+                Self-host
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
               <NavigationMenuLink href={siteConfig.links.docs}>
                 Docs
               </NavigationMenuLink>
@@ -195,6 +202,13 @@ export function SiteNav() {
                   onClick={() => setMobileOpen(false)}
                 >
                   Compare
+                </Link>
+                <Link
+                  href={siteConfig.links.selfHost}
+                  className="rounded-lg p-3 hover:bg-muted"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Self-host
                 </Link>
                 <a
                   href={siteConfig.links.docs}

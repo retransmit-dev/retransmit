@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { ProductIcon } from "@/components/marketing/product-icon";
+import { SyntaxCode, WindowDots } from "@/components/marketing/syntax-code";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AVAILABLE_PRODUCTS, type Product } from "@/lib/products";
+import { siteConfig } from "@/lib/site";
 import {
   ArrowDown,
   ArrowRight,
@@ -10,11 +14,7 @@ import {
   Copy,
   Radio,
 } from "lucide-react";
-import { SyntaxCode, WindowDots } from "@/components/marketing/syntax-code";
-import { ProductIcon } from "@/components/marketing/product-icon";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { siteConfig } from "@/lib/site";
-import { AVAILABLE_PRODUCTS, type Product } from "@/lib/products";
+import { useState } from "react";
 
 export function MessageExample({ product }: { product: Product }) {
   const example = product.example;
@@ -116,15 +116,15 @@ function SendExample({ product }: { product: Product }) {
     'import { Retransmit } from "retransmit.dev";',
     "",
     "const client = new Retransmit(",
-    "  process.env.RETRANSMIT_API_KEY",
+    "     process.env.RETRANSMIT_API_KEY",
     ");",
     "",
     "const { data, error } =",
-    `  await client.${example.method}({`,
+    `       await client.${example.method}({`,
     ...example.fields.map(
-      (field) => `    ${field.name}: ${JSON.stringify(field.value)},`,
+      (field) => `       ${field.name}: ${JSON.stringify(field.value)},`,
     ),
-    "  });",
+    "});",
   ].join("\n");
 
   async function copyExample() {

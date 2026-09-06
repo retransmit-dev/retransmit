@@ -248,7 +248,7 @@
 }
 
 .marketing-section {
-  max-width: 1152px;
+  max-width: 1280px;
   margin-inline: auto;
   padding: 64px 24px;
 }
@@ -477,7 +477,7 @@
 
 /* Homepage: a flat, typographic layout with the API example above the fold. */
 .home-editorial {
-  max-width: 1152px;
+  max-width: 1280px;
   margin-inline: auto;
   padding-inline: 24px;
 }
@@ -490,7 +490,7 @@
 .editorial-label {
   font-family: var(--font-mono);
   color: var(--muted-foreground);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.6;
 }
 .hero-copy h1 {
@@ -504,10 +504,10 @@
   color: var(--muted-foreground);
 }
 .hero-description {
-  max-width: 32ch;
+  max-width: 34ch;
   margin-top: 28px;
   color: var(--muted-foreground);
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.65;
 }
 .hero-actions {
@@ -521,7 +521,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   text-underline-offset: 5px;
 }
@@ -529,16 +529,20 @@
   text-decoration: underline;
 }
 .hero-source {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 34px;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  max-width: 36ch;
+  margin-top: 30px;
+  font-size: 15px;
+  line-height: 1.65;
   color: var(--muted-foreground);
 }
-.hero-source:hover {
+.hero-source a {
   color: var(--foreground);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.hero-source a:hover {
+  color: var(--primary);
 }
 .hero-example {
   min-width: 0;
@@ -634,10 +638,10 @@
   letter-spacing: -0.035em;
 }
 .editorial-section-heading > p:not(.editorial-label) {
-  max-width: 30ch;
+  max-width: 32ch;
   margin-top: 16px;
   color: var(--muted-foreground);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.7;
 }
 .editorial-section-heading .editorial-link {
@@ -667,14 +671,14 @@
   padding-bottom: 0;
 }
 .channel-row h3 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.02em;
 }
 .channel-row p {
-  max-width: 27ch;
+  max-width: 30ch;
   color: var(--muted-foreground);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.6;
 }
 .channel-row-icon {
@@ -690,7 +694,7 @@
 .channel-soon {
   justify-self: end;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted-foreground);
 }
 .channel-row:hover h3,
@@ -709,7 +713,7 @@
 }
 .infrastructure-list h3,
 .deployment-title h3 {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 500;
   letter-spacing: -0.015em;
 }
@@ -717,8 +721,8 @@
 .deployment-list p {
   margin-top: 12px;
   color: var(--muted-foreground);
-  font-size: 13px;
-  line-height: 1.75;
+  font-size: 15px;
+  line-height: 1.7;
 }
 .deployment-list {
   display: grid;
@@ -732,7 +736,7 @@
 }
 .deployment-title > span {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted-foreground);
 }
 .deployment-list .editorial-link {
@@ -800,7 +804,7 @@
   .hero-description {
     max-width: 34ch;
     margin-top: 22px;
-    font-size: 15px;
+    font-size: 17px;
   }
   .hero-source {
     margin-top: 24px;
@@ -825,7 +829,7 @@
     gap: 12px;
   }
   .channel-row p {
-    font-size: 12px;
+    font-size: 14px;
   }
   .deployment-list {
     grid-template-columns: 1fr;

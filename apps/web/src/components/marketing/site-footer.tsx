@@ -18,7 +18,9 @@ const COLUMNS = [
   {
     title: "Open source",
     links: [
+      { label: "Self-hosting", href: siteConfig.links.selfHost },
       { label: "GitHub", href: siteConfig.links.github },
+      { label: "License: AGPL-3.0", href: siteConfig.links.license },
       { label: "npm: retransmit.dev", href: siteConfig.links.npm },
     ],
   },
@@ -32,7 +34,7 @@ const LEGAL_PAGES = pagesInGroup("legal");
 export function SiteFooter() {
   return (
     <footer className="border-t border-border/60">
-      <div className="mx-auto max-w-6xl px-4 py-12">
+      <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="flex flex-col justify-between gap-10">
           <div className="max-w-xs">
             <p className="font-heading text-lg font-extrabold tracking-tight">
