@@ -7,6 +7,7 @@ import { and, eq } from "drizzle-orm";
 import { decryptSecret, encryptSecret } from "./crypto";
 import {
   exchangeCode,
+  extendUserToken,
   fetchPhoneNumber,
   generatePin,
   registerPhoneNumber,
@@ -149,6 +150,95 @@ export async function connectAccount(input: ConnectInput): Promise<WhatsappAccou
         .values({ id: createId("wab"), source: "embedded_signup", ...values })
         .returning();
   if (!row) throw new Error("Could not store the WhatsApp account");
+  return row;
+}
+
+export interface SandboxConfig {
+  phoneNumberId: string;
+  wabaId: string;
+  /** Whether `WHATSAPP_META_TEST_ACCESS_TOKEN` is set, so the form can leave the token blank. */
+  hasAccessToken: boolean;
+}
+
+/**
+ * Meta's sandbox number for this app, from `WHATSAPP_META_TEST_PHONE_NUMBER_ID`
+ * and `WHATSAPP_META_TEST_WABA_ID` (App Dashboard → WhatsApp → API Setup).
+ * Null when unset, which hides the sandbox connect control in the dashboard.
+ */
+export function sandboxConfig(): SandboxConfig | null {
+  const phoneNumberId = process.env.WHATSAPP_META_TEST_PHONE_NUMBER_ID;
+  const wabaId = process.env.WHATSAPP_META_TEST_WABA_ID;
+  if (!phoneNumberId || !wabaId) return null;
+  return {
+    phoneNumberId,
+    wabaId,
+    hasAccessToken: Boolean(process.env.WHATSAPP_META_TEST_ACCESS_TOKEN),
+  };
+}
+
+export interface ConnectSandboxInput {
+  organizationId: string;
+  userId: string;
+  /** Falls back to `WHATSAPP_META_TEST_ACCESS_TOKEN` when empty. */
+  accessToken?: string | null;
+}
+
+/**
+ * Connects Meta's sandbox number as a regular account so the normal send
+ * path (API, queue, templates, webhooks) can be exercised before the app has
+ * a customer number. Embedded Signup cannot reach it: the test WABA belongs
+ * to our app, not to a business portfolio. Meta pre-registers test numbers,
+ * so there is no PIN step. The token is whatever the caller pastes, usually
+ * the 24 hour one from API Setup; it is exchanged for a 60 day one before
+ * being stored. Connecting again with a fresh token refreshes the stored one.
+ */
+export async function connectSandboxAccount(input: ConnectSandboxInput): Promise<WhatsappAccountRow> {
+  const config = sandboxConfig();
+  if (!config) throw new Error("WHATSAPP_META_TEST_PHONE_NUMBER_ID and WHATSAPP_META_TEST_WABA_ID are not set");
+  const pasted = input.accessToken?.trim() || process.env.WHATSAPP_META_TEST_ACCESS_TOKEN;
+  if (!pasted) throw new Error("Paste an access token from Meta's API Setup page");
+
+  const [existing] = await db
+    .select()
+    .from(whatsappAccount)
+    .where(
+      and(eq(whatsappAccount.provider, "meta"), eq(whatsappAccount.phoneNumberId, config.phoneNumberId)),
+    );
+  if (existing && existing.organizationId !== input.organizationId) {
+    throw new WhatsappAccountError(
+      "conflict",
+      "The sandbox number is already connected to another Retransmit organization",
+    );
+  }
+
+  // Also validates the token: an expired one fails here with Meta's message.
+  const details = await fetchPhoneNumber(config.phoneNumberId, pasted);
+  const { token } = await extendUserToken(pasted);
+  await subscribeApp(config.wabaId, token);
+
+  const values = {
+    organizationId: input.organizationId,
+    userId: input.userId,
+    provider: "meta",
+    wabaId: config.wabaId,
+    phoneNumberId: config.phoneNumberId,
+    phoneNumber: toE164(details.displayPhoneNumber),
+    verifiedName: details.verifiedName,
+    qualityRating: details.qualityRating,
+    accessToken: encryptSecret(token),
+    pin: null,
+    status: "active" as const,
+    error: null,
+    lastSyncedAt: new Date(),
+  };
+
+  const [row] = existing
+    ? await db.update(whatsappAccount).set(values).where(eq(whatsappAccount.id, existing.id)).returning()
+    : await db
+        .insert(whatsappAccount)
+        .values({ id: createId("wab"), source: "sandbox", ...values })
+        .returning();
+  if (!row) throw new Error("Could not store the sandbox account");
   return row;
 }
 

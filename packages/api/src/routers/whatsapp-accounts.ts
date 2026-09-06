@@ -3,8 +3,10 @@ import { whatsappAccount } from "@retransmit/db/schema/whatsapp";
 import {
   WhatsappAccountError,
   connectAccount,
+  connectSandboxAccount,
   disconnectAccount,
   publicAccount,
+  sandboxConfig,
   syncAccount,
 } from "@retransmit/whatsapp/accounts";
 import { embeddedSignupConfig } from "@retransmit/whatsapp/meta-signup";
@@ -75,6 +77,35 @@ export const whatsappAccountRouter = router({
           organizationId: ctx.org.id,
           userId: ctx.session.user.id,
           ...input,
+        });
+        return publicAccount(row);
+      } catch (cause) {
+        rethrow(cause);
+      }
+    }),
+
+  /** Meta's sandbox number for this deployment; `null` when none is configured. */
+  sandboxConfig: orgProcedure.query(() => sandboxConfig()),
+
+  /**
+   * Connects the sandbox number with a pasted token (or the env one). Dev
+   * only in practice: production has no WHATSAPP_META_TEST_* vars.
+   */
+  connectSandbox: orgProcedure
+    .input(z.object({ accessToken: z.string().trim().max(4096).optional() }))
+    .mutation(async ({ ctx, input }) => {
+      assertOrgAdmin(ctx.org);
+      if (!sandboxConfig()) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "No sandbox number is configured on this deployment",
+        });
+      }
+      try {
+        const row = await connectSandboxAccount({
+          organizationId: ctx.org.id,
+          userId: ctx.session.user.id,
+          accessToken: input.accessToken,
         });
         return publicAccount(row);
       } catch (cause) {

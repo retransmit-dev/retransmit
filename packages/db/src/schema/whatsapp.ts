@@ -10,11 +10,12 @@ export type WhatsappAccountStatus = (typeof WHATSAPP_ACCOUNT_STATUSES)[number];
 
 /**
  * How the number came to be on the account. `embedded_signup` is a number the
- * customer owns and verified through Meta's Embedded Signup; `provisioned` is
- * reserved for numbers Retransmit buys and registers on the customer's
- * behalf (not built yet).
+ * customer owns and verified through Meta's Embedded Signup; `sandbox` is the
+ * test number Meta gives our app, connected by pasting a token (dev only);
+ * `provisioned` is reserved for numbers Retransmit buys and registers on the
+ * customer's behalf (not built yet).
  */
-export const WHATSAPP_ACCOUNT_SOURCES = ["embedded_signup", "provisioned"] as const;
+export const WHATSAPP_ACCOUNT_SOURCES = ["embedded_signup", "sandbox", "provisioned"] as const;
 export type WhatsappAccountSource = (typeof WHATSAPP_ACCOUNT_SOURCES)[number];
 
 /**

@@ -88,6 +88,11 @@ export function WhatsappAccountsTable({
                     Retransmit number
                   </Badge>
                 )}
+                {row.source === "sandbox" && (
+                  <Badge variant="outline" className="ml-2">
+                    Meta test number
+                  </Badge>
+                )}
               </div>
             </TableCell>
             <TableCell>

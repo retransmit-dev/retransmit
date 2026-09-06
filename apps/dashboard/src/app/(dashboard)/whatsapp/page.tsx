@@ -9,6 +9,7 @@ export const metadata = navMetadata("/whatsapp");
 export default function WhatsappPage() {
   batchPrefetch([
     trpc.whatsappAccount.signupConfig.queryOptions(),
+    trpc.whatsappAccount.sandboxConfig.queryOptions(),
     trpc.whatsappAccount.list.queryOptions(),
   ]);
 

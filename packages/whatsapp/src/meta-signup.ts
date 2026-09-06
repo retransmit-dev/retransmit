@@ -81,6 +81,29 @@ export async function exchangeCode(code: string): Promise<string> {
   return body.access_token;
 }
 
+/**
+ * Extends a short lived user token (the 24 hour one from App Dashboard →
+ * API Setup) to a long lived one, about 60 days. Returns the input token
+ * unchanged when Meta will not exchange it, e.g. a system user token that
+ * never expires anyway.
+ */
+export async function extendUserToken(token: string): Promise<{ token: string; expiresIn: number | null }> {
+  try {
+    const body = await graph<{ access_token?: string; expires_in?: number }>("oauth/access_token", {
+      query: {
+        grant_type: "fb_exchange_token",
+        client_id: process.env.WHATSAPP_META_APP_ID ?? "",
+        client_secret: process.env.WHATSAPP_META_APP_SECRET ?? "",
+        fb_exchange_token: token,
+      },
+    });
+    if (!body.access_token) return { token, expiresIn: null };
+    return { token: body.access_token, expiresIn: body.expires_in ?? null };
+  } catch {
+    return { token, expiresIn: null };
+  }
+}
+
 /** Subscribes Retransmit's app to the WABA's webhooks. Idempotent. */
 export async function subscribeApp(wabaId: string, token: string): Promise<void> {
   await graph(`${encodeURIComponent(wabaId)}/subscribed_apps`, { method: "POST", token });

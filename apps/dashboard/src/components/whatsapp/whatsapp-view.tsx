@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { toast } from "sonner";
 
+import { ConnectSandboxDialog } from "./connect-sandbox-dialog";
 import { WhatsappAccountsTable } from "./whatsapp-accounts-table";
 
 /**
@@ -24,6 +25,7 @@ import { WhatsappAccountsTable } from "./whatsapp-accounts-table";
 export function WhatsappView() {
   const queryClient = useQueryClient();
   const config = useQuery(trpc.whatsappAccount.signupConfig.queryOptions());
+  const sandbox = useQuery(trpc.whatsappAccount.sandboxConfig.queryOptions());
 
   const connectMutation = useMutation(
     trpc.whatsappAccount.connect.mutationOptions({
@@ -58,13 +60,16 @@ export function WhatsappView() {
   const configured = config.data !== null && config.data !== undefined;
   const busy = signup.running || connectMutation.isPending;
   const connectButton = (
-    <Button
-      onClick={signup.start}
-      disabled={!configured || !signup.ready || busy}
-    >
-      {busy ? <Spinner /> : <PlusIcon />}
-      Connect a number
-    </Button>
+    <>
+      {sandbox.data && <ConnectSandboxDialog config={sandbox.data} />}
+      <Button
+        onClick={signup.start}
+        disabled={!configured || !signup.ready || busy}
+      >
+        {busy ? <Spinner /> : <PlusIcon />}
+        Connect a number
+      </Button>
+    </>
   );
 
   return (
