@@ -2,6 +2,7 @@
 
 import { EmailStatusBadge } from "@/components/status-badges";
 import { TableSkeleton } from "@/components/table-skeleton";
+import { Button } from "@/components/ui/button";
 import {
   Empty,
   EmptyDescription,
@@ -10,6 +11,11 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Gauge } from "@/components/ui/gauge";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+} from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -22,24 +28,28 @@ import type { RouterOutputs } from "@/lib/api-types";
 import { BATCHES_LIMIT } from "@/lib/batches";
 import { formatDateTime } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
-import { useQuery } from "@tanstack/react-query";
-import { LayersIcon } from "lucide-react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { ChevronLeftIcon, ChevronRightIcon, LayersIcon } from "lucide-react";
+import { useState } from "react";
 
 /** Polls every few seconds so a running batch visibly drains. */
 const LIVE_REFETCH_MS = 4000;
 
 export function BatchesTable() {
+  /** Stack of page cursors; the last entry is the current page's cursor. */
+  const [cursors, setCursors] = useState<Date[]>([]);
   const batches = useQuery(
     trpc.email.batches.queryOptions(
-      { limit: BATCHES_LIMIT },
-      { refetchInterval: LIVE_REFETCH_MS },
+      { limit: BATCHES_LIMIT, cursor: cursors[cursors.length - 1] },
+      { refetchInterval: LIVE_REFETCH_MS, placeholderData: keepPreviousData },
     ),
   );
-  const rows = batches.data ?? [];
+  const rows = batches.data?.items ?? [];
+  const nextCursor = batches.data?.nextCursor;
 
   if (batches.isLoading) return <TableSkeleton />;
 
-  if (rows.length === 0) {
+  if (rows.length === 0 && cursors.length === 0) {
     return (
       <Empty className="border py-16">
         <EmptyHeader>
@@ -56,28 +66,67 @@ export function BatchesTable() {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">Progress</TableHead>
-            <TableHead>Batch</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="text-right">Processed</TableHead>
-            <TableHead>Statuses</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((batch) => (
-            <BatchRow key={batch.id} batch={batch} />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">Progress</TableHead>
+              <TableHead>Batch</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Processed</TableHead>
+              <TableHead>Statuses</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((batch) => (
+              <BatchRow key={batch.id} batch={batch} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {(cursors.length > 0 || nextCursor) && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={cursors.length === 0 || batches.isPlaceholderData}
+                onClick={() => setCursors((stack) => stack.slice(0, -1))}
+              >
+                <ChevronLeftIcon />
+                Previous
+              </Button>
+            </PaginationItem>
+            <PaginationItem>
+              <span className="px-2 text-sm text-muted-foreground">
+                Page {cursors.length + 1}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!nextCursor || batches.isPlaceholderData}
+                onClick={() =>
+                  nextCursor &&
+                  setCursors((stack) => [...stack, new Date(nextCursor)])
+                }
+              >
+                Next
+                <ChevronRightIcon />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
+    </>
   );
 }
 
-type Batch = RouterOutputs["email"]["batches"][number];
+type Batch = RouterOutputs["email"]["batches"]["items"][number];
 
 function BatchRow({ batch }: { batch: Batch }) {
   const pct =

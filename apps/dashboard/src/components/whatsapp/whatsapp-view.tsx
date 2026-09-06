@@ -5,11 +5,11 @@ import { PageHeader } from "@/components/page-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { useEmbeddedSignup } from "@/hooks/use-embedded-signup";
 import type { SignupResult } from "@/hooks/use-embedded-signup";
+import { useEmbeddedSignup } from "@/hooks/use-embedded-signup";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FlaskConicalIcon, LayoutTemplateIcon, PlusIcon } from "lucide-react";
+import { LayoutTemplateIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { toast } from "sonner";
@@ -44,7 +44,8 @@ export function WhatsappView() {
             appId: config.data.appId,
             configId: config.data.configId,
             apiVersion: config.data.apiVersion,
-            onComplete: (result: SignupResult) => connectMutation.mutate(result),
+            onComplete: (result: SignupResult) =>
+              connectMutation.mutate(result),
             onCancel: () => toast.info("WhatsApp signup closed"),
             onError: (message: string) => toast.error(message),
           }
@@ -57,7 +58,10 @@ export function WhatsappView() {
   const configured = config.data !== null && config.data !== undefined;
   const busy = signup.running || connectMutation.isPending;
   const connectButton = (
-    <Button onClick={signup.start} disabled={!configured || !signup.ready || busy}>
+    <Button
+      onClick={signup.start}
+      disabled={!configured || !signup.ready || busy}
+    >
       {busy ? <Spinner /> : <PlusIcon />}
       Connect a number
     </Button>
@@ -77,14 +81,14 @@ export function WhatsappView() {
               <LayoutTemplateIcon />
               Templates
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               nativeButton={false}
               render={<Link href="/whatsapp/test" />}
             >
               <FlaskConicalIcon />
               Test send
-            </Button>
+            </Button> */}
             {connectButton}
           </>
         }

@@ -55,17 +55,31 @@ export const emailRouter = router({
     return { counts, total };
   }),
 
-  /** Recent batches with per-status progress. */
+  /** Batches with per-status progress, newest first, cursor-paginated by createdAt. */
   batches: protectedProcedure
-    .input(z.object({ limit: z.number().int().min(1).max(50).default(10) }).default({ limit: 10 }))
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(50).default(10),
+          cursor: z.coerce.date().optional(),
+        })
+        .default({ limit: 10 }),
+    )
     .query(async ({ ctx, input }) => {
-      const rows = await db
+      const conditions: (SQL | undefined)[] = [eq(emailBatch.userId, ctx.session.user.id)];
+      if (input.cursor) conditions.push(lt(emailBatch.createdAt, input.cursor));
+
+      const page = await db
         .select()
         .from(emailBatch)
-        .where(eq(emailBatch.userId, ctx.session.user.id))
+        .where(and(...conditions))
         .orderBy(desc(emailBatch.createdAt))
-        .limit(input.limit);
-      if (rows.length === 0) return [];
+        .limit(input.limit + 1);
+
+      const hasMore = page.length > input.limit;
+      const rows = hasMore ? page.slice(0, input.limit) : page;
+      const nextCursor = hasMore ? rows[rows.length - 1]?.createdAt : undefined;
+      if (rows.length === 0) return { items: [], nextCursor: undefined };
 
       const grouped = await db
         .select({ batchId: email.batchId, status: email.status, count: count() })
@@ -78,7 +92,7 @@ export const emailRouter = router({
         )
         .groupBy(email.batchId, email.status);
 
-      return rows.map((batch) => {
+      const items = rows.map((batch) => {
         const counts: Partial<Record<EmailStatus, number>> = {};
         let processed = 0;
         for (const group of grouped) {
@@ -90,6 +104,7 @@ export const emailRouter = router({
         }
         return { id: batch.id, total: batch.total, createdAt: batch.createdAt, processed, counts };
       });
+      return { items, nextCursor };
     }),
   /**
    * Distinct tag name/value pairs across the user's emails, for the filter
