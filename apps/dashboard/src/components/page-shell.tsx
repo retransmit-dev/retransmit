@@ -14,19 +14,18 @@ import type { ReactNode } from "react";
  *
  * The column fills whatever the inset gives it, so collapsing the sidebar
  * hands the freed space to the page. Only past the `size` cap does it stop
- * growing and centre, so on a very wide monitor the content sits in the
- * middle rather than hugging the sidebar with a void on the right. The cap
- * is a plain width, not a breakpoint: what matters is the space left after
- * the sidebar, which no viewport query can see.
+ * growing and centre, so on a wide monitor the content sits in the middle
+ * rather than hugging the sidebar with a void on the right. The cap is a
+ * plain width, not a breakpoint: what matters is the space left after the
+ * sidebar, which no viewport query can see.
  */
 
 const widths = {
   /**
-   * Lists, tables, dashboards — most screens. Wide enough that a 1440px
-   * display with the sidebar collapsed, or a 1920px one with it open, still
-   * uses the whole inset.
+   * Lists, tables, dashboards — most screens. A scaled 14" or 16" MacBook
+   * display fills this with the sidebar open and centres it collapsed.
    */
-  default: "max-w-[100rem]",
+  default: "max-w-7xl",
   /** Prose and forms, where a short measure reads better. */
   narrow: "max-w-3xl",
   /** Wide tables and split layouts that need the whole inset. */
