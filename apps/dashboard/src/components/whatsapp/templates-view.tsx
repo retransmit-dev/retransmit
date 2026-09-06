@@ -24,6 +24,18 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -43,9 +55,17 @@ import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@retransmit/api/routers/index";
-import { ArrowLeftIcon, EyeIcon, LayoutTemplateIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  EyeIcon,
+  LayoutTemplateIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  SearchIcon,
+  Trash2Icon,
+} from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { placeholdersIn, previewFromComponents } from "./template-draft";
@@ -59,11 +79,28 @@ const CATEGORY_LABEL: Record<string, string> = {
   authentication: "Authentication",
 };
 
+const CATEGORY_ITEMS = [
+  { value: "all", label: "All categories" },
+  ...Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label })),
+];
+
 export function TemplatesView() {
   const queryClient = useQueryClient();
   const templates = useQuery(trpc.whatsappTemplate.list.queryOptions());
   const accounts = useQuery(trpc.whatsappAccount.list.queryOptions());
   const [selected, setSelected] = useState<TemplateRow | null>(null);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+
+  const filtered = useMemo(() => {
+    const rows = templates.data ?? [];
+    const query = search.trim().toLowerCase();
+    return rows.filter(
+      (row) =>
+        (category === "all" || row.category === category) &&
+        (query === "" || row.name.toLowerCase().includes(query)),
+    );
+  }, [templates.data, search, category]);
 
   const syncMutation = useMutation(
     trpc.whatsappTemplate.sync.mutationOptions({
@@ -125,54 +162,105 @@ export function TemplatesView() {
           <div className="flex gap-2">{newButton}</div>
         </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Template</TableHead>
-              <TableHead className="hidden sm:table-cell">Category</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Updated</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {templates.data.map((row) => (
-              <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
-                <TableCell>
-                  <div className="font-mono text-sm font-medium">{row.name}</div>
-                  <div className="text-xs text-muted-foreground">{row.language}</div>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  <Badge variant="secondary">{CATEGORY_LABEL[row.category] ?? row.category}</Badge>
-                </TableCell>
-                <TableCell>
-                  <WhatsappTemplateStatusBadge status={row.status} />
-                  {row.rejectedReason && (
-                    <div className="mt-1 max-w-xs truncate text-xs text-muted-foreground" title={row.rejectedReason}>
-                      {row.rejectedReason}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="hidden text-muted-foreground md:table-cell">
-                  {formatDate(row.updatedAt)}
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Preview ${row.name}`}
-                      onClick={() => setSelected(row)}
-                    >
-                      <EyeIcon className="size-4" />
-                    </Button>
-                    <DeleteTemplateDialog template={row} />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <InputGroup className="min-w-64 flex-1 sm:max-w-sm">
+              <InputGroupInput
+                placeholder="Search templates..."
+                aria-label="Search templates"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <InputGroupAddon>
+                <SearchIcon />
+              </InputGroupAddon>
+            </InputGroup>
+            <Select
+              items={CATEGORY_ITEMS}
+              value={category}
+              onValueChange={(value) => setCategory(value as string)}
+            >
+              <SelectTrigger className="w-40" aria-label="Category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORY_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {filtered.length === 0 ? (
+            <Empty className="border py-16">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <SearchIcon />
+                </EmptyMedia>
+                <EmptyTitle>No templates match</EmptyTitle>
+              </EmptyHeader>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            </Empty>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Template</TableHead>
+                  <TableHead className="hidden sm:table-cell">Category</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Updated</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((row) => (
+                  <TableRow key={row.id} className="cursor-pointer" onClick={() => setSelected(row)}>
+                    <TableCell>
+                      <div className="font-mono text-sm font-medium">{row.name}</div>
+                      <div className="text-xs text-muted-foreground">{row.language}</div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant="secondary">{CATEGORY_LABEL[row.category] ?? row.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <WhatsappTemplateStatusBadge status={row.status} />
+                      {row.rejectedReason && (
+                        <div className="mt-1 max-w-xs truncate text-xs text-muted-foreground" title={row.rejectedReason}>
+                          {row.rejectedReason}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground md:table-cell">
+                      {formatDate(row.updatedAt)}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Preview ${row.name}`}
+                          onClick={() => setSelected(row)}
+                        >
+                          <EyeIcon className="size-4" />
+                        </Button>
+                        <DeleteTemplateDialog template={row} />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       )}
 
       <Sheet open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
