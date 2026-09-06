@@ -7,14 +7,28 @@ your business name and replies come back to you.
 ## Connect a number
 
 Open **WhatsApp** in the dashboard and click **Connect a number**. Meta's
-signup dialog walks you through logging in with Facebook, picking or creating
-your business, and verifying a phone number by SMS or voice call. No Meta
-developer account or code is needed.
-
-A number can only belong to one WhatsApp app at a time. If it is in use in
-the WhatsApp or WhatsApp Business app, remove it there first. Most
+signup dialog walks you through logging in with Facebook and picking or
+creating your business. No Meta developer account or code is needed. Most
 organizations connect one number. If you connect several, pass `from` when
 sending.
+
+There are two ways to add the number.
+
+**A new number.** Meta verifies it by SMS or voice call. The number must not
+be in use in the WhatsApp or WhatsApp Business app.
+
+**The number you already use in the WhatsApp Business app.** Choose that
+option in the dialog and scan the QR code with your phone. The number keeps
+working in the app, with your chats and contacts, and Retransmit sends from
+it as well. Meta calls this Coexistence. It needs WhatsApp Business app
+2.24.17 or newer, and a few things change on the phone: linked companion
+devices are unlinked, and disappearing messages, view once, live location and
+broadcast lists are turned off in one-to-one chats. Meta limits these numbers
+to a lower send rate than a dedicated number. Messages you send from the app
+do not appear in the Retransmit log.
+
+To unlink a WhatsApp Business app number, open Settings, Account, Business
+Platform in the app. Retransmit marks it disconnected when Meta tells us.
 
 ## Send a message
 

@@ -57,7 +57,8 @@ export function WhatsappAccountsTable({
           </EmptyMedia>
           <EmptyTitle>No WhatsApp number yet</EmptyTitle>
           <EmptyDescription>
-            Connect and verify a number through Meta.
+            Connect a new number, or the one you already use in the WhatsApp
+            Business app.
           </EmptyDescription>
         </EmptyHeader>
         {connectButton}
@@ -83,6 +84,11 @@ export function WhatsappAccountsTable({
               <div className="font-medium">{row.phoneNumber}</div>
               <div className="text-xs text-muted-foreground">
                 {row.verifiedName ?? "No display name yet"}
+                {row.source === "business_app" && (
+                  <Badge variant="outline" className="ml-2">
+                    WhatsApp Business app
+                  </Badge>
+                )}
                 {row.source === "provisioned" && (
                   <Badge variant="outline" className="ml-2">
                     Retransmit number

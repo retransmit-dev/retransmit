@@ -15,8 +15,17 @@ import { describeMetaError, graphBaseUrl, metaApiVersion } from "./providers/met
  * 2. `subscribeApp` — subscribe our app to the WABA so its webhooks
  *    (statuses, inbound messages) reach /v1/callbacks/whatsapp/meta.
  * 3. `registerPhoneNumber` — register the number for Cloud API sending with
- *    a two-step verification PIN.
+ *    a two-step verification PIN. Skipped for numbers that came through the
+ *    WhatsApp Business app path: the app already registered them and Meta
+ *    rejects a second registration.
  * 4. `fetchPhoneNumber` — display number, verified name, quality rating.
+ *
+ * Numbers connected through the WhatsApp Business app (Meta's Coexistence
+ * flow, https://developers.facebook.com/documentation/business-messaging/whatsapp/embedded-signup/onboarding-business-app-users/)
+ * keep working in the app. The dialog returns only the WABA id for them, so
+ * `listPhoneNumbers` finds the number, and `requestBusinessAppSync` asks
+ * Meta to stream the app's contacts and message history to our webhook,
+ * which Meta requires within 24 hours of onboarding.
  *
  * App-level env: WHATSAPP_META_APP_ID, WHATSAPP_META_APP_SECRET, and
  * WHATSAPP_META_SIGNUP_CONFIG_ID (the Embedded Signup configuration id shown
@@ -137,25 +146,79 @@ export interface MetaPhoneNumber {
   qualityRating: string | null;
   /** VERIFIED once the customer completed SMS/voice verification. */
   codeVerificationStatus: string | null;
+  /** True when the number is also in use in the WhatsApp Business app. */
+  isOnBusinessApp: boolean;
+  /** CLOUD_API once Meta serves the number through the Cloud API. */
+  platformType: string | null;
 }
 
-export async function fetchPhoneNumber(phoneNumberId: string, token: string): Promise<MetaPhoneNumber> {
-  const body = await graph<{
-    display_phone_number?: string;
-    verified_name?: string;
-    quality_rating?: string;
-    code_verification_status?: string;
-  }>(encodeURIComponent(phoneNumberId), {
-    token,
-    query: { fields: "display_phone_number,verified_name,quality_rating,code_verification_status" },
-  });
+interface GraphPhoneNumber {
+  id?: string;
+  display_phone_number?: string;
+  verified_name?: string;
+  quality_rating?: string;
+  code_verification_status?: string;
+  is_on_biz_app?: boolean;
+  platform_type?: string;
+}
+
+const PHONE_NUMBER_FIELDS =
+  "id,display_phone_number,verified_name,quality_rating,code_verification_status,is_on_biz_app,platform_type";
+
+function toPhoneNumber(body: GraphPhoneNumber): MetaPhoneNumber {
   if (!body.display_phone_number) throw new Error("Meta returned no display_phone_number");
   return {
     displayPhoneNumber: body.display_phone_number,
     verifiedName: body.verified_name ?? null,
     qualityRating: body.quality_rating ?? null,
     codeVerificationStatus: body.code_verification_status ?? null,
+    isOnBusinessApp: body.is_on_biz_app === true,
+    platformType: body.platform_type ?? null,
   };
+}
+
+export async function fetchPhoneNumber(phoneNumberId: string, token: string): Promise<MetaPhoneNumber> {
+  const body = await graph<GraphPhoneNumber>(encodeURIComponent(phoneNumberId), {
+    token,
+    query: { fields: PHONE_NUMBER_FIELDS },
+  });
+  return toPhoneNumber(body);
+}
+
+/** Every number on a WABA, with the same fields as `fetchPhoneNumber`. */
+export async function listPhoneNumbers(
+  wabaId: string,
+  token: string,
+): Promise<(MetaPhoneNumber & { id: string })[]> {
+  const body = await graph<{ data?: GraphPhoneNumber[] }>(`${encodeURIComponent(wabaId)}/phone_numbers`, {
+    token,
+    query: { fields: PHONE_NUMBER_FIELDS },
+  });
+  return (body.data ?? [])
+    .filter((entry): entry is GraphPhoneNumber & { id: string } => Boolean(entry.id && entry.display_phone_number))
+    .map((entry) => ({ id: entry.id, ...toPhoneNumber(entry) }));
+}
+
+export type BusinessAppSyncType = "smb_app_state_sync" | "history";
+
+/**
+ * Asks Meta to send a Business app number's contacts (`smb_app_state_sync`)
+ * or up to six months of message history (`history`) to our webhook. Each
+ * call returns a request id; the data arrives later as webhook
+ * notifications on the field of the same name. A business can turn history
+ * sharing off in the app, which Meta reports as error 2593109.
+ */
+export async function requestBusinessAppSync(
+  phoneNumberId: string,
+  token: string,
+  syncType: BusinessAppSyncType,
+): Promise<string | null> {
+  const body = await graph<{ request_id?: string }>(`${encodeURIComponent(phoneNumberId)}/smb_app_data`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ messaging_product: "whatsapp", sync_type: syncType }),
+  });
+  return body.request_id ?? null;
 }
 
 /** Six digits, as Meta requires for the two-step verification PIN. */

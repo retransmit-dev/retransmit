@@ -20,7 +20,7 @@ import { toast } from "sonner";
 export function DisconnectNumberDialog({
   account,
 }: {
-  account: { id: string; phoneNumber: string };
+  account: { id: string; phoneNumber: string; source?: string };
 }) {
   const queryClient = useQueryClient();
   const disconnectMutation = useMutation(
@@ -51,6 +51,8 @@ export function DisconnectNumberDialog({
           <AlertDialogDescription>
             Stops sending and webhook replies. The number stays in your
             WhatsApp Business Account.
+            {account.source === "business_app" &&
+              " It keeps working in the WhatsApp Business app. To unlink it there too, open Settings, Account, Business Platform in the app."}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

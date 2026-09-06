@@ -31,8 +31,14 @@ export function WhatsappView() {
     trpc.whatsappAccount.connect.mutationOptions({
       onSuccess: (row) => {
         void queryClient.invalidateQueries(trpc.whatsappAccount.pathFilter());
-        toast.success(`${row.phoneNumber} is connected`);
-        if (row.error) {
+        toast.success(
+          row.source === "business_app"
+            ? `${row.phoneNumber} is connected. Keep using it in the WhatsApp Business app.`
+            : `${row.phoneNumber} is connected`,
+        );
+        if (row.error && row.source === "business_app") {
+          toast.warning("Meta could not start syncing the app's data. Sync again in a moment.");
+        } else if (row.error) {
           toast.warning("Finish verification in WhatsApp Manager, then sync.");
         }
       },
@@ -113,9 +119,10 @@ export function WhatsappView() {
         <WhatsappAccountsTable connectButton={connectButton} />
       </ErrorBoundary>
 
-      <p className="text-xs text-muted-foreground">
-        Create message templates under Templates. Remove numbers from the
-        WhatsApp Business app before connecting them.
+      <p className="text-sm text-muted-foreground">
+        Already using a number in the WhatsApp Business app? Pick that option
+        in Meta's dialog and scan the code with your phone. The number keeps
+        working in the app. Create message templates under Templates.
       </p>
     </>
   );

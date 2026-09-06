@@ -19,7 +19,6 @@ import type {
  *   also signs webhook posts (verified in ../delivery.ts).
  * - `<PREFIX>_VERIFY_TOKEN` — webhook verification handshake.
  * - `<PREFIX>_SIGNUP_CONFIG_ID` — Embedded Signup configuration.
- * - `<PREFIX>_API_VERSION` — Graph API version, default `v23.0`.
  * - `<PREFIX>_COST_PER_MESSAGE` — optional USD price override.
  */
 export interface MetaProviderOptions {
@@ -32,7 +31,8 @@ export interface MetaProviderOptions {
 
 // META_GRAPH_API_BASE_URL swaps the whole Graph host (local mock).
 export const graphBaseUrl = () => process.env.META_GRAPH_API_BASE_URL ?? "https://graph.facebook.com";
-export const metaApiVersion = () => process.env.WHATSAPP_META_API_VERSION ?? "v23.0";
+/** Graph API version for every call and for the webhook subscription (infra/setup-whatsapp.sh). */
+export const metaApiVersion = () => "v26.0";
 
 /** Graph API error envelope. */
 interface MetaErrorBody {

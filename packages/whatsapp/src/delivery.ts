@@ -15,6 +15,7 @@ import { normalizePhone } from "@retransmit/sms/phone";
 import { and, eq } from "drizzle-orm";
 import z from "zod";
 
+import { markDisconnected } from "./accounts";
 import { applyTemplateStatusUpdate } from "./templates";
 
 interface MappedStatus {
@@ -159,6 +160,18 @@ const metaChangeSchema = z
         message_template_name: z.string().optional(),
         message_template_language: z.string().optional(),
         reason: z.string().nullable().optional(),
+        // account_update
+        phone_number: z.string().optional(),
+        disconnection_info: z
+          .object({ reason: z.string().optional(), initiated_by: z.string().optional() })
+          .loose()
+          .optional(),
+        // WhatsApp Business app numbers: history, contacts and echoes of
+        // messages the business sends from the app. Accepted and counted so
+        // Meta sees a 200; the contents are not stored yet.
+        history: z.array(z.unknown()).optional(),
+        state_sync: z.array(z.unknown()).optional(),
+        message_echoes: z.array(z.unknown()).optional(),
       })
       .loose(),
   })
@@ -298,12 +311,21 @@ async function recordInboundMessage(
 }
 
 /**
+ * Meta's `account_update` events. `PARTNER_REMOVED` is the business
+ * unlinking the number from us, e.g. WhatsApp Business app → Settings →
+ * Business Platform → Disconnect for a Business app number.
+ */
+const ACCOUNT_DISCONNECT_EVENTS = new Set(["PARTNER_REMOVED"]);
+
+/**
  * Applies one Meta webhook notification: message statuses move our rows
  * forward, inbound messages are stored and fanned out, template reviews
- * update the template's status. Anything unknown,
- * malformed or already applied is ignored (`applied` counts what changed) so
- * the endpoint can always 200 — Meta retries and eventually disables the
- * subscription on anything else.
+ * update the template's status, account updates mark unlinked numbers
+ * disconnected. Business app notifications (history, contacts, message
+ * echoes) are acknowledged but not stored. Anything unknown, malformed or
+ * already applied is ignored (`applied` counts what changed) so the endpoint
+ * can always 200 — Meta retries and eventually disables the subscription on
+ * anything else.
  */
 export async function processMetaWebhook(payload: unknown): Promise<{ applied: number }> {
   const parsed = metaWebhookSchema.safeParse(payload);
@@ -327,6 +349,27 @@ export async function processMetaWebhook(payload: unknown): Promise<{ applied: n
           });
           if (changed) applied += 1;
         }
+        continue;
+      }
+      if (change.field === "account_update") {
+        const value = change.value;
+        if (value.event && ACCOUNT_DISCONNECT_EVENTS.has(value.event) && value.phone_number) {
+          const reason = value.disconnection_info?.reason ?? null;
+          if (await markDisconnected("meta", value.phone_number, reason)) applied += 1;
+        }
+        continue;
+      }
+      if (
+        change.field === "history" ||
+        change.field === "smb_app_state_sync" ||
+        change.field === "smb_message_echoes"
+      ) {
+        const value = change.value;
+        const count =
+          value.history?.length ?? value.state_sync?.length ?? value.message_echoes?.length ?? 0;
+        console.info(
+          `[whatsapp] ${change.field} for ${value.metadata?.phone_number_id ?? "?"}: ${count} item(s), not stored`,
+        );
         continue;
       }
       if (change.field !== "messages") continue;

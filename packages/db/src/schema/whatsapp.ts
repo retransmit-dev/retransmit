@@ -10,12 +10,15 @@ export type WhatsappAccountStatus = (typeof WHATSAPP_ACCOUNT_STATUSES)[number];
 
 /**
  * How the number came to be on the account. `embedded_signup` is a number the
- * customer owns and verified through Meta's Embedded Signup; `sandbox` is the
- * test number Meta gives our app, connected by pasting a token (dev only);
- * `provisioned` is reserved for numbers Retransmit buys and registers on the
- * customer's behalf (not built yet).
+ * customer owns and verified through Meta's Embedded Signup; `business_app`
+ * is a number the customer keeps using in the WhatsApp Business app and
+ * connected through the same dialog (Meta's Coexistence flow: no PIN, Meta
+ * echoes the app's messages to our webhook, and the business can unlink it
+ * from the app); `sandbox` is the test number Meta gives our app, connected
+ * by pasting a token (dev only); `provisioned` is reserved for numbers
+ * Retransmit buys and registers on the customer's behalf (not built yet).
  */
-export const WHATSAPP_ACCOUNT_SOURCES = ["embedded_signup", "sandbox", "provisioned"] as const;
+export const WHATSAPP_ACCOUNT_SOURCES = ["embedded_signup", "business_app", "sandbox", "provisioned"] as const;
 export type WhatsappAccountSource = (typeof WHATSAPP_ACCOUNT_SOURCES)[number];
 
 /**

@@ -10,10 +10,13 @@ import {
   extendUserToken,
   fetchPhoneNumber,
   generatePin,
+  listPhoneNumbers,
   registerPhoneNumber,
+  requestBusinessAppSync,
   subscribeApp,
   unsubscribeApp,
 } from "./meta-signup";
+import type { MetaPhoneNumber } from "./meta-signup";
 import type { WhatsappSender } from "./provider";
 
 export type WhatsappAccountRow = typeof whatsappAccount.$inferSelect;
@@ -90,7 +93,59 @@ export interface ConnectInput {
   /** Short lived code from the Embedded Signup dialog. */
   code: string;
   wabaId: string;
-  phoneNumberId: string;
+  /**
+   * Absent when the dialog ended with the WhatsApp Business app path, which
+   * only reports the WABA; the number is then looked up on it.
+   */
+  phoneNumberId?: string | null;
+  /** True when the customer connected the number they use in the WhatsApp Business app. */
+  businessApp?: boolean;
+}
+
+/**
+ * Finds the number a Business app onboarding connected. Meta flags it with
+ * `is_on_biz_app`; when the WABA has exactly one number that is it.
+ */
+async function findBusinessAppNumber(
+  wabaId: string,
+  token: string,
+): Promise<MetaPhoneNumber & { id: string }> {
+  const numbers = await listPhoneNumbers(wabaId, token);
+  const onApp = numbers.filter((entry) => entry.isOnBusinessApp);
+  const candidates = onApp.length > 0 ? onApp : numbers;
+  if (candidates.length === 0) {
+    throw new WhatsappAccountError(
+      "not_found",
+      "Meta did not attach a phone number to your WhatsApp Business Account. Finish the steps in the WhatsApp Business app, then try again.",
+    );
+  }
+  if (candidates.length > 1) {
+    throw new WhatsappAccountError(
+      "ambiguous",
+      "Your WhatsApp Business Account has several numbers; connect the one from the WhatsApp Business app on its own.",
+    );
+  }
+  return candidates[0]!;
+}
+
+/**
+ * Asks Meta to stream the Business app's contacts and message history to our
+ * webhook. Meta requires the request within 24 hours of onboarding, or the
+ * business has to go through the dialog again. History can be switched off
+ * in the app; that is the business's choice, not an error worth showing.
+ */
+async function startBusinessAppSync(phoneNumberId: string, token: string): Promise<string | null> {
+  const errors: string[] = [];
+  for (const syncType of ["smb_app_state_sync", "history"] as const) {
+    try {
+      await requestBusinessAppSync(phoneNumberId, token, syncType);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : String(cause);
+      if (syncType === "history" && message.includes("2593109")) continue;
+      errors.push(message);
+    }
+  }
+  return errors.length > 0 ? errors.join("; ") : null;
 }
 
 /**
@@ -98,14 +153,29 @@ export interface ConnectInput {
  * our app to the WABA, registers the number for Cloud API sending and stores
  * the (encrypted) token. Reconnecting a number the same organization already
  * has refreshes its token instead of creating a duplicate.
+ *
+ * A number from the WhatsApp Business app path is already registered by the
+ * app, so registration is skipped and the app's data sync is requested
+ * instead. The business keeps using the app alongside the API.
  */
 export async function connectAccount(input: ConnectInput): Promise<WhatsappAccountRow> {
+  const token = await exchangeCode(input.code);
+
+  let phoneNumberId = input.phoneNumberId ?? null;
+  let details: MetaPhoneNumber;
+  if (phoneNumberId) {
+    details = await fetchPhoneNumber(phoneNumberId, token);
+  } else {
+    const found = await findBusinessAppNumber(input.wabaId, token);
+    phoneNumberId = found.id;
+    details = found;
+  }
+  const businessApp = input.businessApp === true || details.isOnBusinessApp;
+
   const [existing] = await db
     .select()
     .from(whatsappAccount)
-    .where(
-      and(eq(whatsappAccount.provider, "meta"), eq(whatsappAccount.phoneNumberId, input.phoneNumberId)),
-    );
+    .where(and(eq(whatsappAccount.provider, "meta"), eq(whatsappAccount.phoneNumberId, phoneNumberId)));
   if (existing && existing.organizationId !== input.organizationId) {
     throw new WhatsappAccountError(
       "conflict",
@@ -113,33 +183,37 @@ export async function connectAccount(input: ConnectInput): Promise<WhatsappAccou
     );
   }
 
-  const token = await exchangeCode(input.code);
   await subscribeApp(input.wabaId, token);
 
-  const pin = existing?.pin ? decryptSecret(existing.pin) : generatePin();
-  let registrationError: string | null = null;
-  try {
-    await registerPhoneNumber(input.phoneNumberId, token, pin);
-  } catch (cause) {
-    // A number can still be pending SMS/voice verification when the dialog
-    // closes; keep the account and let a later sync/reconnect register it.
-    registrationError = cause instanceof Error ? cause.message : String(cause);
+  let pin: string | null = null;
+  let error: string | null = null;
+  if (businessApp) {
+    error = await startBusinessAppSync(phoneNumberId, token);
+  } else {
+    pin = existing?.pin ? decryptSecret(existing.pin) : generatePin();
+    try {
+      await registerPhoneNumber(phoneNumberId, token, pin);
+    } catch (cause) {
+      // A number can still be pending SMS/voice verification when the dialog
+      // closes; keep the account and let a later sync/reconnect register it.
+      error = cause instanceof Error ? cause.message : String(cause);
+    }
   }
-  const details = await fetchPhoneNumber(input.phoneNumberId, token);
 
   const values = {
     organizationId: input.organizationId,
     userId: input.userId,
     provider: "meta",
+    source: businessApp ? ("business_app" as const) : ("embedded_signup" as const),
     wabaId: input.wabaId,
-    phoneNumberId: input.phoneNumberId,
+    phoneNumberId,
     phoneNumber: toE164(details.displayPhoneNumber),
     verifiedName: details.verifiedName,
     qualityRating: details.qualityRating,
     accessToken: encryptSecret(token),
-    pin: encryptSecret(pin),
+    pin: pin ? encryptSecret(pin) : null,
     status: "active" as const,
-    error: registrationError,
+    error,
     lastSyncedAt: new Date(),
   };
 
@@ -147,7 +221,7 @@ export async function connectAccount(input: ConnectInput): Promise<WhatsappAccou
     ? await db.update(whatsappAccount).set(values).where(eq(whatsappAccount.id, existing.id)).returning()
     : await db
         .insert(whatsappAccount)
-        .values({ id: createId("wab"), source: "embedded_signup", ...values })
+        .values({ id: createId("wab"), ...values })
         .returning();
   if (!row) throw new Error("Could not store the WhatsApp account");
   return row;
@@ -242,11 +316,18 @@ export async function connectSandboxAccount(input: ConnectSandboxInput): Promise
   return row;
 }
 
-/** Refreshes name and quality from Meta and retries registration if it failed. */
+/**
+ * Refreshes name and quality from Meta. Retries whatever failed at connect
+ * time: registration for numbers we registered, the Business app data sync
+ * for numbers from the WhatsApp Business app. A Business app number that
+ * Meta no longer reports as on the app was disconnected from the app side.
+ */
 export async function syncAccount(row: WhatsappAccountRow): Promise<WhatsappAccountRow> {
   const token = decryptSecret(row.accessToken);
   let error: string | null = null;
-  if (row.error && row.pin) {
+  if (row.error && row.source === "business_app" && row.status === "active") {
+    error = await startBusinessAppSync(row.phoneNumberId, token);
+  } else if (row.error && row.pin) {
     try {
       await registerPhoneNumber(row.phoneNumberId, token, decryptSecret(row.pin));
     } catch (cause) {
@@ -260,12 +341,46 @@ export async function syncAccount(row: WhatsappAccountRow): Promise<WhatsappAcco
       phoneNumber: toE164(details.displayPhoneNumber),
       verifiedName: details.verifiedName,
       qualityRating: details.qualityRating,
+      ...(row.source === "business_app" && row.status === "active" && !details.isOnBusinessApp
+        ? { status: "disconnected" as const }
+        : {}),
       error,
       lastSyncedAt: new Date(),
     })
     .where(eq(whatsappAccount.id, row.id))
     .returning();
   return updated ?? row;
+}
+
+/**
+ * Marks a number disconnected after Meta's `account_update` webhook says the
+ * business unlinked it, e.g. from the WhatsApp Business app (Settings →
+ * Business Platform → Disconnect). The row stays so the dashboard can show
+ * what happened and message history keeps its account. Returns false when
+ * no active account matches.
+ */
+export async function markDisconnected(
+  provider: string,
+  phoneNumber: string,
+  reason: string | null,
+): Promise<boolean> {
+  const normalized =
+    normalizePhone(`+${phoneNumber.replace(/^\+/, "")}`) ?? `+${phoneNumber.replace(/\D/g, "")}`;
+  const updated = await db
+    .update(whatsappAccount)
+    .set({
+      status: "disconnected",
+      error: reason ? `Disconnected by the business: ${reason}` : "Disconnected by the business",
+    })
+    .where(
+      and(
+        eq(whatsappAccount.provider, provider),
+        eq(whatsappAccount.phoneNumber, normalized),
+        eq(whatsappAccount.status, "active"),
+      ),
+    )
+    .returning({ id: whatsappAccount.id });
+  return updated.length > 0;
 }
 
 /**

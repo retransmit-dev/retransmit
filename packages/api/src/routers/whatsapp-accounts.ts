@@ -55,13 +55,18 @@ export const whatsappAccountRouter = router({
     return rows.map(publicAccount);
   }),
 
-  /** Completes Embedded Signup with what Meta's dialog handed back. */
+  /**
+   * Completes Embedded Signup with what Meta's dialog handed back. The
+   * WhatsApp Business app path reports no phone number id; the server finds
+   * the number on the WABA.
+   */
   connect: orgProcedure
     .input(
       z.object({
         code: z.string().min(1),
         wabaId: z.string().min(1),
-        phoneNumberId: z.string().min(1),
+        phoneNumberId: z.string().min(1).optional(),
+        businessApp: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
