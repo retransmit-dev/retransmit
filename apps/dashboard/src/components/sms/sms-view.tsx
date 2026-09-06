@@ -1,0 +1,71 @@
+"use client";
+
+import type { DateRange } from "@/components/date-range-picker";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { PageHeader } from "@/components/page-shell";
+import { SmsDetailsSheet } from "@/components/sms/sms-details-sheet";
+import { SmsFilterBar } from "@/components/sms/sms-filters";
+import type { SmsFilters } from "@/components/sms/sms-filters";
+import { SmsProviders } from "@/components/sms/sms-providers";
+import { SmsTable } from "@/components/sms/sms-table";
+import { Button } from "@/components/ui/button";
+import { FlaskConicalIcon } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+
+/**
+ * Owns what the filter bar, the table and the details sheet share: the
+ * active filters, the pagination stack and the selected message. Everything
+ * else lives in the component that renders it.
+ */
+export function SmsView({ initialRange }: { initialRange: DateRange }) {
+  const [filters, setFilters] = useState<SmsFilters>({
+    search: "",
+    range: initialRange,
+    status: "all",
+    apiKeyId: "all",
+  });
+  const [cursors, setCursors] = useState<Date[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Every filter change restarts pagination from the first page.
+  const changeFilters = (patch: Partial<SmsFilters>) => {
+    setFilters((current) => ({ ...current, ...patch }));
+    setCursors([]);
+  };
+
+  return (
+    <>
+      <PageHeader
+        href="/sms"
+        actions={
+          <Button
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/sms/test" />}
+          >
+            <FlaskConicalIcon />
+            Test send
+          </Button>
+        }
+      />
+
+      <ErrorBoundary title="Could not load SMS providers">
+        <SmsProviders />
+      </ErrorBoundary>
+
+      <SmsFilterBar filters={filters} onChange={changeFilters} />
+
+      <ErrorBoundary title="Could not load SMS">
+        <SmsTable
+          filters={filters}
+          cursors={cursors}
+          onCursorsChange={setCursors}
+          onSelect={setSelectedId}
+        />
+      </ErrorBoundary>
+
+      <SmsDetailsSheet smsId={selectedId} onClose={() => setSelectedId(null)} />
+    </>
+  );
+}

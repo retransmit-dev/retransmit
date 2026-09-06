@@ -45,6 +45,33 @@ export function EmailStatusBadge({ status }: { status: string }) {
   );
 }
 
+/** Mirrors SMS_STATUSES in @retransmit/db. */
+export const SMS_STATUS_OPTIONS = [
+  { value: "queued", label: "Queued", dot: "bg-slate-400" },
+  { value: "sent", label: "Sent", dot: "bg-blue-500" },
+  { value: "delivered", label: "Delivered", dot: "bg-emerald-500" },
+  { value: "undelivered", label: "Undelivered", dot: "bg-red-500" },
+  { value: "expired", label: "Expired", dot: "bg-amber-600" },
+  { value: "rejected", label: "Rejected", dot: "bg-orange-600" },
+  { value: "failed", label: "Failed", dot: "bg-red-600" },
+] as const;
+
+export type SmsStatusValue = (typeof SMS_STATUS_OPTIONS)[number]["value"];
+
+const SMS_STATUS_BY_VALUE = new Map(
+  SMS_STATUS_OPTIONS.map((option) => [option.value as string, option]),
+);
+
+export function SmsStatusBadge({ status }: { status: string }) {
+  const option = SMS_STATUS_BY_VALUE.get(status);
+  return (
+    <Badge variant="outline">
+      <StatusDot className={option?.dot} />
+      {option?.label ?? status}
+    </Badge>
+  );
+}
+
 const DOMAIN_STATUS: Record<string, { label: string; dot: string }> = {
   verified: { label: "Verified", dot: "bg-emerald-500" },
   pending: { label: "Pending", dot: "bg-amber-500" },

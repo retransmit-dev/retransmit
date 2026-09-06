@@ -26,6 +26,7 @@ import {
   type LucideIcon,
   MailIcon,
   MessageCircleIcon,
+  MessageSquareTextIcon,
   Settings2Icon,
   ShieldCheckIcon,
   WebhookIcon,
@@ -79,6 +80,20 @@ const batches: NavSection = {
   title: "Batches",
   description: "Track bulk sends by status.",
   icon: LayersIcon,
+};
+
+const smsSection: NavSection = {
+  href: "/sms",
+  title: "SMS",
+  description: "View sent messages and delivery status.",
+  icon: MessageSquareTextIcon,
+  items: [
+    {
+      href: "/sms/test",
+      title: "Test send",
+      description: "Queue one message through the configured providers.",
+    },
+  ],
 };
 
 const whatsapp: NavSection = {
@@ -180,7 +195,7 @@ const admin: NavSection = {
 
 export const navGroups: NavGroup[] = [
   { sections: [overview] },
-  { label: "Messages", sections: [emails, batches, whatsapp] },
+  { label: "Messages", sections: [emails, batches, smsSection, whatsapp] },
   { label: "Configure", sections: [domains, apiKeys, webhooks, suppressions] },
   { label: "Account", sections: [settings, admin] },
 ];

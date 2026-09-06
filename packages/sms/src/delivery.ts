@@ -166,3 +166,59 @@ export async function processOrangeDeliveryReceipt(
     deliveryInfo.deliveryStatus,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Amazon SNS
+
+/**
+ * SNS SMS delivery status record, as written to CloudWatch Logs when
+ * delivery status logging is enabled. `notification.messageId` is the id
+ * Publish returned, stored as `providerMessageId` (comma-joined when one
+ * message went to several recipients). The record reaches us through a log
+ * subscription forwarder or an SNS topic; the callback route unwraps
+ * envelopes before calling this.
+ */
+const snsDeliverySchema = z
+  .object({
+    notification: z.object({ messageId: z.string().min(1) }).loose(),
+    status: z.string().min(1),
+    delivery: z
+      .object({
+        providerResponse: z.string().optional(),
+        destination: z.string().optional(),
+      })
+      .loose()
+      .optional(),
+  })
+  .loose();
+
+const SNS_STATUS_MAP: Record<string, MappedStatus> = {
+  SUCCESS: { status: "delivered", webhook: "sms.delivered" },
+  FAILURE: { status: "undelivered", webhook: "sms.undelivered" },
+};
+
+/**
+ * Applies one SNS delivery status record. Same contract as the carrier
+ * variants: unmatched ids and unknown statuses are ignored so the endpoint
+ * can always 200.
+ */
+export async function processSnsDeliveryReceipt(payload: unknown): Promise<{ applied: boolean }> {
+  const parsed = snsDeliverySchema.safeParse(payload);
+  if (!parsed.success) return { applied: false };
+
+  const mapped = SNS_STATUS_MAP[parsed.data.status.toUpperCase()];
+  if (!mapped) return { applied: false };
+
+  const messageId = parsed.data.notification.messageId;
+  // Ids are UUIDs, so a substring match cannot hit the wrong row.
+  const where = or(eq(sms.providerMessageId, messageId), like(sms.providerMessageId, `%${messageId}%`));
+  if (!where) return { applied: false };
+
+  const detail = parsed.data.delivery?.providerResponse;
+  return applyDeliveryStatus(
+    where,
+    mapped,
+    parsed.data as Record<string, unknown>,
+    detail ? `${parsed.data.status}: ${detail}` : parsed.data.status,
+  );
+}

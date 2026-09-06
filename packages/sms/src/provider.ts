@@ -1,5 +1,6 @@
 import { createMtnProvider } from "./providers/mtn";
 import { createOrangeProvider } from "./providers/orange";
+import { createSnsProvider } from "./providers/sns";
 
 export interface SmsMessage {
   /** Our row id; doubles as the provider-side correlation/idempotency id. */
@@ -60,7 +61,32 @@ const registry: SmsProvider[] = [
     // per-unit price of the purchased bundle is known.
     defaultCostUsd: 0.02,
   }),
+  createSnsProvider({
+    key: "aws_sns",
+    name: "Amazon SNS",
+    // Priced above the carrier integrations so it only wins where they do
+    // not deliver; SNS list prices sit between $0.02 and $0.10 per segment.
+    defaultCostUsd: 0.05,
+  }),
 ];
+
+/** What a dashboard can show about routing, with no secrets attached. */
+export interface SmsProviderSummary {
+  key: string;
+  name: string;
+  configured: boolean;
+  /** Delivers to any destination, including numbers whose country is unknown. */
+  global: boolean;
+}
+
+export function providerSummaries(): SmsProviderSummary[] {
+  return registry.map((provider) => ({
+    key: provider.key,
+    name: provider.name,
+    configured: provider.isConfigured(),
+    global: provider.costFor(null) !== null,
+  }));
+}
 
 export function allProviders(): SmsProvider[] {
   return registry;

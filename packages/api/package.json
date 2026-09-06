@@ -14,6 +14,8 @@
     "@retransmit/auth": "workspace:*",
     "@retransmit/db": "workspace:*",
     "@retransmit/email": "workspace:*",
+    "@retransmit/queue": "workspace:*",
+    "@retransmit/sms": "workspace:*",
     "@retransmit/whatsapp": "workspace:*",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",

@@ -1,4 +1,8 @@
-import { processMtnDeliveryReceipt, processOrangeDeliveryReceipt } from "@retransmit/sms/delivery";
+import {
+  processMtnDeliveryReceipt,
+  processOrangeDeliveryReceipt,
+  processSnsDeliveryReceipt,
+} from "@retransmit/sms/delivery";
 import { Hono } from "hono";
 import type { Context } from "hono";
 
@@ -60,3 +64,62 @@ smsCallbackRoutes.post("/mtn", (c) => handleReceipt(c, processMtnDeliveryReceipt
  * on port 443 with a CA-signed certificate and a 200 response.
  */
 smsCallbackRoutes.post("/orange", (c) => handleReceipt(c, processOrangeDeliveryReceipt));
+
+interface SnsEnvelope {
+  Type?: string;
+  TopicArn?: string;
+  SubscribeURL?: string;
+  Message?: string;
+}
+
+/**
+ * Amazon SNS delivery status records. SNS writes SMS delivery status to
+ * CloudWatch Logs rather than calling back, so the records arrive here one
+ * of two ways, both carrying the shared token in the query string:
+ * - a CloudWatch Logs subscription (Lambda forwarder) posting the parsed log
+ *   record, or a JSON array of them, as-is;
+ * - an SNS topic the forwarder publishes to, subscribed to this URL, in
+ *   which case the record is the `Message` string of a standard SNS
+ *   envelope. Subscription confirmations are answered automatically, the
+ *   same way the SES callback does it.
+ */
+smsCallbackRoutes.post("/sns", async (c) => {
+  if (!isAuthorized(c)) {
+    return c.json({ error: { code: "unauthorized", message: "Invalid callback credentials" } }, 401);
+  }
+
+  let json: unknown;
+  try {
+    json = await c.req.json();
+  } catch {
+    return c.json({ error: { code: "invalid_json", message: "Body must be valid JSON" } }, 400);
+  }
+
+  const envelope = (json ?? {}) as SnsEnvelope;
+  if (envelope.Type === "SubscriptionConfirmation" && envelope.SubscribeURL) {
+    const subscribeUrl = new URL(envelope.SubscribeURL);
+    if (subscribeUrl.protocol !== "https:" || !subscribeUrl.hostname.endsWith(".amazonaws.com")) {
+      return c.json({ error: { code: "forbidden", message: "Invalid subscribe URL" } }, 403);
+    }
+    await fetch(subscribeUrl);
+    return c.json({ status: "subscription_confirmed" });
+  }
+
+  let records: unknown[];
+  if (envelope.Type === "Notification") {
+    try {
+      records = [JSON.parse(envelope.Message ?? "")];
+    } catch {
+      return c.json({ ok: true, applied: false });
+    }
+  } else {
+    records = Array.isArray(json) ? json : [json];
+  }
+
+  let applied = 0;
+  for (const record of records) {
+    const result = await processSnsDeliveryReceipt(record);
+    if (result.applied) applied += 1;
+  }
+  return c.json({ ok: true, applied: applied > 0, count: applied });
+});

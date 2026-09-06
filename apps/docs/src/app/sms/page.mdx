@@ -26,8 +26,13 @@ One request takes up to 50 recipients, all in the same country.
 ## Routing and availability
 
 Retransmit reads the destination country from the recipient number and picks
-a provider for it. If no provider is configured for that country, the request
-returns `422 no_route` and nothing is queued.
+the cheapest provider that covers it. Direct carrier integrations (MTN and
+Orange in Cameroon) come first where they exist; Amazon SNS is the global
+fallback for every other destination. If no provider covers that country, the
+request returns `422 no_route` and nothing is queued.
+
+The provider a message went through is returned as `provider` on
+[Get SMS](/sms/get), for example `mtn_cm`, `orange_cm` or `aws_sns`.
 
 For mixed-country recipient lists, send one request per country.
 
