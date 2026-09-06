@@ -1,7 +1,7 @@
 "use client";
 
-import { DateRangePicker } from "@/components/date-range-picker";
 import type { DateRange } from "@/components/date-range-picker";
+import { DateRangePicker } from "@/components/date-range-picker";
 import { EMAIL_STATUS_OPTIONS, StatusDot } from "@/components/status-badges";
 import {
   InputGroup,

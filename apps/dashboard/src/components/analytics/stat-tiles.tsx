@@ -4,10 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-import { chartConfig, METRICS, rate } from "./chart-config";
 import type { Metric } from "./chart-config";
-import { useOverview } from "./use-overview";
+import { chartConfig, METRICS, rate } from "./chart-config";
 import type { AnalyticsFilters } from "./use-overview";
+import { useOverview } from "./use-overview";
 
 export function StatTiles({ filters }: { filters: AnalyticsFilters }) {
   const { query, totals } = useOverview(filters);
@@ -15,7 +15,7 @@ export function StatTiles({ filters }: { filters: AnalyticsFilters }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-3 transition-opacity sm:grid-cols-3 lg:grid-cols-6",
+        "grid grid-cols-2 gap-3 transition-opacity sm:grid-cols-3 lg:grid-cols-5",
         query.isFetching && !query.isLoading && "opacity-60",
       )}
     >
@@ -36,11 +36,11 @@ export function StatTiles({ filters }: { filters: AnalyticsFilters }) {
             value={totals.opened}
             caption={`${rate(totals.opened, totals.delivered)} of delivered`}
           />
-          <StatTile
+          {/* <StatTile
             metric="clicked"
             value={totals.clicked}
             caption={`${rate(totals.clicked, totals.delivered)} of delivered`}
-          />
+          /> */}
           <StatTile
             metric="bounced"
             value={totals.bounced}
