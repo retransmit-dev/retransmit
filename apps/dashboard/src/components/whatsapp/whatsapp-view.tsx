@@ -37,7 +37,9 @@ export function WhatsappView() {
             : `${row.phoneNumber} is connected`,
         );
         if (row.error && row.source === "business_app") {
-          toast.warning("Meta could not start syncing the app's data. Sync again in a moment.");
+          toast.warning(
+            "Meta could not start syncing the app's data. Sync again in a moment.",
+          );
         } else if (row.error) {
           toast.warning("Finish verification in WhatsApp Manager, then sync.");
         }
@@ -120,9 +122,8 @@ export function WhatsappView() {
       </ErrorBoundary>
 
       <p className="text-sm text-muted-foreground">
-        Already using a number in the WhatsApp Business app? Pick that option
-        in Meta's dialog and scan the code with your phone. The number keeps
-        working in the app. Create message templates under Templates.
+        Already using a number in the WhatsApp Business app? Pick that option in
+        Meta's dialog and scan the code with your phone.
       </p>
     </>
   );
