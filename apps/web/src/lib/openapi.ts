@@ -507,7 +507,7 @@ export const OPENAPI_DOCUMENT = {
           "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
           "401": errorResponse("Missing, invalid, or revoked API key."),
           "422": errorResponse(
-            "Schema validation failed (`validation_error`), recipients span countries (`validation_error`), or no provider — or not the requested one — is configured for the destination (`no_route`).",
+            "Schema validation failed (`validation_error`), recipients span countries (`validation_error`), no provider — or not the requested one — is configured for the destination (`no_route`), or `from` is not an approved sender id for the destination country (`sender_not_allowed`).",
           ),
           "500": errorResponse("Unexpected server error."),
         },
@@ -913,7 +913,7 @@ export const OPENAPI_DOCUMENT = {
             maxLength: 11,
             pattern: "^[a-zA-Z0-9 _-]+$",
             description:
-              "Sender id shown on the device. Falls back to the routed provider's default.",
+              "Sender id shown on the device. Must be one your organization has had approved for the destination country (SMS > Sender IDs in the dashboard); the request fails with `sender_not_allowed` otherwise. Omit it to use your approved sender for that country, or the provider default when you have none.",
           },
           to: {
             description:

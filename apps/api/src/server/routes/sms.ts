@@ -4,6 +4,7 @@ import { SMS_PROVIDER_NAMES, sms, smsEvent } from "@retransmit/db/schema/sms";
 import { enqueueSmsSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone, smsSegments } from "@retransmit/sms/phone";
 import { selectProvider } from "@retransmit/sms/provider";
+import { SenderNotAllowedError, resolveSender } from "@retransmit/sms/senders";
 import { and, asc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import z from "zod";
@@ -20,7 +21,12 @@ const phoneList = z
   });
 
 const sendSmsSchema = z.object({
-  /** Sender id shown on the device. Falls back to the routed provider's default. */
+  /**
+   * Sender id shown on the device. Must be one this organization has had
+   * approved for the destination country (SMS > Sender IDs in the dashboard).
+   * Omit it to use the organization's approved sender for that country, or
+   * the provider default when it has none.
+   */
   from: z
     .string()
     .min(1)
@@ -102,12 +108,24 @@ smsRoutes.post("/", async (c) => {
     );
   }
 
+  // The sender id is settled before queueing so a caller learns straight away
+  // that a name is not approved, rather than finding a failed row later.
+  let from: string | null;
+  try {
+    ({ from } = await resolveSender(c.get("organizationId") ?? null, country, input.from));
+  } catch (cause) {
+    if (cause instanceof SenderNotAllowedError) {
+      return c.json({ error: { code: cause.code, message: cause.message } }, 422);
+    }
+    throw cause;
+  }
+
   const row = {
     id: createId("sms"),
     userId: c.get("userId"),
     organizationId: c.get("organizationId"),
     apiKeyId: c.get("apiKeyId"),
-    from: input.from,
+    from,
     to,
     text: input.text,
     country,

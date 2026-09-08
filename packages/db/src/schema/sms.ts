@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 import { organization, user } from "./auth";
 import { apiKey } from "./email";
@@ -24,6 +24,76 @@ export type SmsStatus = (typeof SMS_STATUSES)[number];
  */
 export const SMS_PROVIDER_NAMES = ["mtn", "orange", "sns"] as const;
 export type SmsProviderName = (typeof SMS_PROVIDER_NAMES)[number];
+
+/**
+ * Lifecycle of a sender id request. `pending` is the whole point of the
+ * table: in most countries the string that shows on the handset has to be
+ * registered with the carriers first, which takes days, so the request is a
+ * durable object with a status rather than a form that either works or does
+ * not.
+ */
+export const SMS_SENDER_STATUSES = ["pending", "approved", "rejected"] as const;
+export type SmsSenderStatus = (typeof SMS_SENDER_STATUSES)[number];
+
+/**
+ * A sender id an organization is allowed to send from, per country.
+ *
+ * Retransmit owns the carrier relationships and the AWS account, so a
+ * customer never brings credentials or a number: they ask for a name, an
+ * operator registers it upstream (AWS End User Messaging for the SNS route,
+ * the MTN/Orange account for the direct carrier routes) and flips the row to
+ * `approved`. Until then nothing may send with it.
+ *
+ * This is also the allowlist behind the `from` field on `POST /v1/sms`:
+ * without it any customer could put any brand on a handset.
+ */
+export const smsSender = pgTable(
+  "sms_sender",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    /** Member who filed the request; the audit trail for the registration. */
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** The string shown on the handset. Alphanumeric, at most 11 characters. */
+    senderId: text("sender_id").notNull(),
+    /** ISO 3166-1 alpha-2 destinations this sender id is requested for. */
+    countries: jsonb("countries").$type<string[]>().default([]).notNull(),
+    status: text("status").$type<SmsSenderStatus>().default("pending").notNull(),
+    /** What the customer sends: carriers ask for this on every registration. */
+    useCase: text("use_case").notNull(),
+    /** A representative message body, also required by most registrations. */
+    sampleMessage: text("sample_message").notNull(),
+    /** Legal entity behind the sender id, and its site. Both go on the filing. */
+    companyName: text("company_name").notNull(),
+    companyWebsite: text("company_website"),
+    /**
+     * Upstream reference once filed: an AWS End User Messaging registration
+     * id, or a carrier ticket. Null while the request is still on our side.
+     */
+    registrationId: text("registration_id"),
+    /** Operator note; the rejection reason the customer reads. */
+    reviewNote: text("review_note"),
+    reviewedAt: timestamp("reviewed_at"),
+    /** Operator who approved or rejected. Not a user reference: may be gone. */
+    reviewedBy: text("reviewed_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    // One row per name per organization: re-requesting a name that is already
+    // pending or approved is a no-op, not a second registration.
+    uniqueIndex("smsSender_org_senderId_uidx").on(table.organizationId, table.senderId),
+    index("smsSender_organizationId_idx").on(table.organizationId),
+    index("smsSender_status_idx").on(table.status),
+  ],
+);
 
 export const sms = pgTable(
   "sms",
@@ -93,4 +163,12 @@ export const smsRelations = relations(sms, ({ one, many }) => ({
 
 export const smsEventRelations = relations(smsEvent, ({ one }) => ({
   sms: one(sms, { fields: [smsEvent.smsId], references: [sms.id] }),
+}));
+
+export const smsSenderRelations = relations(smsSender, ({ one }) => ({
+  organization: one(organization, {
+    fields: [smsSender.organizationId],
+    references: [organization.id],
+  }),
+  user: one(user, { fields: [smsSender.userId], references: [user.id] }),
 }));

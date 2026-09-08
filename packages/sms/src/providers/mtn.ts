@@ -134,6 +134,9 @@ export function createMtnProvider(options: MtnProviderOptions): SmsProvider {
           (env("SENDER_ADDRESS") ?? env("SERVICE_CODE")),
       );
     },
+    countries() {
+      return options.countries;
+    },
     costFor(country) {
       if (!country || !options.countries.includes(country)) return null;
       const configured = Number(env("COST_PER_SMS"));

@@ -15,7 +15,7 @@ available provider, or uses the one you name in `provider`. Poll
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `from` | string | No | Sender ID shown on the recipient's device. Up to 11 letters, digits, spaces, hyphens, or underscores. Defaults to the provider's configured sender. |
+| `from` | string | No | Sender ID shown on the recipient's device. Must be approved for the destination country. See [Sender IDs](/sms#sender-ids). Defaults to your approved sender for that country. |
 | `to` | string \| string[] | Yes | One recipient or up to 50 in international E.164 format. All recipients must be in the same country. |
 | `text` | string | Yes | Message body, from 1 to 1,600 characters. |
 | `provider` | `"mtn"` \| `"orange"` \| `"sns"` | No | Pins the send to one carrier. Omit it to route by destination country and price. See [Choosing a provider](/sms#choosing-a-provider). |
@@ -73,5 +73,6 @@ number of billable SMS parts.
 | `400` | `invalid_json` | The request body is not valid JSON. |
 | `401` | `unauthorized` | The API key is missing, invalid, or revoked. |
 | `422` | `validation_error` | A field is invalid, phone numbers are malformed, or recipients span multiple countries. |
-| `422` | `no_route` | No SMS provider — or not the requested one — is configured for the destination country. |
+| `422` | `no_route` | No SMS provider, or not the requested one, is configured for the destination country. |
+| `422` | `sender_not_allowed` | `from` is not a sender ID your organization has approved for the destination country. |
 | `500` | `internal_error` | The message could not be created. |

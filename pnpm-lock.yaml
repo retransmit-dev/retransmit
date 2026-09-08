@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@aws-sdk/client-pinpoint-sms-voice-v2':
+      specifier: ^3.900.0
+      version: 3.1127.0
     '@aws-sdk/client-s3':
       specifier: ^3.900.0
       version: 3.1127.0
@@ -573,6 +576,9 @@ importers:
 
   packages/sms:
     dependencies:
+      '@aws-sdk/client-pinpoint-sms-voice-v2':
+        specifier: 'catalog:'
+        version: 3.1127.0
       '@aws-sdk/client-sns':
         specifier: 'catalog:'
         version: 3.1127.0
@@ -672,6 +678,10 @@ packages:
 
   '@aws-sdk/checksums@3.1000.29':
     resolution: {integrity: sha512-Dtu0gr4dnATZAPwEYbpCsG+MpLM7OAliy2gTepEFQwl1vZ6DL3QMH2FveMa3HLvPsOdhJsPRB3KtxVhph9T75A==}
+    engines: {node: '>=20.0.0'}
+
+  '@aws-sdk/client-pinpoint-sms-voice-v2@3.1127.0':
+    resolution: {integrity: sha512-JFwO7jNxNcc2fet/1DIzJ7e3Z6SXsrXvBnYkzuaU8PSQH0qZonM86rqse3wlh29WIVc68/7c1Gcb+CGzlUyrog==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-s3@3.1127.0':
@@ -5881,6 +5891,17 @@ snapshots:
       '@aws-sdk/core': 3.977.9
       '@aws-sdk/types': 3.974.5
       '@smithy/core': 3.33.3
+      '@smithy/types': 4.17.2
+      tslib: 2.8.1
+
+  '@aws-sdk/client-pinpoint-sms-voice-v2@3.1127.0':
+    dependencies:
+      '@aws-sdk/core': 3.977.9
+      '@aws-sdk/credential-provider-node': 3.972.82
+      '@aws-sdk/types': 3.974.5
+      '@smithy/core': 3.33.3
+      '@smithy/fetch-http-handler': 5.7.2
+      '@smithy/node-http-handler': 4.12.0
       '@smithy/types': 4.17.2
       tslib: 2.8.1
 

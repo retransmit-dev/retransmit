@@ -17,18 +17,52 @@ const { data, error } = await retransmit.sms.send({
 });
 ```
 
-`from` is an optional sender ID of up to 11 letters, digits, spaces, hyphens,
-or underscores. If omitted, Retransmit uses the routed provider's default sender.
-
 Recipients must be in international E.164 format, such as `+237670000000`.
 One request takes up to 50 recipients, all in the same country.
+
+## Sender IDs
+
+`from` is the name that appears on the recipient's handset instead of a phone
+number. Carriers approve it per country, so it has to be requested before you
+can use it.
+
+Request one in the dashboard under **SMS > Sender IDs**. Pick the countries you
+send to, describe what you send, and add a sample message. Retransmit files the
+registration with the carriers and marks the request approved when it clears.
+This takes a few days in most countries.
+
+You do not need an AWS or carrier account. Retransmit holds the provider
+relationships, so one API key still covers every channel.
+
+Once approved, pass the name as `from`:
+
+```ts
+const { data, error } = await retransmit.sms.send({
+  from: "Acme",
+  to: "+237670000000",
+  text: "Your order is ready for pickup.",
+});
+```
+
+Rules:
+
+- Up to 11 letters, digits, spaces, hyphens, or underscores.
+- A sender ID approved for one country does not work in another. Request each
+  country you send to.
+- Sending with a name you have not had approved returns `422 sender_not_allowed`.
+- Omit `from` and Retransmit uses your approved sender for that country. If you
+  have none, the message goes out under a shared default, which some carriers
+  filter.
+
+The United States, Canada, and Mexico do not accept alphanumeric sender IDs at
+all. Those destinations need a number, which Retransmit does not offer yet.
 
 ## Routing and availability
 
 Retransmit reads the destination country from the recipient number and picks
 the cheapest provider that covers it. Direct carrier integrations (MTN and
-Orange in Cameroon) come first where they exist; Amazon SNS is the global
-fallback for every other destination. If no provider covers that country, the
+Orange in Cameroon) come first where they exist; AWS End User Messaging is the
+global fallback for every other destination. If no provider covers that country, the
 request returns `422 no_route` and nothing is queued.
 
 For mixed-country recipient lists, send one request per country.
@@ -53,7 +87,7 @@ const { data, error } = await retransmit.sms.send({
 | --- | --- |
 | `mtn` | MTN, in every country we have an MTN integration for |
 | `orange` | Orange, in every country we have an Orange integration for |
-| `sns` | Amazon SNS, the global fallback |
+| `sns` | AWS End User Messaging, the global fallback |
 
 The value is the carrier, not one of its country operations, so a request keeps
 working as we add more countries for that carrier. A pinned send never falls

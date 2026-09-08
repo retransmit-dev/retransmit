@@ -42,6 +42,13 @@ export interface SmsProvider {
   /** Whether the required credentials/env are present. */
   isConfigured(): boolean;
   /**
+   * ISO countries this provider delivers to, or null for a global aggregator
+   * that quotes every destination. Descriptive only — routing asks `costFor`,
+   * which is the same answer with a price attached. This exists so the
+   * operator view can show coverage without probing every country.
+   */
+  countries(): string[] | null;
+  /**
    * Cost in USD per message segment for the destination country, or null when
    * this provider cannot deliver there. A global aggregator returns a price
    * for every country (including null = unknown country).
@@ -79,12 +86,46 @@ const registry: SmsProvider[] = [
   createSnsProvider({
     key: "aws_sns",
     family: "sns",
-    name: "Amazon SNS",
+    name: "AWS End User Messaging",
     // Priced above the carrier integrations so it only wins where they do
-    // not deliver; SNS list prices sit between $0.02 and $0.10 per segment.
+    // not deliver; AWS list prices sit between $0.02 and $0.10 per segment.
     defaultCostUsd: 0.05,
   }),
 ];
+
+/**
+ * What routing would do right now, as data.
+ *
+ * Deliberately operator-facing (the dashboard renders it behind
+ * `adminProcedure`): which provider carries a message is a cost decision
+ * Retransmit makes, not a setting a customer configures, and putting it on a
+ * customer screen would invite them to pick. It is here because "why did this
+ * go out over SNS" is a question that otherwise needs a shell on the server.
+ */
+export interface ProviderCoverage {
+  key: string;
+  family: SmsProviderName;
+  name: string;
+  /** Whether its credentials/env are present in this deployment. */
+  configured: boolean;
+  /** Countries it delivers to, null for a global aggregator. */
+  countries: string[] | null;
+  /** USD per segment it currently quotes, null when it cannot say. */
+  costUsd: number | null;
+}
+
+export function providerCoverage(): ProviderCoverage[] {
+  return registry.map((provider) => ({
+    key: provider.key,
+    family: provider.family,
+    name: provider.name,
+    configured: provider.isConfigured(),
+    countries: provider.countries(),
+    // A global provider prices by destination; with no destination in hand,
+    // its unknown-country quote is the representative one.
+    costUsd: provider.costFor(provider.countries()?.[0] ?? null),
+  }));
+}
 
 /** Display label for a routing key, for logs and tables. Falls back to the key. */
 export function providerLabel(key: string): string {

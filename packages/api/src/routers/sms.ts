@@ -5,6 +5,7 @@ import type { SmsStatus } from "@retransmit/db/schema/sms";
 import { enqueueSmsSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone, smsSegments } from "@retransmit/sms/phone";
 import { providerLabel, selectProvider } from "@retransmit/sms/provider";
+import { SenderNotAllowedError, resolveSender } from "@retransmit/sms/senders";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, lt, lte, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
@@ -159,6 +160,18 @@ export const smsRouter = router({
         });
       }
 
+      // Same allowlist the public API enforces, so a test send proves the
+      // sender id as well as the route.
+      let from: string | null;
+      try {
+        ({ from } = await resolveSender(ctx.org.id, country, input.from));
+      } catch (cause) {
+        if (cause instanceof SenderNotAllowedError) {
+          throw new TRPCError({ code: "FORBIDDEN", message: cause.message });
+        }
+        throw cause;
+      }
+
       const id = createId("sms");
       const [created] = await db
         .insert(sms)
@@ -166,7 +179,7 @@ export const smsRouter = router({
           id,
           userId: ctx.session.user.id,
           organizationId: ctx.org.id,
-          from: input.from,
+          from,
           to: [to],
           text: input.text,
           country,
@@ -183,6 +196,7 @@ export const smsRouter = router({
         id,
         to,
         country,
+        from,
         segments: created.segments,
         /** Expected route at enqueue time; the worker picks again when it sends. */
         provider: provider.name,

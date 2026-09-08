@@ -197,6 +197,9 @@ export function createOrangeProvider(options: OrangeProviderOptions): SmsProvide
     isConfigured() {
       return Boolean(env("CLIENT_ID") && env("CLIENT_SECRET"));
     },
+    countries() {
+      return options.countries;
+    },
     costFor(country) {
       if (!country || !options.countries.includes(country)) return null;
       const configured = Number(process.env[`${options.envPrefix}_COST_PER_SMS`]);

@@ -73,15 +73,16 @@ interface SnsEnvelope {
 }
 
 /**
- * Amazon SNS delivery status records. SNS writes SMS delivery status to
- * CloudWatch Logs rather than calling back, so the records arrive here one
- * of two ways, both carrying the shared token in the query string:
- * - a CloudWatch Logs subscription (Lambda forwarder) posting the parsed log
- *   record, or a JSON array of them, as-is;
- * - an SNS topic the forwarder publishes to, subscribed to this URL, in
- *   which case the record is the `Message` string of a standard SNS
- *   envelope. Subscription confirmations are answered automatically, the
- *   same way the SES callback does it.
+ * AWS delivery status events, carrying the shared token in the query string.
+ *
+ * The normal path is AWS End User Messaging: the configuration set set up by
+ * `infra/setup-sms.sh` publishes each event to an SNS topic, and this URL is
+ * a subscriber, so the event arrives as the `Message` string of a standard
+ * SNS envelope. Subscription confirmations are answered automatically, the
+ * same way the SES callback does it.
+ *
+ * A bare record, or a JSON array of records, is also accepted: that is the
+ * shape a CloudWatch Logs forwarder posts for the legacy SNS `Publish` route.
  */
 smsCallbackRoutes.post("/sns", async (c) => {
   if (!isAuthorized(c)) {

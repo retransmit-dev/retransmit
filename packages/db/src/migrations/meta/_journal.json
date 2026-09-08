@@ -92,6 +92,13 @@
       "when": 1788888758868,
       "tag": "0012_sms_provider",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788889812431,
+      "tag": "0013_sms_sender",
+      "breakpoints": true
     }
   ]
 }

@@ -72,6 +72,25 @@ export function SmsStatusBadge({ status }: { status: string }) {
   );
 }
 
+/** Mirrors SMS_SENDER_STATUSES in @retransmit/db. */
+const SMS_SENDER_STATUS: Record<string, { label: string; dot: string }> = {
+  // "In review" rather than "Pending": the wait is a carrier registration,
+  // not a queue we control, and the wording sets that expectation.
+  pending: { label: "In review", dot: "bg-amber-500" },
+  approved: { label: "Approved", dot: "bg-emerald-500" },
+  rejected: { label: "Rejected", dot: "bg-red-500" },
+};
+
+export function SmsSenderStatusBadge({ status }: { status: string }) {
+  const option = SMS_SENDER_STATUS[status];
+  return (
+    <Badge variant="outline">
+      <StatusDot className={option?.dot} />
+      {option?.label ?? status}
+    </Badge>
+  );
+}
+
 const DOMAIN_STATUS: Record<string, { label: string; dot: string }> = {
   verified: { label: "Verified", dot: "bg-emerald-500" },
   pending: { label: "Pending", dot: "bg-amber-500" },

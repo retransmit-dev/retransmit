@@ -168,17 +168,30 @@ export async function processOrangeDeliveryReceipt(
 }
 
 // ---------------------------------------------------------------------------
-// Amazon SNS
+// AWS End User Messaging (routing key `aws_sns`)
 
 /**
- * SNS SMS delivery status record, as written to CloudWatch Logs when
- * delivery status logging is enabled. `notification.messageId` is the id
- * Publish returned, stored as `providerMessageId` (comma-joined when one
- * message went to several recipients). The record reaches us through a log
- * subscription forwarder or an SNS topic; the callback route unwraps
- * envelopes before calling this.
+ * Event published by an End User Messaging configuration set to its SNS
+ * topic, which the callback route unwraps before calling this.
+ * `messageId` is what `SendTextMessage` returned, stored as
+ * `providerMessageId` (comma-joined when one message went to several
+ * recipients).
  */
-const snsDeliverySchema = z
+const eumEventSchema = z
+  .object({
+    messageId: z.string().min(1),
+    messageStatus: z.string().min(1),
+    messageStatusDescription: z.string().optional(),
+  })
+  .loose();
+
+/**
+ * Legacy shape: the record SNS `Publish` wrote to CloudWatch Logs when
+ * delivery status logging was on. Still accepted so receipts already in
+ * flight, or a deployment that has not moved to a configuration set yet, keep
+ * closing the loop.
+ */
+const snsLogRecordSchema = z
   .object({
     notification: z.object({ messageId: z.string().min(1) }).loose(),
     status: z.string().min(1),
@@ -192,33 +205,65 @@ const snsDeliverySchema = z
   })
   .loose();
 
-const SNS_STATUS_MAP: Record<string, MappedStatus> = {
+/**
+ * Terminal message states. In-flight ones (PENDING, QUEUED, SENT, SUCCESSFUL)
+ * are deliberately absent: the row is already `sent`, and `applyDeliveryStatus`
+ * only moves a status forward, so listing them would be a no-op that reads as
+ * if it did something.
+ */
+const AWS_STATUS_MAP: Record<string, MappedStatus> = {
+  // End User Messaging
+  DELIVERED: { status: "delivered", webhook: "sms.delivered" },
+  UNREACHABLE: { status: "undelivered", webhook: "sms.undelivered" },
+  CARRIER_UNREACHABLE: { status: "undelivered", webhook: "sms.undelivered" },
+  UNKNOWN: { status: "undelivered", webhook: "sms.undelivered" },
+  TTL_EXPIRED: { status: "expired", webhook: "sms.undelivered" },
+  BLOCKED: { status: "rejected", webhook: "sms.undelivered" },
+  CARRIER_BLOCKED: { status: "rejected", webhook: "sms.undelivered" },
+  SPAM: { status: "rejected", webhook: "sms.undelivered" },
+  INVALID: { status: "rejected", webhook: "sms.undelivered" },
+  INVALID_MESSAGE: { status: "rejected", webhook: "sms.undelivered" },
+  // Legacy CloudWatch record
   SUCCESS: { status: "delivered", webhook: "sms.delivered" },
   FAILURE: { status: "undelivered", webhook: "sms.undelivered" },
 };
 
 /**
- * Applies one SNS delivery status record. Same contract as the carrier
- * variants: unmatched ids and unknown statuses are ignored so the endpoint
- * can always 200.
+ * Applies one AWS delivery event, in either the End User Messaging or the
+ * legacy CloudWatch shape. Same contract as the carrier variants: unmatched
+ * ids and non-terminal statuses are ignored so the endpoint can always 200.
  */
 export async function processSnsDeliveryReceipt(payload: unknown): Promise<{ applied: boolean }> {
-  const parsed = snsDeliverySchema.safeParse(payload);
-  if (!parsed.success) return { applied: false };
+  const event = eumEventSchema.safeParse(payload);
+  const legacy = event.success ? null : snsLogRecordSchema.safeParse(payload);
 
-  const mapped = SNS_STATUS_MAP[parsed.data.status.toUpperCase()];
+  let messageId: string;
+  let status: string;
+  let detail: string | undefined;
+  if (event.success) {
+    messageId = event.data.messageId;
+    status = event.data.messageStatus;
+    detail = event.data.messageStatusDescription;
+  } else if (legacy?.success) {
+    messageId = legacy.data.notification.messageId;
+    status = legacy.data.status;
+    detail = legacy.data.delivery?.providerResponse;
+  } else {
+    return { applied: false };
+  }
+
+  const mapped = AWS_STATUS_MAP[status.toUpperCase()];
   if (!mapped) return { applied: false };
 
-  const messageId = parsed.data.notification.messageId;
-  // Ids are UUIDs, so a substring match cannot hit the wrong row.
+  // Ids are UUIDs, so a substring match cannot hit the wrong row; the LIKE
+  // only exists for multi-recipient sends whose ids are comma-joined.
   const where = or(eq(sms.providerMessageId, messageId), like(sms.providerMessageId, `%${messageId}%`));
   if (!where) return { applied: false };
 
-  const detail = parsed.data.delivery?.providerResponse;
   return applyDeliveryStatus(
     where,
     mapped,
-    parsed.data as Record<string, unknown>,
-    detail ? `${parsed.data.status}: ${detail}` : parsed.data.status,
+    payload as Record<string, unknown>,
+    detail ? `${status}: ${detail}` : status,
   );
 }

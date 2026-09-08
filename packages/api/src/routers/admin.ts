@@ -1,5 +1,6 @@
 import { db } from "@retransmit/db";
 import { session, user } from "@retransmit/db/schema/auth";
+import { providerCoverage } from "@retransmit/sms/provider";
 import { count, desc, eq, max, sql } from "drizzle-orm";
 
 import { adminProcedure, router } from "../index";
@@ -33,4 +34,13 @@ export const adminRouter = router({
 
     return rows;
   }),
+
+  /**
+   * What SMS routing would do right now: which providers this deployment has
+   * credentials for, what they cover and what they cost. Operator-only —
+   * choosing a carrier is a cost decision Retransmit makes, not a customer
+   * setting, so this answers "why did that go out over AWS" without a shell
+   * on the server.
+   */
+  smsProviders: adminProcedure.query(() => providerCoverage()),
 });

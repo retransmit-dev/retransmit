@@ -89,6 +89,11 @@ const smsSection: NavSection = {
   icon: MessageSquareTextIcon,
   items: [
     {
+      href: "/sms/senders",
+      title: "Sender IDs",
+      description: "Request the name your messages arrive from.",
+    },
+    {
       href: "/sms/test",
       title: "Test send",
       description: "Queue one message through the configured providers.",

@@ -1,36 +1,50 @@
-import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+import {
+  PinpointSMSVoiceV2Client,
+  SendTextMessageCommand,
+} from "@aws-sdk/client-pinpoint-sms-voice-v2";
 
 import type { SmsProviderName } from "@retransmit/db/schema/sms";
 
 import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
 
 /**
- * Amazon SNS SMS (https://docs.aws.amazon.com/sns/latest/dg/sns-mobile-phone-number-as-subscriber.html).
+ * AWS End User Messaging SMS
+ * (https://docs.aws.amazon.com/sms-voice/latest/userguide/what-is-service.html),
+ * the service that took over SMS from Amazon SNS.
  *
- * SNS reaches every country AWS sells SMS in, so this provider is the global
- * fallback: it covers any destination, and the price makes the cheaper
- * carrier integrations (MTN, Orange) win wherever they are configured.
+ * It reaches every country AWS sells SMS in, so this provider is the global
+ * fallback: it covers any destination, and the price makes the cheaper carrier
+ * integrations (MTN, Orange) win wherever they are configured. The routing key
+ * stays `aws_sns` and the public provider name stays `sns` because both are
+ * persisted on every row already sent.
+ *
+ * Why not SNS `Publish`: it works, but its only delivery-status channel is
+ * CloudWatch Logs, which cannot post to an HTTPS endpoint without a Lambda or
+ * Firehose in between. End User Messaging publishes events to an SNS topic
+ * through a configuration set, which our callback subscribes to exactly like
+ * SES does — no forwarder to own. Origination identities (sender ids, numbers,
+ * registrations) live in this API too, which is what `infra/setup-sms.sh`
+ * drives.
  *
  * Credentials come from the default AWS provider chain, the same as SES.
  * Env:
- * - `SNS_SMS_REGION` — region to publish from. Turns the provider on; SMS is
- *   only available in some regions (eu-central-1, us-east-1, ap-southeast-1
- *   and others), and the account's spend limit and origination identities
- *   are per region.
- * - `SNS_SMS_SENDER_ID` — default alphanumeric sender id (max 11 chars).
- *   Registered per country where carriers require it; ignored elsewhere.
- * - `SNS_SMS_ORIGINATION_NUMBER` — an origination number owned in the
- *   region, for countries that require one (US, CA, ...).
- * - `SNS_SMS_TYPE` — `Transactional` (default) or `Promotional`.
- * - `SNS_SMS_MAX_PRICE` — USD ceiling per message; SNS drops sends above it.
+ * - `SNS_SMS_REGION` — region to send from. Turns the provider on; SMS is only
+ *   available in some regions, and the account's spend limit, sandbox status
+ *   and origination identities are all per region.
+ * - `SNS_SMS_CONFIGURATION_SET` — configuration set carrying the event
+ *   destination that feeds delivery receipts back to
+ *   `/v1/callbacks/sms/sns`. Without it a send still goes out, but its status
+ *   never moves past `sent`. Created by `infra/setup-sms.sh`.
+ * - `SNS_SMS_SENDER_ID` — default origination identity when the message
+ *   carries no approved sender id of its own. Registered per country where
+ *   carriers require it.
+ * - `SNS_SMS_ORIGINATION_NUMBER` — a number owned in the region, used instead
+ *   of a sender id for countries that reject alphanumeric ids (US, CA, ...).
+ * - `SNS_SMS_TYPE` — `TRANSACTIONAL` (default) or `PROMOTIONAL`.
+ * - `SNS_SMS_MAX_PRICE` — USD ceiling per message part; AWS drops sends above it.
  * - `SNS_SMS_COUNTRIES` — optional allowlist of ISO countries, e.g. `US,GB`.
  *   Unset means every destination, including undetected countries.
  * - `SNS_SMS_COST_PER_SMS` — USD price per segment used for routing.
- *
- * Delivery receipts: SNS writes SMS delivery status to CloudWatch Logs
- * (enable "Delivery status logging" in SNS > Text messaging preferences).
- * Forward those records to `/v1/callbacks/sms/sns` to close the loop; see
- * `processSnsDeliveryReceipt` in delivery.ts.
  */
 export interface SnsProviderOptions {
   key: string;
@@ -42,12 +56,12 @@ export interface SnsProviderOptions {
 }
 
 // One client per region: the region can change between env reloads in dev,
-// and SNS SMS settings are strictly regional.
-const clients = new Map<string, SNSClient>();
-function getClient(region: string): SNSClient {
+// and SMS settings are strictly regional.
+const clients = new Map<string, PinpointSMSVoiceV2Client>();
+function getClient(region: string): PinpointSMSVoiceV2Client {
   let client = clients.get(region);
   if (!client) {
-    client = new SNSClient({ region });
+    client = new PinpointSMSVoiceV2Client({ region });
     clients.set(region, client);
   }
   return client;
@@ -70,40 +84,35 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
     const currentRegion = region();
     if (!currentRegion) throw new Error(`${options.name}: SNS_SMS_REGION is not set`);
 
-    const senderId = message.from ?? process.env.SNS_SMS_SENDER_ID;
-    const originationNumber = process.env.SNS_SMS_ORIGINATION_NUMBER;
+    // The message's own sender id has already been checked against the
+    // organization's approvals (see senders.ts), so it wins. A number beats a
+    // sender id where one is configured, because the countries that need a
+    // number reject alphanumeric ids outright.
+    const originationIdentity =
+      message.from ??
+      process.env.SNS_SMS_ORIGINATION_NUMBER ??
+      process.env.SNS_SMS_SENDER_ID ??
+      undefined;
     const maxPrice = process.env.SNS_SMS_MAX_PRICE;
-    const smsType = process.env.SNS_SMS_TYPE === "Promotional" ? "Promotional" : "Transactional";
 
     const response = await getClient(currentRegion).send(
-      new PublishCommand({
-        PhoneNumber: to,
-        Message: message.text,
-        MessageAttributes: {
-          "AWS.SNS.SMS.SMSType": { DataType: "String", StringValue: smsType },
-          ...(senderId
-            ? { "AWS.SNS.SMS.SenderID": { DataType: "String", StringValue: senderId } }
-            : {}),
-          ...(originationNumber
-            ? {
-                "AWS.MM.SMS.OriginationNumber": {
-                  DataType: "String",
-                  StringValue: originationNumber,
-                },
-              }
-            : {}),
-          ...(maxPrice
-            ? { "AWS.SNS.SMS.MaxPrice": { DataType: "Number", StringValue: maxPrice } }
-            : {}),
-        },
+      new SendTextMessageCommand({
+        DestinationPhoneNumber: to,
+        MessageBody: message.text,
+        MessageType: process.env.SNS_SMS_TYPE === "PROMOTIONAL" ? "PROMOTIONAL" : "TRANSACTIONAL",
+        ...(originationIdentity ? { OriginationIdentity: originationIdentity } : {}),
+        ...(process.env.SNS_SMS_CONFIGURATION_SET
+          ? { ConfigurationSetName: process.env.SNS_SMS_CONFIGURATION_SET }
+          : {}),
+        ...(maxPrice ? { MaxPrice: maxPrice } : {}),
       }),
     );
     return response.MessageId;
   }
 
   async function send(message: SmsMessage): Promise<SmsSendResult> {
-    // Publish takes one PhoneNumber per call. Ids are stored joined so a
-    // delivery record for any recipient still finds the row.
+    // SendTextMessage takes one destination per call. Ids are stored joined so
+    // a delivery record for any recipient still finds the row.
     const ids: string[] = [];
     for (const to of message.to) {
       try {
@@ -123,6 +132,13 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
     name: options.name,
     isConfigured() {
       return Boolean(region());
+    },
+    countries() {
+      // Null means "every destination": AWS quotes anywhere it sells SMS,
+      // which is what makes this the fallback. An SNS_SMS_COUNTRIES allowlist
+      // narrows that to a fixed set.
+      const allowed = allowedCountries();
+      return allowed ? [...allowed].sort() : null;
     },
     costFor(country) {
       const allowed = allowedCountries();
