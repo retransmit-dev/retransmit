@@ -1,6 +1,6 @@
 import type { Route } from "next";
 
-/* Privacy policy and terms of service, as data. The HTML pages and the
+/* Privacy policy, terms of service, SMS policy, and data deletion, as data. The HTML pages and the
    Markdown variants both render from here, so the two representations
    cannot drift apart. Update `updatedLabel` when the text changes. */
 
@@ -116,9 +116,9 @@ export const PRIVACY_POLICY: LegalDoc = {
         "We share data only with the providers we need to run the service:",
       ],
       points: [
-        "Amazon Web Services: our infrastructure runs on AWS data centers in the European Union and the United States. Your emails are delivered through Amazon SES, email attachments are stored in Amazon S3, and some SMS is delivered through Amazon SNS.",
+        "Amazon Web Services: our infrastructure runs on AWS data centers in the European Union and the United States. Your emails are delivered through Amazon SES, email attachments are stored in Amazon S3, and some SMS is delivered through AWS End User Messaging.",
         "Meta Platforms: when you connect a WhatsApp Business number, Meta receives the messages you send, delivers replies and status updates to us, and holds the account, number, and template data described in the WhatsApp Business Platform section. Meta processes it under the WhatsApp Business Terms and its own privacy policy.",
-        "SMS carriers: the mobile carriers and gateways that deliver your SMS receive the recipient number, sender id, and message text. Which one carries a message depends on the destination; today they are MTN Cameroon, Orange Cameroon, and Amazon SNS.",
+        "SMS carriers: the mobile carriers and gateways that deliver your SMS receive the recipient number, sender id, and message text. Which one carries a message depends on the destination; today they are MTN Cameroon, Orange Cameroon, and AWS End User Messaging.",
         "Slane Analytics: analytics.slane.io receives website page URLs, referrers, browser window widths, random visitor identifiers, and conversion event names and placements so we can measure website usage.",
         "Payment providers: when you buy credits, your payment details go directly to the payment provider. We never see or store card numbers; we receive only confirmation that a payment succeeded.",
         "Authorities: we disclose data to law enforcement or regulators only when the law requires it, and we push back on requests that are overbroad.",
@@ -203,14 +203,15 @@ export const PRIVACY_POLICY: LegalDoc = {
 export const TERMS_OF_SERVICE: LegalDoc = {
   href: "/terms",
   title: "Terms of service",
-  updatedLabel: "September 2, 2026",
+  updatedLabel: "September 8, 2026",
   intro:
-    "These terms govern your use of the Retransmit hosted service: the retransmit.dev website, the dashboard, and the hosted API. By creating an account or sending email through the service, you agree to them. The self-hosted software is licensed separately under AGPL-3.0 (SDK under MIT) and is not covered by these terms.",
+    "These terms govern your use of the Retransmit hosted service: the retransmit.dev website, the dashboard, and the hosted API. By creating an account or sending a message through the service, you agree to them. The self-hosted software is licensed separately under AGPL-3.0 (SDK under MIT) and is not covered by these terms.",
   sections: [
     {
       title: "The service",
       body: [
-        "Retransmit is a transactional email API. You bring your recipients and content; we queue, deliver, and report on your emails. We may improve or change features over time.",
+        "Retransmit is a messaging API for email, SMS, and WhatsApp. You bring your recipients and your content; we queue, deliver, and report on your messages. Which mail provider, mobile carrier, or platform delivers a given message depends on the channel and the destination country. We may improve or change features over time.",
+        "You send to your own recipients under your own brand. For the personal data in your messages you are the controller and we are your processor, as set out in the privacy policy.",
       ],
     },
     {
@@ -222,38 +223,78 @@ export const TERMS_OF_SERVICE: LegalDoc = {
     {
       title: "Acceptable use",
       body: [
-        "Retransmit is for transactional and other consented email. You agree to:",
+        "These rules apply to every channel. You agree to:",
       ],
       points: [
-        "Send only to recipients who have a relationship with you or have agreed to receive your email.",
-        "Comply with applicable law, including anti-spam laws such as CAN-SPAM and GDPR.",
-        "Honor unsubscribe requests and not send to addresses on your suppression list.",
-        "Not send unlawful, deceptive, or malicious content, including phishing and malware.",
-        "Not probe, overload, or interfere with the service.",
+        "Send only to recipients who have a relationship with you or have agreed to receive your messages on that channel, and keep a record of that agreement.",
+        "Identify yourself accurately. Do not disguise who is sending, forge headers or sender ids, or impersonate another business or person.",
+        "Comply with applicable law, including anti-spam and privacy laws such as CAN-SPAM, the TCPA, and the GDPR, and with the rules of the carriers and platforms that carry your messages.",
+        "Honor opt-out requests promptly and not send to a recipient we have suppressed.",
+        "Not send unlawful, deceptive, or malicious content, including phishing, malware, and fraud.",
+        "Not resell raw access to the service to third parties whose sending you cannot vouch for, and not probe, overload, or interfere with the service.",
+      ],
+    },
+    {
+      title: "Sending email",
+      body: [
+        "Email adds a few rules of its own:",
+      ],
+      points: [
+        "Every marketing email needs a working unsubscribe link, and we add one-click unsubscribe headers so mailbox providers can offer their own.",
+        "We keep a suppression list per account. Addresses that bounce, complain, or unsubscribe go on it, and we refuse later sends to them.",
+        "Send from a domain you have verified in the dashboard.",
+      ],
+    },
+    {
+      title: "Sending SMS",
+      body: [
+        "SMS reaches people on their phones, and the carriers that deliver it hold senders to a higher bar than email. Consent to receive SMS is separate from consent to receive email; agreeing to one is never agreement to the other. When you send SMS through Retransmit you agree to:",
+      ],
+      points: [
+        "Collect prior express consent from each recipient to receive text messages at that specific number, before you send anything, and keep a record of when and how you collected it. Show it to us on request.",
+        "Tell people at the moment they opt in who will be messaging them, what the messages will be about, roughly how often they will arrive, that message and data rates may apply, and how to stop.",
+        "Never send to purchased, rented, scraped, or otherwise borrowed lists, and never to a number that reached you through someone else's opt-in.",
+        "Identify your business in your messages, so a recipient can tell who is contacting them.",
+        "Honor every opt-out, by whichever route it reaches you: a STOP reply, a message to you directly, or one we pass on to you. Do not send to that number again unless the person opts back in. Where you send from a phone number, the carrier network blocks opted-out numbers as well, but the obligation is yours either way.",
+        "Give opt-out instructions that work on the route you send from, in the first message of a conversation and in any recurring or promotional message. \"Reply STOP\" belongs only on messages sent from a phone number; an alphanumeric sender id cannot receive replies, so point people at a link, an account setting, or a contact you monitor instead.",
+        "Not send content in restricted categories: sexual content, hate speech, alcohol, firearms, tobacco, cannabis, illegal drugs, gambling, high-risk lending, and anything else a carrier or regulator prohibits in the destination country.",
+        "Use only sender ids we approved for the destination country, and respect local rules on quiet hours and registration.",
+      ],
+    },
+    {
+      title: "Sending WhatsApp",
+      body: [
+        "WhatsApp messages travel over Meta's WhatsApp Business Platform and are subject to Meta's rules as well as ours. You agree to follow the WhatsApp Business Messaging Policy and the WhatsApp Business Terms of Service, to hold the opt-in WhatsApp requires before a business messages someone, to open conversations with an approved template, and to reply free-form only inside the 24 hour service window. Meta may reject templates, rate limit your number, or lower its quality rating, and those decisions are Meta's, not ours.",
       ],
     },
     {
       title: "Credits and payment",
       body: [
-        "The hosted service runs on prepaid credits. Credits are consumed per email sent and do not expire while your account is in good standing. Prices are shown before you pay. If something goes wrong with a purchase, contact us and we will sort it out.",
+        "The hosted service runs on prepaid credits. Credits are consumed per message sent, at a rate that depends on the channel and the destination, and do not expire while your account is in good standing. Prices are shown before you pay. If something goes wrong with a purchase, contact us and we will sort it out.",
       ],
     },
     {
       title: "Suspension and termination",
       body: [
-        "We may suspend or close an account that violates these terms, harms deliverability for other customers, or creates legal risk. Where reasonable, we will warn you first. You can stop using the service and ask us to delete your account at any time.",
+        "We may suspend or close an account that violates these terms, generates complaints or opt-outs at a rate that puts our routes at risk, harms deliverability for other customers, or creates legal risk. We may also stop specific sending when a carrier, mail provider, platform, or regulator asks us to. Where reasonable, we will warn you first. You can stop using the service and ask us to delete your account at any time.",
       ],
     },
     {
       title: "Disclaimers",
       body: [
-        "The service is provided as is. Email delivery depends on third parties, including recipient mail servers, and we cannot guarantee that every message will be delivered or delivered on time. To the maximum extent permitted by law, we disclaim all implied warranties.",
+        "The service is provided as is. Delivery depends on third parties, including recipient mail servers, mobile carriers, and Meta, and we cannot guarantee that every message will be delivered, delivered on time, or delivered at the price quoted for a route that changes. To the maximum extent permitted by law, we disclaim all implied warranties.",
       ],
     },
     {
       title: "Limitation of liability",
       body: [
         "To the maximum extent permitted by law, Retransmit's total liability for any claim arising out of the service is limited to the amount you paid us in the twelve months before the claim. We are not liable for indirect or consequential damages, or for lost profits or data.",
+      ],
+    },
+    {
+      title: "Indemnity",
+      body: [
+        "You are responsible for your messages and your recipients. If someone brings a claim against us because of what you sent, who you sent it to, or the consent you did or did not hold, you will cover our reasonable costs in defending it.",
       ],
     },
     {
@@ -318,4 +359,107 @@ export const DATA_DELETION: LegalDoc = {
   ],
 };
 
-export const LEGAL_DOCS = [PRIVACY_POLICY, TERMS_OF_SERVICE, DATA_DELETION] as const;
+export const SMS_POLICY: LegalDoc = {
+  href: "/sms-policy",
+  title: "SMS policy",
+  updatedLabel: "September 8, 2026",
+  intro:
+    "How consent and opt-out work for SMS sent through Retransmit. Retransmit is a messaging platform operated by Logesta Labs LLC: businesses send text messages to their own customers through our API, so the business that messaged you chose to contact you and wrote the message. This page explains how to stop those messages, and what we require of the businesses that send them.",
+  sections: [
+    {
+      title: "Stopping messages",
+      body: [
+        "How you stop messages depends on what your phone shows as the sender.",
+        "If the message came from a phone number, reply STOP to it. We also accept STOPALL, UNSUBSCRIBE, CANCEL, END, and QUIT, in upper or lower case. Delivery to your number stops straight away, opting out is free, and it holds until you opt back in. Reply START or UNSTOP to the same number if you want the messages again.",
+        `If the message showed a name instead of a number, such as a brand or a shop, that is an alphanumeric sender id. Those are one-way: your phone cannot send anything back, and a reply reaches nobody. To stop them, contact the business through the account or address you have with them, or email us at ${CONTACT_EMAIL} and we will identify the sender, record your request against your number, and pass it on.`,
+        "Every message should tell you how to stop it, in the form that works for the route it came on. If one does not, that breaks our terms of service and we want to hear about it.",
+      ],
+    },
+    {
+      title: "Getting help",
+      body: [
+        "Reply HELP to a message that came from a phone number and you will get a reply naming the business that contacted you and how to reach them.",
+        `An alphanumeric sender id cannot answer HELP, for the same reason it cannot answer STOP. Email ${CONTACT_EMAIL} instead. Tell us the number that received the message, the name it showed, and roughly when it arrived, and we will identify the sender and act on your request.`,
+      ],
+    },
+    {
+      title: "Message frequency and rates",
+      body: [
+        "Message frequency depends on the business that messages you and on what you signed up for. A verification code arrives when you ask for one; an order update arrives when your order changes.",
+        "Message and data rates may apply. Retransmit does not charge you for messages you receive. Your mobile carrier may, under your own plan.",
+      ],
+    },
+    {
+      title: "How consent works",
+      body: [
+        "Businesses may only message a number that gave them prior express consent to receive text messages at that number. Consent to SMS is separate from consent to email, and it is not transferable: a number collected under one business's opt-in cannot be messaged by another. Purchased, rented, and scraped lists are not consent, and are banned by our terms of service.",
+        "A valid opt-in is a deliberate act by the person who owns the number. In practice that means one of:",
+      ],
+      points: [
+        "Typing their number into a web form or checking an unchecked box next to a clear description of the messages they will get.",
+        "Texting a keyword to the sender's number.",
+        "Asking for a verification code as part of signing in or confirming an action.",
+        "Agreeing in person or on a call, with the business keeping a written record of it.",
+      ],
+    },
+    {
+      title: "What businesses must disclose at opt-in",
+      body: [
+        "At the moment consent is collected, the business has to tell the person who will be messaging them, what the messages will be about, roughly how often they arrive, that message and data rates may apply, and how to stop, described in a way that works on the route they send from. Our terms of service require this of every account that sends SMS.",
+      ],
+    },
+    {
+      title: "What businesses send",
+      body: [
+        "SMS on Retransmit is for transactional and consented messages. Typical messages look like this:",
+      ],
+      points: [
+        "Verification: \"Acme: 481920 is your verification code. It expires in 10 minutes. Do not share it with anyone.\"",
+        "Order update, sent from a phone number: \"Acme: your order #1043 is out for delivery and arrives today. Reply STOP to opt out.\"",
+        "Appointment reminder, sent from a sender id: \"Acme: reminder of your appointment on Tuesday at 14:00. To stop these reminders, change your preferences at acme.com/account.\"",
+        "Security alert: \"Acme: a new sign in to your account from a new device. If this was not you, contact support right away.\"",
+      ],
+    },
+    {
+      title: "Restricted content",
+      body: [
+        "Businesses may not send sexual content, hate speech, or messages about alcohol, firearms, tobacco, cannabis, illegal drugs, gambling, or high-risk lending through Retransmit, along with anything else a carrier or regulator prohibits in the destination country. Accounts that do are suspended.",
+      ],
+    },
+    {
+      title: "How we enforce this",
+      body: [
+        "Sender ids are reviewed and approved per country before an account can use them, so a business cannot put someone else's brand on a handset. We monitor delivery, failure, and complaint rates per account, and we suspend accounts whose consent does not hold up or that a carrier or regulator flags to us.",
+        "Where we send from a phone number, opt-out keywords are handled by the carrier network: a number that replies STOP is added to an opt-out list and later messages to it are blocked, whether or not the sender acts on it.",
+        "Where we send from an alphanumeric sender id, no reply can reach the sender or us, so opt-outs arrive by the routes above. We record every one we receive against the number it concerns and pass it to the sender, who must not message that number again. Ignoring one is grounds for suspension.",
+      ],
+    },
+    {
+      title: "If you got a message you did not ask for",
+      body: [
+        `Reply STOP if the message came from a phone number; that stops it immediately. Either way, email ${CONTACT_EMAIL} with the number that received the message, the sender id or business name it showed, and the date. We will identify the account, investigate, and suspend it if the consent it claims does not hold. Tell us if you want your number deleted as well and we will do that too.`,
+      ],
+    },
+    {
+      title: "For businesses sending SMS",
+      body: [
+        "The binding rules are in the Sending SMS section of our terms of service. In short: hold and record consent per number, disclose at opt-in, identify yourself in the message, stay out of restricted categories, and use only the sender ids we approved for that country.",
+        "Give opt-out instructions that actually work on the route you send from. \"Reply STOP\" belongs only on messages sent from a phone number. On an alphanumeric sender id, point people at a link, an account setting, or a contact you monitor, because a reply to a one-way sender reaches nobody. Telling someone to reply STOP where no reply can arrive breaks these rules on its own.",
+        "Honor every opt-out you receive, by whichever route it reaches you, including the ones we pass on to you. Keeping your own consent and opt-out records is your obligation, not ours.",
+      ],
+    },
+    {
+      title: "Contact",
+      body: [
+        `Questions, opt-out requests, and complaints about SMS go to ${CONTACT_EMAIL}. A person reads them and will reply.`,
+      ],
+    },
+  ],
+};
+
+export const LEGAL_DOCS = [
+  PRIVACY_POLICY,
+  TERMS_OF_SERVICE,
+  SMS_POLICY,
+  DATA_DELETION,
+] as const;

@@ -127,7 +127,18 @@ export const SITE_PAGES: readonly SitePage[] = [
     label: "Terms of service",
     title: "Terms of service",
     description:
-      "The terms that govern the Retransmit hosted service: accounts, acceptable use, prepaid credits, suspension, and liability.",
+      "The terms that govern the Retransmit hosted service: accounts, acceptable use across email, SMS, and WhatsApp, prepaid credits, suspension, and liability.",
+    group: "legal",
+    published: true,
+    priority: 0.3,
+    changeFrequency: "yearly",
+  },
+  {
+    href: "/sms-policy",
+    label: "SMS policy",
+    title: "SMS policy: opt-in and opt-out",
+    description:
+      "How to stop SMS sent through Retransmit, and the consent every sender must hold. Covers opt-out on number and sender id routes, opt-in requirements, message frequency, rates, and restricted content.",
     group: "legal",
     published: true,
     priority: 0.3,
