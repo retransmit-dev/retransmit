@@ -1,5 +1,6 @@
 import { QUEUES, getBoss } from "@retransmit/queue";
 
+import { refreshSmsCosts, seedSmsRates, seedWhatsappRates } from "./rates";
 import { isBillingConfigured } from "./stripe";
 import { reportUnbilledUsage } from "./usage";
 
@@ -20,6 +21,23 @@ let workersStarted = false;
 export async function startBillingWorkers(): Promise<void> {
   if (workersStarted) return;
   workersStarted = true;
+
+  // The SMS rate card seeds itself so a fresh database prices every
+  // destination without an operator having to fill in 246 rows. Existing rows
+  // are never overwritten, so this is a no-op after the first boot; only the
+  // cost column follows AWS's current list, and that is display-only.
+  try {
+    const seeded = await seedSmsRates();
+    const seededWhatsapp = await seedWhatsappRates();
+    if (seeded > 0 || seededWhatsapp > 0) {
+      console.log(`[billing] seeded ${seeded} SMS rates, ${seededWhatsapp} WhatsApp overrides`);
+    }
+    await refreshSmsCosts();
+  } catch (error) {
+    // A rate-card problem must not stop the API from booting: sends still
+    // price off the AWS-derived default when the table is empty.
+    console.error("[billing] could not seed SMS rates", error);
+  }
 
   // Nothing to reconcile against without a Stripe key.
   if (!isBillingConfigured()) return;

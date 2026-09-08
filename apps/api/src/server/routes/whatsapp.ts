@@ -1,7 +1,13 @@
 import { checkPayAsYouGo, recordUsage, whatsappUnits } from "@retransmit/billing";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { WHATSAPP_MESSAGE_TYPES, whatsappEvent, whatsappMessage } from "@retransmit/db/schema/whatsapp";
+import type { WhatsappBillingCategory } from "@retransmit/db/schema/billing";
+import {
+  WHATSAPP_MESSAGE_TYPES,
+  whatsappEvent,
+  whatsappMessage,
+  whatsappTemplate,
+} from "@retransmit/db/schema/whatsapp";
 import { enqueueWhatsappSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone } from "@retransmit/sms/phone";
 import { WhatsappAccountError, resolveSenderAccount } from "@retransmit/whatsapp/accounts";
@@ -59,6 +65,34 @@ const sendWhatsappSchema = z
       });
     }
   });
+
+/**
+ * Which of Meta's billing categories a send falls into.
+ *
+ * A template carries its own category, so the price of the same message
+ * differs by a factor of four between authentication and marketing. Anything
+ * else is free-form and only delivers inside the 24-hour customer service
+ * window, which is the `service` category. An unknown template name is priced
+ * as `utility`: Meta will most likely reject the send anyway, and guessing
+ * `marketing` would overcharge for something that never arrived.
+ */
+async function billingCategory(
+  organizationId: string,
+  input: { type: string; template?: { name: string; language: string } | undefined },
+): Promise<WhatsappBillingCategory> {
+  if (input.type !== "template" || !input.template) return "service";
+  const [row] = await db
+    .select({ category: whatsappTemplate.category })
+    .from(whatsappTemplate)
+    .where(
+      and(
+        eq(whatsappTemplate.organizationId, organizationId),
+        eq(whatsappTemplate.name, input.template.name),
+        eq(whatsappTemplate.language, input.template.language),
+      ),
+    );
+  return row?.category ?? "utility";
+}
 
 export const whatsappRoutes = new Hono<ApiKeyEnv>();
 
@@ -148,7 +182,11 @@ whatsappRoutes.post("/", async (c) => {
   }
 
   await enqueueWhatsappSend(row.id);
-  await recordUsage(organizationId, "whatsapp", whatsappUnits());
+  await recordUsage(
+    organizationId,
+    "whatsapp",
+    await whatsappUnits(country, await billingCategory(organizationId, input)),
+  );
 
   return c.json(
     {

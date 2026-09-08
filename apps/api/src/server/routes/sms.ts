@@ -96,8 +96,7 @@ smsRoutes.post("/", async (c) => {
 
   // Fail fast on unroutable destinations instead of queueing a doomed job.
   // The worker re-routes at send time, so this is only an availability check.
-  const provider = selectProvider(country, input.provider);
-  if (!provider) {
+  if (!selectProvider(country, input.provider)) {
     return c.json(
       {
         error: {
@@ -151,14 +150,10 @@ smsRoutes.post("/", async (c) => {
 
   await enqueueSmsSend(row.id);
 
-  // Priced from the provider that routing picked here. The worker may end up on
-  // another carrier if this one fails, which is a difference of cents against a
-  // price that already carries a margin, so it is not worth re-billing for.
-  await recordUsage(
-    organizationId,
-    "sms",
-    smsUnits(provider.costFor(country), row.segments) * to.length,
-  );
+  // Priced from the destination's rate card, not from whichever carrier
+  // routing happened to pick: a customer's bill must not move because we
+  // switched them from MTN to Orange behind the scenes.
+  await recordUsage(organizationId, "sms", await smsUnits(country, row.segments, to.length));
 
   return c.json(
     {

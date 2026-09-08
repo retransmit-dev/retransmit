@@ -9,10 +9,13 @@
       "default": "./src/*.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "rates:snapshot": "tsx scripts/snapshot-rates.ts"
+  },
   "dependencies": {
     "@retransmit/db": "workspace:*",
     "@retransmit/queue": "workspace:*",
+    "@retransmit/sms": "workspace:*",
     "drizzle-orm": "catalog:",
     "stripe": "catalog:",
     "zod": "catalog:"
@@ -20,6 +23,7 @@
   "devDependencies": {
     "@retransmit/config": "workspace:*",
     "@types/node": "catalog:",
+    "tsx": "^4.20.0",
     "typescript": "catalog:"
   }
 }

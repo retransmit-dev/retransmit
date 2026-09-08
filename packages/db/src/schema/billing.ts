@@ -3,13 +3,14 @@ import {
   bigint,
   boolean,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-import { organization } from "./auth";
+import { organization, user } from "./auth";
 
 export const PLAN_IDS = ["free", "pro", "business"] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
@@ -128,3 +129,92 @@ export const billingUsageRelations = relations(billingUsage, ({ one }) => ({
     references: [organization.id],
   }),
 }));
+
+/** Where a rate came from: the AWS-derived seed, or an operator's edit. */
+export const RATE_SOURCES = ["seed", "manual"] as const;
+export type RateSource = (typeof RATE_SOURCES)[number];
+
+/**
+ * What a customer pays to send one SMS segment to a country.
+ *
+ * A Stripe price cannot vary by destination, so the rate card lives here and
+ * the meter carries the resulting money. Rates are per country because carrier
+ * cost is: AWS list price spans $0.004 to $0.59 across the destinations we
+ * offer, so one flat number is either uncompetitive or sold at a loss.
+ *
+ * A missing row is not an error — `@retransmit/billing` falls back to the
+ * AWS-derived default in `@retransmit/sms/aws-prices`, so a destination is
+ * priced even before the table is seeded. Seeding materializes those defaults
+ * so an operator has something to edit.
+ *
+ * `costMicros` is what the route costs Retransmit, kept beside the price so the
+ * admin editor can show the margin and flag anything selling below cost.
+ */
+export const smsRate = pgTable(
+  "sms_rate",
+  {
+    /** ISO 3166-1 alpha-2 destination, as `detectCountry` returns it. */
+    country: text("country").primaryKey(),
+    /** Customer price per segment, in USD micros (1_000_000 = $1.00). */
+    priceMicros: integer("price_micros").notNull(),
+    /** Carrier cost per segment, USD micros. Display only; never billed. */
+    costMicros: integer("cost_micros"),
+    source: text("source").$type<RateSource>().default("seed").notNull(),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("smsRate_source_idx").on(table.source)],
+);
+
+/**
+ * Categories WhatsApp bills by. Wider than `WHATSAPP_TEMPLATE_CATEGORIES`:
+ * `service` is a free-form reply inside the 24-hour customer service window,
+ * which has no template and is priced differently from the three template
+ * categories.
+ */
+export const WHATSAPP_BILLING_CATEGORIES = [
+  "marketing",
+  "utility",
+  "authentication",
+  "service",
+] as const;
+export type WhatsappBillingCategory = (typeof WHATSAPP_BILLING_CATEGORIES)[number];
+
+/**
+ * What a customer pays for one WhatsApp message, by destination and category.
+ *
+ * Two dimensions rather than the one SMS needs: Meta's rates differ far more
+ * between marketing and authentication than they do between countries. Unlike
+ * `sms_rate` this table is not seeded, because Meta publishes its rate card
+ * only through an interactive tool and inventing 984 country/category rows
+ * would be worse than having none. Rows are added by an operator; anything
+ * without one falls back to the per-category default in
+ * `@retransmit/billing/rates`.
+ */
+export const whatsappRate = pgTable(
+  "whatsapp_rate",
+  {
+    id: text("id").primaryKey(),
+    /** ISO 3166-1 alpha-2 destination. */
+    country: text("country").notNull(),
+    category: text("category").$type<WhatsappBillingCategory>().notNull(),
+    /** Customer price per message, in USD micros. */
+    priceMicros: integer("price_micros").notNull(),
+    /** Meta plus AWS pass-through cost per message, USD micros. Display only. */
+    costMicros: integer("cost_micros"),
+    source: text("source").$type<RateSource>().default("manual").notNull(),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("whatsappRate_country_category_uidx").on(table.country, table.category),
+  ],
+);

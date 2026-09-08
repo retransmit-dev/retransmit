@@ -113,6 +113,13 @@
       "when": 1788908264325,
       "tag": "0015_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788910131091,
+      "tag": "0016_sms_whatsapp_rates",
+      "breakpoints": true
     }
   ]
 }

@@ -135,6 +135,27 @@ reduce how many characters fit in each segment.
 }
 ```
 
+## What a message costs
+
+SMS is pay as you go on every plan: there is no included volume, and a
+[payment method](https://app.retransmit.dev/settings/billing) is required
+before the first send. Without one a send fails with
+[`402 quota_exceeded`](/api-reference/errors).
+
+The rate is **per segment and per recipient, and depends on the destination
+country** — carrier costs differ by more than a hundredfold between the
+cheapest and dearest destinations, so a single rate would be meaningless. A
+three-segment message to ten recipients bills thirty segments at that
+country's rate.
+
+Which carrier Retransmit routes through never changes what you pay. Routing
+picks the cheapest carrier covering the destination; the rate is fixed per
+country, so the same message costs the same whichever route it takes.
+
+Usage appears on your monthly invoice as a single SMS line, and the running
+total for the period is on the
+[billing page](https://app.retransmit.dev/settings/billing).
+
 ## Track delivery
 
 Poll `retransmit.sms.get(id)` or [`GET /v1/sms/:id`](/sms/get) for the

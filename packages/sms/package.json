@@ -9,7 +9,9 @@
       "default": "./src/*.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "rates:refresh": "tsx scripts/refresh-aws-prices.ts"
+  },
   "dependencies": {
     "@aws-sdk/client-pinpoint-sms-voice-v2": "catalog:",
     "@aws-sdk/client-sns": "catalog:",
@@ -23,6 +25,7 @@
   "devDependencies": {
     "@retransmit/config": "workspace:*",
     "@types/node": "catalog:",
+    "tsx": "^4.20.0",
     "typescript": "catalog:"
   }
 }

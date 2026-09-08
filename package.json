@@ -26,7 +26,9 @@
     "db:migrate": "pnpm with-env turbo run db:migrate -F @retransmit/db --",
     "db:migrate:deploy": "pnpm with-env turbo run db:migrate:deploy -F @retransmit/db --",
     "import:bidpilot": "pnpm with-env pnpm --filter api run import:bidpilot",
-    "auth:set-password": "pnpm with-env pnpm --filter api run auth:set-password"
+    "auth:set-password": "pnpm with-env pnpm --filter api run auth:set-password",
+    "rates:snapshot": "pnpm with-env pnpm --filter @retransmit/billing rates:snapshot",
+    "rates:refresh": "pnpm with-env pnpm --filter @retransmit/sms rates:refresh"
   },
   "dependencies": {
     "dotenv": "catalog:",

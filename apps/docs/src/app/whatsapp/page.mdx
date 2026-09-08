@@ -96,6 +96,23 @@ await retransmit.whatsapp.send({
 });
 ```
 
+## What a message costs
+
+WhatsApp is pay as you go on every plan, so a
+[payment method](https://app.retransmit.dev/settings/billing) is required
+before the first send; without one a send fails with
+[`402 quota_exceeded`](/api-reference/errors).
+
+The rate depends on the destination country and on the message's category,
+which follows the template it uses — marketing, utility or authentication.
+A free-form reply inside the 24-hour customer service window is billed at the
+service rate. Marketing is the dearest category by some way, so a template's
+category is a pricing decision as much as an approval one.
+
+Usage appears on your monthly invoice as a single WhatsApp line, with the
+running total for the period on the
+[billing page](https://app.retransmit.dev/settings/billing).
+
 ## Track delivery
 
 Poll `retransmit.whatsapp.get(id)` or [`GET /v1/whatsapp/:id`](/whatsapp/get)
