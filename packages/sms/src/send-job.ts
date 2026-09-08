@@ -13,6 +13,7 @@ function webhookPayload(row: typeof sms.$inferSelect) {
     to: row.to,
     country: row.country,
     provider: row.provider,
+    requestedProvider: row.requestedProvider,
     segments: row.segments,
     createdAt: row.createdAt.toISOString(),
   };
@@ -25,16 +26,20 @@ function webhookPayload(row: typeof sms.$inferSelect) {
  *
  * Routing happens here (not at enqueue time) so a message queued while a
  * provider was down can still go out through whichever provider is best when
- * the job actually runs. Throws on provider failure so pg-boss retries with
- * backoff; an unroutable destination fails permanently right away.
+ * the job actually runs. A send that pinned `requestedProvider` stays on that
+ * carrier and fails rather than falling back to another one. Throws on
+ * provider failure so pg-boss retries with backoff; an unroutable destination
+ * fails permanently right away.
  */
 export async function processSmsSend(smsId: string): Promise<void> {
   const [row] = await db.select().from(sms).where(eq(sms.id, smsId));
   if (!row || row.status !== "queued") return;
 
-  const provider = selectProvider(row.country);
+  const provider = selectProvider(row.country, row.requestedProvider);
   if (!provider) {
-    const message = `No configured SMS provider can deliver to ${row.country ?? "this destination"}`;
+    const message = row.requestedProvider
+      ? `The ${row.requestedProvider} provider is not configured for ${row.country ?? "this destination"}`
+      : `No configured SMS provider can deliver to ${row.country ?? "this destination"}`;
     await db
       .update(sms)
       .set({ status: "failed", error: message, lastEventAt: new Date() })

@@ -35,6 +35,8 @@ const EVENT_TYPES = [
   "email.failed",
 ] as const;
 
+const SMS_PROVIDERS = ["mtn", "orange", "sns"] as const;
+
 const SMS_STATUSES = [
   "queued",
   "sent",
@@ -484,7 +486,7 @@ export const OPENAPI_DOCUMENT = {
         tags: ["Sms"],
         summary: "Queue one SMS",
         description:
-          "Returns 202 immediately; a worker sends it with retries and a dead-letter queue. The destination country is detected from the number prefix and the message is routed to the cheapest configured provider for that country. All recipients in one request must be in the same country. Poll GET /v1/sms/{id} or subscribe to webhooks for the outcome.",
+          "Returns 202 immediately; a worker sends it with retries and a dead-letter queue. The destination country is detected from the number prefix and the message is routed to the cheapest configured provider for that country, unless `provider` names one. All recipients in one request must be in the same country. Poll GET /v1/sms/{id} or subscribe to webhooks for the outcome.",
         requestBody: {
           required: true,
           content: {
@@ -505,7 +507,7 @@ export const OPENAPI_DOCUMENT = {
           "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
           "401": errorResponse("Missing, invalid, or revoked API key."),
           "422": errorResponse(
-            "Schema validation failed (`validation_error`), recipients span countries (`validation_error`), or no provider is configured for the destination (`no_route`).",
+            "Schema validation failed (`validation_error`), recipients span countries (`validation_error`), or no provider — or not the requested one — is configured for the destination (`no_route`).",
           ),
           "500": errorResponse("Unexpected server error."),
         },
@@ -927,6 +929,12 @@ export const OPENAPI_DOCUMENT = {
             ],
           },
           text: { type: "string", minLength: 1, maxLength: 1600 },
+          provider: {
+            type: "string",
+            enum: [...SMS_PROVIDERS],
+            description:
+              "Pins the send to one carrier instead of letting Retransmit route by country and price. The request fails with `no_route` when that carrier cannot deliver to the destination.",
+          },
         },
       },
       QueuedSms: {
@@ -965,9 +973,15 @@ export const OPENAPI_DOCUMENT = {
           text: { type: "string" },
           country: { type: ["string", "null"] },
           segments: { type: "integer" },
+          requested_provider: {
+            type: ["string", "null"],
+            enum: [...SMS_PROVIDERS, null],
+            description: "Carrier the send was pinned to, null when routing chose freely.",
+          },
           provider: {
             type: ["string", "null"],
-            description: "Provider the message was routed to, set at send time.",
+            description:
+              "Routing key of the integration that carried the message, set at send time, e.g. `mtn_cm`, `orange_cm` or `aws_sns`.",
           },
           status: { type: "string", enum: [...SMS_STATUSES] },
           error: {

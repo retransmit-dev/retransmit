@@ -75,7 +75,7 @@ export const PRODUCTS: readonly Product[] = [
       {
         title: "Routing",
         description:
-          "The destination number sets the country. We pick the cheapest configured provider for it.",
+          "The destination number sets the country. We pick the cheapest provider for it, or you name one.",
       },
       {
         title: "Sender ID",
@@ -95,6 +95,7 @@ export const PRODUCTS: readonly Product[] = [
         { name: "to", value: "+237670000000" },
         { name: "text", value: "Your order is on its way." },
       ],
+      note: 'Retransmit picks the route. Add provider: "mtn", "orange" or "sns" to pin the send to one carrier.',
       previewTitle: "Acme",
       previewBody: "Your order is on its way.",
     },

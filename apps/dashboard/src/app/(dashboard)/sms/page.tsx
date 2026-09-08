@@ -14,7 +14,6 @@ export default function SmsPage() {
   const range = recentRange(SMS_DEFAULT_DAYS);
   batchPrefetch([
     trpc.apiKey.list.queryOptions(),
-    trpc.sms.providers.queryOptions(),
     trpc.sms.list.queryOptions({
       limit: SMS_PAGE_SIZE,
       from: range.from,

@@ -6,7 +6,6 @@ import { PageHeader } from "@/components/page-shell";
 import { SmsDetailsSheet } from "@/components/sms/sms-details-sheet";
 import { SmsFilterBar } from "@/components/sms/sms-filters";
 import type { SmsFilters } from "@/components/sms/sms-filters";
-import { SmsProviders } from "@/components/sms/sms-providers";
 import { SmsTable } from "@/components/sms/sms-table";
 import { Button } from "@/components/ui/button";
 import { FlaskConicalIcon } from "lucide-react";
@@ -49,10 +48,6 @@ export function SmsView({ initialRange }: { initialRange: DateRange }) {
           </Button>
         }
       />
-
-      <ErrorBoundary title="Could not load SMS providers">
-        <SmsProviders />
-      </ErrorBoundary>
 
       <SmsFilterBar filters={filters} onChange={changeFilters} />
 

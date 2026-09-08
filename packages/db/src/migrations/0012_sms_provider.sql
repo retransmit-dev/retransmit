@@ -1,0 +1,1 @@
+ALTER TABLE "sms" ADD COLUMN "requested_provider" text;

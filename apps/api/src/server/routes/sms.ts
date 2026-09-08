@@ -1,6 +1,6 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { sms, smsEvent } from "@retransmit/db/schema/sms";
+import { SMS_PROVIDER_NAMES, sms, smsEvent } from "@retransmit/db/schema/sms";
 import { enqueueSmsSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone, smsSegments } from "@retransmit/sms/phone";
 import { selectProvider } from "@retransmit/sms/provider";
@@ -29,6 +29,11 @@ const sendSmsSchema = z.object({
     .optional(),
   to: phoneList,
   text: z.string().min(1).max(1600),
+  /**
+   * Pins the send to one carrier. Omit it to let Retransmit route by
+   * destination country and price.
+   */
+  provider: z.enum(SMS_PROVIDER_NAMES).optional(),
 });
 
 export const smsRoutes = new Hono<ApiKeyEnv>();
@@ -38,8 +43,9 @@ smsRoutes.use("*", apiKeyAuth);
 /**
  * Queues a single SMS. The destination country is detected from the number
  * prefix and the message is routed to the cheapest configured provider for
- * that country (see @retransmit/sms/provider). Returns 202 immediately; the
- * worker sends it with retries and a dead-letter queue.
+ * that country, or to `provider` when the caller names one (see
+ * @retransmit/sms/provider). Returns 202 immediately; the worker sends it
+ * with retries and a dead-letter queue.
  */
 smsRoutes.post("/", async (c) => {
   let json: unknown;
@@ -82,12 +88,14 @@ smsRoutes.post("/", async (c) => {
 
   // Fail fast on unroutable destinations instead of queueing a doomed job.
   // The worker re-routes at send time, so this is only an availability check.
-  if (!selectProvider(country)) {
+  if (!selectProvider(country, input.provider)) {
     return c.json(
       {
         error: {
           code: "no_route",
-          message: `No SMS provider is configured for ${country ?? "this destination"} yet`,
+          message: input.provider
+            ? `The ${input.provider} provider is not configured for ${country ?? "this destination"}`
+            : `No SMS provider is configured for ${country ?? "this destination"} yet`,
         },
       },
       422,
@@ -104,6 +112,7 @@ smsRoutes.post("/", async (c) => {
     text: input.text,
     country,
     segments: smsSegments(input.text),
+    requestedProvider: input.provider,
   };
   const [created] = await db.insert(sms).values(row).returning();
   if (!created) {
@@ -146,6 +155,7 @@ smsRoutes.get("/:id", async (c) => {
     text: row.text,
     country: row.country,
     segments: row.segments,
+    requested_provider: row.requestedProvider,
     provider: row.provider,
     status: row.status,
     error: row.error,

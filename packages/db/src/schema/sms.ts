@@ -16,6 +16,15 @@ export const SMS_STATUSES = [
 ] as const;
 export type SmsStatus = (typeof SMS_STATUSES)[number];
 
+/**
+ * Provider names a send may pin itself to. Carrier-level on purpose: `mtn`
+ * covers every MTN opco, so adding an opco never changes what callers send.
+ * Lives here rather than in @retransmit/sms because it is persisted, and
+ * because @retransmit/sms already depends on this package.
+ */
+export const SMS_PROVIDER_NAMES = ["mtn", "orange", "sns"] as const;
+export type SmsProviderName = (typeof SMS_PROVIDER_NAMES)[number];
+
 export const sms = pgTable(
   "sms",
   {
@@ -36,6 +45,11 @@ export const sms = pgTable(
     country: text("country"),
     /** Billable message parts (GSM-7: 160/153 chars, UCS-2: 70/67). */
     segments: integer("segments").default(1).notNull(),
+    /**
+     * Provider the caller pinned the send to, null to let routing choose.
+     * Kept because routing runs in the worker, not at enqueue time.
+     */
+    requestedProvider: text("requested_provider").$type<SmsProviderName>(),
     /** Routing key of the provider that carried the message, e.g. `mtn_cm`. */
     provider: text("provider"),
     /** Message/transaction id assigned by the upstream provider. */

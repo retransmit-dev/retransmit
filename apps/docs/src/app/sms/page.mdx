@@ -31,10 +31,39 @@ Orange in Cameroon) come first where they exist; Amazon SNS is the global
 fallback for every other destination. If no provider covers that country, the
 request returns `422 no_route` and nothing is queued.
 
-The provider a message went through is returned as `provider` on
-[Get SMS](/sms/get), for example `mtn_cm`, `orange_cm` or `aws_sns`.
-
 For mixed-country recipient lists, send one request per country.
+
+## Choosing a provider
+
+You do not have to guess which carrier fits a number. Leave `provider` out and
+Retransmit routes the message for you.
+
+Pass it when you need one specific carrier, for example because your sender ID
+is registered there or a customer's number is on that network:
+
+```ts
+const { data, error } = await retransmit.sms.send({
+  to: "+237670000000",
+  text: "Your order is ready for pickup.",
+  provider: "mtn",
+});
+```
+
+| Value | Carrier |
+| --- | --- |
+| `mtn` | MTN, in every country we have an MTN integration for |
+| `orange` | Orange, in every country we have an Orange integration for |
+| `sns` | Amazon SNS, the global fallback |
+
+The value is the carrier, not one of its country operations, so a request keeps
+working as we add more countries for that carrier. A pinned send never falls
+back to another provider: if that carrier cannot deliver to the destination,
+the request returns `422 no_route`.
+
+The route a message actually took is returned as `provider` on
+[Get SMS](/sms/get). That field is more specific than what you send, naming the
+country operation: `mtn_cm`, `orange_cm` or `aws_sns`. What you asked for comes
+back as `requested_provider`.
 
 ## Message segments
 

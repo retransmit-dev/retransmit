@@ -4,7 +4,7 @@ import { SMS_STATUSES, sms, smsEvent } from "@retransmit/db/schema/sms";
 import type { SmsStatus } from "@retransmit/db/schema/sms";
 import { enqueueSmsSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone, smsSegments } from "@retransmit/sms/phone";
-import { providerSummaries, selectProvider } from "@retransmit/sms/provider";
+import { providerLabel, selectProvider } from "@retransmit/sms/provider";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, lt, lte, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
@@ -52,13 +52,6 @@ export const smsRouter = router({
     return { counts, total };
   }),
 
-  /**
-   * Every provider the deployment knows about and whether it has credentials.
-   * Routing itself stays server-side; this only explains why a destination
-   * may be unroutable.
-   */
-  providers: protectedProcedure.query(() => providerSummaries()),
-
   /** Message logs, newest first, cursor-paginated by createdAt. */
   list: protectedProcedure
     .input(
@@ -89,6 +82,7 @@ export const smsRouter = router({
           text: sms.text,
           country: sms.country,
           segments: sms.segments,
+          requestedProvider: sms.requestedProvider,
           provider: sms.provider,
           status: sms.status,
           error: sms.error,
@@ -103,7 +97,12 @@ export const smsRouter = router({
       const hasMore = rows.length > input.limit;
       const items = hasMore ? rows.slice(0, input.limit) : rows;
       return {
-        items,
+        // The routing key is opaque (`mtn_cm`); the registry owns its display
+        // name, so it is resolved here rather than mirrored in the dashboard.
+        items: items.map((row) => ({
+          ...row,
+          providerName: row.provider ? providerLabel(row.provider) : null,
+        })),
         nextCursor: hasMore ? items[items.length - 1]?.createdAt : undefined,
       };
     }),
@@ -121,7 +120,11 @@ export const smsRouter = router({
       .where(eq(smsEvent.smsId, row.id))
       .orderBy(asc(smsEvent.createdAt));
 
-    return { ...row, events };
+    return {
+      ...row,
+      providerName: row.provider ? providerLabel(row.provider) : null,
+      events,
+    };
   }),
 
   /**
@@ -182,7 +185,7 @@ export const smsRouter = router({
         country,
         segments: created.segments,
         /** Expected route at enqueue time; the worker picks again when it sends. */
-        provider: provider.key,
+        provider: provider.name,
         createdAt: created.createdAt,
       };
     }),

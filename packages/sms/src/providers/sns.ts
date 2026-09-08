@@ -1,5 +1,7 @@
 import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
 
+import type { SmsProviderName } from "@retransmit/db/schema/sms";
+
 import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
 
 /**
@@ -32,6 +34,8 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
  */
 export interface SnsProviderOptions {
   key: string;
+  /** Public provider name a caller can pin a send to. */
+  family: SmsProviderName;
   name: string;
   /** Fallback cost when `SNS_SMS_COST_PER_SMS` is unset. */
   defaultCostUsd: number;
@@ -115,6 +119,7 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
 
   return {
     key: options.key,
+    family: options.family,
     name: options.name,
     isConfigured() {
       return Boolean(region());

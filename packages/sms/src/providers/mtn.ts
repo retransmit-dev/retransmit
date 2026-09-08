@@ -1,3 +1,5 @@
+import type { SmsProviderName } from "@retransmit/db/schema/sms";
+
 import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
 
 /**
@@ -14,6 +16,8 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
  */
 export interface MtnProviderOptions {
   key: string;
+  /** Public provider name a caller can pin a send to. */
+  family: SmsProviderName;
   name: string;
   envPrefix: string;
   /** ISO countries this opco delivers to (normally exactly one). */
@@ -121,6 +125,7 @@ export function createMtnProvider(options: MtnProviderOptions): SmsProvider {
 
   return {
     key: options.key,
+    family: options.family,
     name: options.name,
     isConfigured() {
       return Boolean(

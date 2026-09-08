@@ -106,7 +106,7 @@ export function SmsTable({
             <TableHead>To</TableHead>
             <TableHead>Message</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="hidden md:table-cell">Provider</TableHead>
+            <TableHead>Provider</TableHead>
             <TableHead className="hidden text-right sm:table-cell">
               Sent
             </TableHead>
@@ -137,8 +137,16 @@ export function SmsTable({
               <TableCell>
                 <SmsStatusBadge status={row.status} />
               </TableCell>
-              <TableCell className="hidden font-mono text-xs text-muted-foreground md:table-cell">
-                {row.provider ?? "—"}
+              <TableCell className="text-muted-foreground">
+                {row.providerName ? (
+                  <span className="text-sm">{row.providerName}</span>
+                ) : row.requestedProvider ? (
+                  // Pinned by the caller but not sent yet: name the carrier
+                  // the worker will route to.
+                  <span className="text-xs">{row.requestedProvider} · pending</span>
+                ) : (
+                  "—"
+                )}
               </TableCell>
               <TableCell className="hidden text-right text-muted-foreground sm:table-cell">
                 {formatDateTime(row.createdAt)}

@@ -1,3 +1,5 @@
+import type { SmsProviderName } from "@retransmit/db/schema/sms";
+
 import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
 
 /**
@@ -27,6 +29,8 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
  */
 export interface OrangeProviderOptions {
   key: string;
+  /** Public provider name a caller can pin a send to. */
+  family: SmsProviderName;
   name: string;
   envPrefix: string;
   /** ISO countries this contract delivers to (normally exactly one). */
@@ -188,6 +192,7 @@ export function createOrangeProvider(options: OrangeProviderOptions): SmsProvide
 
   return {
     key: options.key,
+    family: options.family,
     name: options.name,
     isConfigured() {
       return Boolean(env("CLIENT_ID") && env("CLIENT_SECRET"));

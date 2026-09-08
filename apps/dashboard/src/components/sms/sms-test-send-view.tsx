@@ -1,7 +1,6 @@
 "use client";
 
 import { PageHeader } from "@/components/page-shell";
-import { SmsProviders } from "@/components/sms/sms-providers";
 import { SmsStatusBadge } from "@/components/status-badges";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -71,8 +70,6 @@ export function SmsTestSendView() {
           </Button>
         }
       />
-
-      <SmsProviders />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -186,7 +183,7 @@ function TestResult({ smsId }: { smsId: string }) {
           <SmsStatusBadge status={message.status} />
         </span>
         <span className="text-muted-foreground">Provider</span>
-        <span className="font-mono text-xs">{message.provider ?? "Routing…"}</span>
+        <span>{message.providerName ?? "Routing…"}</span>
         {message.providerMessageId && (
           <>
             <span className="text-muted-foreground">Provider id</span>

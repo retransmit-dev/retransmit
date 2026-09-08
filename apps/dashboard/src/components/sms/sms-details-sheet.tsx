@@ -97,7 +97,15 @@ function SmsSummary({ message }: { message: SmsDetails }) {
       <span className="text-muted-foreground">Segments</span>
       <span>{message.segments}</span>
       <span className="text-muted-foreground">Provider</span>
-      <span className="font-mono text-xs">{message.provider ?? "Not routed yet"}</span>
+      <span className="truncate">
+        {message.providerName ?? "Not routed yet"}
+        {message.requestedProvider && (
+          <span className="text-muted-foreground text-xs">
+            {" "}
+            · requested {message.requestedProvider}
+          </span>
+        )}
+      </span>
       {message.providerMessageId && (
         <>
           <span className="text-muted-foreground">Provider id</span>

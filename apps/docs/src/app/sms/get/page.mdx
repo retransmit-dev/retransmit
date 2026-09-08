@@ -35,6 +35,7 @@ curl https://api.retransmit.dev/v1/sms/sms_xxxxxxxxxxxx \
   "text": "Your verification code is 482913",
   "country": "CM",
   "segments": 1,
+  "requested_provider": "mtn",
   "provider": "mtn_cm",
   "status": "delivered",
   "error": null,
@@ -46,6 +47,11 @@ curl https://api.retransmit.dev/v1/sms/sms_xxxxxxxxxxxx \
   ]
 }
 ```
+
+`requested_provider` is the carrier the send was pinned to, or `null` when
+routing chose freely. `provider` is the country operation that actually carried
+the message, so it is more specific: `mtn_cm`, `orange_cm` or `aws_sns`. It is
+`null` until the worker routes the message.
 
 ## SMS statuses
 
