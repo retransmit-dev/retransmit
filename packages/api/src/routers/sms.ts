@@ -1,10 +1,10 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { SMS_STATUSES, sms, smsEvent } from "@retransmit/db/schema/sms";
+import { SMS_PROVIDER_NAMES, SMS_STATUSES, sms, smsEvent } from "@retransmit/db/schema/sms";
 import type { SmsStatus } from "@retransmit/db/schema/sms";
 import { enqueueSmsSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone, smsSegments } from "@retransmit/sms/phone";
-import { providerLabel, selectProvider } from "@retransmit/sms/provider";
+import { providerFamilies, providerLabel, selectProvider } from "@retransmit/sms/provider";
 import { SenderNotAllowedError, resolveSender } from "@retransmit/sms/senders";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, lt, lte, or, sql } from "drizzle-orm";
@@ -129,6 +129,13 @@ export const smsRouter = router({
   }),
 
   /**
+   * Carriers a send may be pinned to, same names as `provider` on
+   * `POST /v1/sms`. No pricing here — that is the operator view
+   * (`admin.smsProviders`); this is only what a caller is allowed to name.
+   */
+  providers: protectedProcedure.query(() => providerFamilies()),
+
+  /**
    * Queues one message through the same path as `POST /v1/sms`, minus the
    * API key: the row is owned by the signed-in user, routed at send time and
    * shows up in the log like any other. For checking a provider end to end.
@@ -139,6 +146,8 @@ export const smsRouter = router({
         from: senderId.optional(),
         to: z.string().trim().min(5),
         text: z.string().min(1).max(1600),
+        /** Pins the send to one carrier; omit to route by country and price. */
+        provider: z.enum(SMS_PROVIDER_NAMES).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -153,11 +162,13 @@ export const smsRouter = router({
         });
       }
       const country = detectCountry(to);
-      const provider = selectProvider(country);
+      const provider = selectProvider(country, input.provider);
       if (!provider) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
-          message: `No SMS provider is configured for ${country ?? "this destination"}`,
+          message: input.provider
+            ? `The ${input.provider} provider is not configured for ${country ?? "this destination"}`
+            : `No SMS provider is configured for ${country ?? "this destination"}`,
         });
       }
 
@@ -185,6 +196,7 @@ export const smsRouter = router({
           text: input.text,
           country,
           segments: smsSegments(input.text),
+          requestedProvider: input.provider,
         })
         .returning();
       if (!created) {
@@ -199,8 +211,12 @@ export const smsRouter = router({
         country,
         from,
         segments: created.segments,
-        /** Expected route at enqueue time; the worker picks again when it sends. */
+        /**
+         * Expected route at enqueue time; the worker picks again when it
+         * sends, staying on `requestedProvider` when one was pinned.
+         */
         provider: provider.name,
+        requestedProvider: input.provider ?? null,
         createdAt: created.createdAt,
       };
     }),

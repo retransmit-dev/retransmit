@@ -127,6 +127,56 @@ export function providerCoverage(): ProviderCoverage[] {
   }));
 }
 
+/**
+ * What a caller may pin a send to, one row per carrier rather than per opco,
+ * because `SmsProviderName` is carrier-level. Unlike `providerCoverage` this
+ * carries no pricing, so it is safe on a customer screen: the names are
+ * already part of the public API (`provider` on `POST /v1/sms`).
+ */
+export interface ProviderFamilyOption {
+  family: SmsProviderName;
+  label: string;
+  /** True when at least one opco of this carrier has its credentials set. */
+  configured: boolean;
+  /** Countries its configured opcos cover, null when one is a global aggregator. */
+  countries: string[] | null;
+}
+
+/** Carrier names, since one family may be several opcos. */
+const FAMILY_LABELS: Record<SmsProviderName, string> = {
+  mtn: "MTN",
+  orange: "Orange",
+  sns: "AWS End User Messaging",
+};
+
+export function providerFamilies(): ProviderFamilyOption[] {
+  const families = new Map<SmsProviderName, ProviderFamilyOption>();
+  for (const provider of registry) {
+    const configured = provider.isConfigured();
+    const countries = provider.countries();
+    const existing = families.get(provider.family);
+    if (!existing) {
+      families.set(provider.family, {
+        family: provider.family,
+        label: FAMILY_LABELS[provider.family],
+        configured,
+        countries: configured ? countries : [],
+      });
+      continue;
+    }
+    existing.configured ||= configured;
+    // Only configured opcos count towards coverage: an unconfigured one
+    // cannot carry the message, and null (global) absorbs everything.
+    if (!configured) continue;
+    if (countries === null || existing.countries === null) {
+      existing.countries = null;
+    } else {
+      existing.countries = [...new Set([...existing.countries, ...countries])];
+    }
+  }
+  return [...families.values()];
+}
+
 /** Display label for a routing key, for logs and tables. Falls back to the key. */
 export function providerLabel(key: string): string {
   return registry.find((provider) => provider.key === key)?.name ?? key;

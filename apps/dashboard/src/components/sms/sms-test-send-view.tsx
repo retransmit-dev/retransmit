@@ -13,8 +13,16 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import type { RouterInputs, RouterOutputs } from "@/lib/api-types";
 import { formatDateTime } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +35,31 @@ import { toast } from "sonner";
 /** Polls while the queued message moves through the worker. */
 const RESULT_REFETCH_MS = 2000;
 
+/** Select value for "let routing decide" — an empty string is not a valid item. */
+const AUTO_PROVIDER = "auto";
+
+type ProviderOption = RouterOutputs["sms"]["providers"][number];
+type ProviderName = NonNullable<RouterInputs["sms"]["sendTest"]["provider"]>;
+
+/** What picking this option means, under the select. */
+function providerHint(option: ProviderOption | undefined): string {
+  if (!option) {
+    return "Picks the cheapest configured provider that covers the destination country.";
+  }
+  if (!option.configured) {
+    return "This provider has no credentials in this deployment.";
+  }
+  // A pinned send never falls back, so say so: the point of pinning is to
+  // learn whether that one carrier works, not to get the message through.
+  if (option.countries === null) {
+    return "Delivers everywhere. A pinned send fails instead of falling back.";
+  }
+  if (option.countries.length === 0) {
+    return "No country coverage configured. A pinned send fails instead of falling back.";
+  }
+  return `Delivers to ${option.countries.join(", ")}. A number outside that fails instead of falling back.`;
+}
+
 /**
  * A form on the left, the queued message on the right. The send goes through
  * the same queue and routing as the public API, so what shows up here is
@@ -37,6 +70,11 @@ export function SmsTestSendView() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [text, setText] = useState("Hello from Retransmit.");
+  const [provider, setProvider] = useState<string>(AUTO_PROVIDER);
+
+  const providers = useQuery(
+    trpc.sms.providers.queryOptions(undefined, { throwOnError: false }),
+  );
 
   const sendMutation = useMutation(
     trpc.sms.sendTest.mutationOptions({
@@ -49,7 +87,12 @@ export function SmsTestSendView() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    sendMutation.mutate({ from: from.trim() || undefined, to, text });
+    sendMutation.mutate({
+      from: from.trim() || undefined,
+      to,
+      text,
+      provider: provider === AUTO_PROVIDER ? undefined : (provider as ProviderName),
+    });
   };
 
   const canSend =
@@ -76,8 +119,8 @@ export function SmsTestSendView() {
           <CardHeader>
             <CardTitle>Message</CardTitle>
             <CardDescription>
-              Routed to the cheapest configured provider for the destination
-              country, then sent by the worker with retries.
+              Pin a provider to test it. Left on automatic, the message takes
+              the cheapest configured route to the destination country.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -96,6 +139,42 @@ export function SmsTestSendView() {
                 <p className="text-xs text-muted-foreground">
                   Up to 11 letters or digits. Leave empty for the provider
                   default. Some countries ignore or require registration.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sms-test-provider">Provider</Label>
+                <Select
+                  value={provider}
+                  onValueChange={(value) => setProvider((value as string) || AUTO_PROVIDER)}
+                  disabled={sendMutation.isPending}
+                >
+                  <SelectTrigger id="sms-test-provider" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={AUTO_PROVIDER}>
+                      Automatic (best route)
+                    </SelectItem>
+                    {providers.data?.map((option) => (
+                      // An unconfigured carrier stays listed but unpickable:
+                      // seeing it greyed out answers "why did it not go over
+                      // MTN" without a trip to the admin screen.
+                      <SelectItem
+                        key={option.family}
+                        value={option.family}
+                        disabled={!option.configured}
+                      >
+                        {option.label}
+                        {!option.configured && " (not configured)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {providerHint(
+                    providers.data?.find((option) => option.family === provider),
+                  )}
                 </p>
               </div>
 
@@ -184,6 +263,12 @@ function TestResult({ smsId }: { smsId: string }) {
         </span>
         <span className="text-muted-foreground">Provider</span>
         <span>{message.providerName ?? "Routing…"}</span>
+        {message.requestedProvider && (
+          <>
+            <span className="text-muted-foreground">Pinned to</span>
+            <span>{message.requestedProvider}</span>
+          </>
+        )}
         {message.providerMessageId && (
           <>
             <span className="text-muted-foreground">Provider id</span>
