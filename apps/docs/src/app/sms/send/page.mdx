@@ -18,7 +18,7 @@ available provider, or uses the one you name in `provider`. Poll
 | `from` | string | No | Sender ID shown on the recipient's device. Must be approved for the destination country. See [Sender IDs](/sms#sender-ids). Defaults to your approved sender for that country. |
 | `to` | string \| string[] | Yes | One recipient or up to 50 in international E.164 format. All recipients must be in the same country. |
 | `text` | string | Yes | Message body, from 1 to 1,600 characters. |
-| `provider` | `"mtn"` \| `"orange"` \| `"sns"` | No | Pins the send to one carrier. Omit it to route by destination country and price. See [Choosing a provider](/sms#choosing-a-provider). |
+| `provider` | `"sns"` \| `"mtn"` \| `"orange"` | No | Pins the send to one carrier. `sns` covers every destination; the others only the countries we have that carrier in. Omit it to route by destination country and price. See [Choosing a provider](/sms#choosing-a-provider). |
 
 ## Example
 
@@ -30,7 +30,7 @@ const { data, error } = await retransmit.sms.send({
   to: "+237670000000",
   text: "Your verification code is 482913",
   // Optional. Leave it out to let Retransmit pick the route.
-  provider: "mtn",
+  provider: "sns",
 });
 ```
 </Tabs.Tab>
@@ -43,7 +43,7 @@ curl -X POST https://api.retransmit.dev/v1/sms \
     "from": "Acme",
     "to": "+237670000000",
     "text": "Your verification code is 482913",
-    "provider": "mtn"
+    "provider": "sns"
   }'
 ```
 </Tabs.Tab>

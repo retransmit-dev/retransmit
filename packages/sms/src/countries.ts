@@ -174,3 +174,22 @@ export function supportsSenderId(code: string): boolean {
  */
 export const UNSUPPORTED_REASON =
   "Carriers here do not accept alphanumeric sender ids. Sending needs a number (10DLC, toll-free or short code), which Retransmit provisions — not available yet.";
+
+/**
+ * The destinations in `codes` whose carriers require the sender id to be
+ * registered before it delivers.
+ *
+ * This is what decides how much a sender id request has to ask for. AWS End
+ * User Messaging accepts an unregistered alphanumeric sender id as-is in a
+ * `dynamic` country, so a request that only targets those needs nothing but
+ * the name: asking for a use case, a sample and a legal entity there would be
+ * paperwork for a filing nobody makes.
+ */
+export function registrationCountries(codes: readonly string[]): string[] {
+  return codes.filter((code) => findCountry(code)?.senderId === "registration");
+}
+
+/** Whether any of these destinations needs a registration filed. */
+export function requiresRegistration(codes: readonly string[]): boolean {
+  return registrationCountries(codes).length > 0;
+}

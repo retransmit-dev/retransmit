@@ -63,12 +63,19 @@ export const smsSender = pgTable(
     /** ISO 3166-1 alpha-2 destinations this sender id is requested for. */
     countries: jsonb("countries").$type<string[]>().default([]).notNull(),
     status: text("status").$type<SmsSenderStatus>().default("pending").notNull(),
-    /** What the customer sends: carriers ask for this on every registration. */
-    useCase: text("use_case").notNull(),
-    /** A representative message body, also required by most registrations. */
-    sampleMessage: text("sample_message").notNull(),
+    /**
+     * Registration paperwork, and null when the destinations do not need any.
+     * Only `registration` countries (see SMS_COUNTRIES) are filed with a
+     * carrier; everywhere else the sender id is accepted as-is, so asking for
+     * a use case, a sample and a legal entity would collect what no filing
+     * consumes. The request itself still exists in those countries: it is the
+     * allowlist behind `from`.
+     */
+    useCase: text("use_case"),
+    /** A representative message body, as the filing asks for it. */
+    sampleMessage: text("sample_message"),
     /** Legal entity behind the sender id, and its site. Both go on the filing. */
-    companyName: text("company_name").notNull(),
+    companyName: text("company_name"),
     companyWebsite: text("company_website"),
     /**
      * Upstream reference once filed: an AWS End User Messaging registration

@@ -23,13 +23,33 @@ One request takes up to 50 recipients, all in the same country.
 ## Sender IDs
 
 `from` is the name that appears on the recipient's handset instead of a phone
-number. Carriers approve it per country, so it has to be requested before you
-can use it.
+number. Request it in the dashboard under **SMS > Sender IDs**, and pass it as
+`from` once it is approved.
 
-Request one in the dashboard under **SMS > Sender IDs**. Pick the countries you
-send to, describe what you send, and add a sample message. Retransmit files the
-registration with the carriers and marks the request approved when it clears.
-This takes a few days in most countries.
+A request asks for two things:
+
+- **The name.** 3 to 11 letters, digits, spaces, hyphens, or underscores.
+- **The countries you send to.** Approval is per country.
+
+In most countries that is the whole form: the carriers there take the name as
+it is. The country picker says which kind each destination is, **No
+registration needed** or **Carrier registration required**. Picking one of the
+second kind adds three questions, because they go on the filing the carriers
+read:
+
+- What you send.
+- A sample message. Registrations are rejected when the sample does not match
+  the traffic.
+- The legal entity behind the name, and its website if it has one.
+
+Those three are required only while a registration country is selected.
+Retransmit asks for nothing its providers do not, so a request that only
+targets countries with no registration needs nothing but the name and the
+destinations.
+
+Approval follows the same split. Where no registration is involved, it is ours
+to give and is usually same-day. Where a carrier files it, it takes a few days
+and the request sits `pending` until the carriers clear it.
 
 You do not need an AWS or carrier account. Retransmit holds the provider
 relationships, so one API key still covers every channel.
@@ -46,7 +66,6 @@ const { data, error } = await retransmit.sms.send({
 
 Rules:
 
-- Up to 11 letters, digits, spaces, hyphens, or underscores.
 - A sender ID approved for one country does not work in another. Request each
   country you send to.
 - Sending with a name you have not had approved returns `422 sender_not_allowed`.
@@ -73,21 +92,22 @@ You do not have to guess which carrier fits a number. Leave `provider` out and
 Retransmit routes the message for you.
 
 Pass it when you need one specific carrier, for example because your sender ID
-is registered there or a customer's number is on that network:
+is registered there or a customer's number is on that network. `sns` is the
+one that reaches every destination, so it is the safe value to pin:
 
 ```ts
 const { data, error } = await retransmit.sms.send({
   to: "+237670000000",
   text: "Your order is ready for pickup.",
-  provider: "mtn",
+  provider: "sns",
 });
 ```
 
 | Value | Carrier |
 | --- | --- |
+| `sns` | AWS End User Messaging. Covers every destination |
 | `mtn` | MTN, in every country we have an MTN integration for |
 | `orange` | Orange, in every country we have an Orange integration for |
-| `sns` | AWS End User Messaging, the global fallback |
 
 The value is the carrier, not one of its country operations, so a request keeps
 working as we add more countries for that carrier. A pinned send never falls

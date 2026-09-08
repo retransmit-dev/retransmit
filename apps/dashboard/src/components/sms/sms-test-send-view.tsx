@@ -137,8 +137,12 @@ export function SmsTestSendView() {
                   disabled={sendMutation.isPending}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Up to 11 letters or digits. Leave empty for the provider
-                  default. Some countries ignore or require registration.
+                  Must be one of your{" "}
+                  <Link href="/sms/senders" className="underline underline-offset-2">
+                    approved sender ids
+                  </Link>{" "}
+                  for the destination country. Leave empty for the provider
+                  default.
                 </p>
               </div>
 

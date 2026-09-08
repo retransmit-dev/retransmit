@@ -35,7 +35,9 @@ const EVENT_TYPES = [
   "email.failed",
 ] as const;
 
-const SMS_PROVIDERS = ["mtn", "orange", "sns"] as const;
+// `sns` first: it is the route that covers every destination, so it is the
+// value to reach for when a send has to be pinned at all.
+const SMS_PROVIDERS = ["sns", "mtn", "orange"] as const;
 
 const SMS_STATUSES = [
   "queued",
@@ -932,8 +934,9 @@ export const OPENAPI_DOCUMENT = {
           provider: {
             type: "string",
             enum: [...SMS_PROVIDERS],
+            example: "sns",
             description:
-              "Pins the send to one carrier instead of letting Retransmit route by country and price. The request fails with `no_route` when that carrier cannot deliver to the destination.",
+              "Pins the send to one carrier instead of letting Retransmit route by country and price. `sns` (AWS End User Messaging) reaches every destination; `mtn` and `orange` only the countries we have that carrier in. The request fails with `no_route` when that carrier cannot deliver to the destination.",
           },
         },
       },

@@ -96,7 +96,7 @@ export function SmsSenderQueue() {
               <TableCell className="font-mono font-medium">
                 {row.senderId}
                 <span className="mt-0.5 block max-w-xs truncate font-sans text-xs font-normal text-muted-foreground">
-                  {row.useCase}
+                  {row.useCase ?? "No filing details — destinations take the name as-is"}
                 </span>
               </TableCell>
               <TableCell>
@@ -109,10 +109,10 @@ export function SmsSenderQueue() {
                       rel="noreferrer noopener"
                       className="underline underline-offset-2"
                     >
-                      {row.companyName}
+                      {row.companyName ?? row.companyWebsite}
                     </a>
                   ) : (
-                    row.companyName
+                    (row.companyName ?? "No company given")
                   )}
                 </span>
               </TableCell>
@@ -212,7 +212,10 @@ function ReviewDialog({
         <div className="flex flex-col gap-4">
           <div className="rounded-md border bg-muted/40 p-3 text-sm">
             <p className="font-medium">Sample message</p>
-            <p className="mt-1 text-muted-foreground">{row.sampleMessage}</p>
+            <p className="mt-1 text-muted-foreground">
+              {row.sampleMessage ??
+                "None given. These destinations accept the sender id without a carrier registration, so the request is only our allowlist."}
+            </p>
           </div>
 
           {approve && (

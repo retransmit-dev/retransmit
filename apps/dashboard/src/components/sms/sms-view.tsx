@@ -4,11 +4,11 @@ import type { DateRange } from "@/components/date-range-picker";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PageHeader } from "@/components/page-shell";
 import { SmsDetailsSheet } from "@/components/sms/sms-details-sheet";
-import { SmsFilterBar } from "@/components/sms/sms-filters";
 import type { SmsFilters } from "@/components/sms/sms-filters";
+import { SmsFilterBar } from "@/components/sms/sms-filters";
 import { SmsTable } from "@/components/sms/sms-table";
 import { Button } from "@/components/ui/button";
-import { FlaskConicalIcon } from "lucide-react";
+import { BadgeCheckIcon, FlaskConicalIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -17,7 +17,13 @@ import { useState } from "react";
  * active filters, the pagination stack and the selected message. Everything
  * else lives in the component that renders it.
  */
-export function SmsView({ initialRange }: { initialRange: DateRange }) {
+export function SmsView({
+  initialRange,
+  isAdmin,
+}: {
+  initialRange: DateRange;
+  isAdmin: boolean;
+}) {
   const [filters, setFilters] = useState<SmsFilters>({
     search: "",
     range: initialRange,
@@ -38,14 +44,26 @@ export function SmsView({ initialRange }: { initialRange: DateRange }) {
       <PageHeader
         href="/sms"
         actions={
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/sms/test" />}
-          >
-            <FlaskConicalIcon />
-            Test send
-          </Button>
+          <>
+            <Button
+              variant="default"
+              nativeButton={false}
+              render={<Link href="/sms/senders" />}
+            >
+              <BadgeCheckIcon />
+              Sender IDs
+            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/sms/test" />}
+              >
+                <FlaskConicalIcon />
+                Test send
+              </Button>
+            )}
+          </>
         }
       />
 

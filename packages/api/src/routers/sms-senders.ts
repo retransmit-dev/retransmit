@@ -6,6 +6,7 @@ import {
   SENDER_ID_COUNTRY_CODES,
   SMS_COUNTRIES,
   UNSUPPORTED_REASON,
+  registrationCountries,
 } from "@retransmit/sms/countries";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -35,6 +36,27 @@ const countriesSchema = z
   .min(1, "Pick at least one country")
   .max(SMS_COUNTRIES.length)
   .transform((values) => [...new Set(values)]);
+
+/** Blank inputs from a form are the same thing as an omitted field here. */
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((value) => (value ? value : undefined));
+
+/**
+ * What a carrier registration form asks for. Collected only when one is
+ * actually filed: in a `dynamic` country the sender id goes upstream as-is,
+ * so requiring a use case, a sample and a legal entity would be paperwork for
+ * a filing nobody makes. Anything the upstream does not require, we do not.
+ */
+const REGISTRATION_FIELDS = [
+  { key: "useCase", min: 10, message: "Describe what you send" },
+  { key: "sampleMessage", min: 10, message: "Paste a representative message" },
+  { key: "companyName", min: 2, message: "Name the legal entity behind the sender id" },
+] as const;
 
 async function findOwnedSender(id: string, organizationId: string) {
   const [row] = await db
@@ -69,14 +91,32 @@ export const smsSenderRouter = router({
    */
   create: orgProcedure
     .input(
-      z.object({
-        senderId: senderIdSchema,
-        countries: countriesSchema,
-        useCase: z.string().trim().min(10, "Describe what you send").max(500),
-        sampleMessage: z.string().trim().min(10, "Paste a representative message").max(500),
-        companyName: z.string().trim().min(2).max(200),
-        companyWebsite: z.url("Enter a full URL, e.g. https://example.com").max(300).optional(),
-      }),
+      z
+        .object({
+          senderId: senderIdSchema,
+          countries: countriesSchema,
+          useCase: optionalText(500),
+          sampleMessage: optionalText(500),
+          companyName: optionalText(200),
+          companyWebsite: z
+            .url("Enter a full URL, e.g. https://example.com")
+            .max(300)
+            .optional()
+            .or(z.literal("").transform(() => undefined)),
+        })
+        .superRefine((input, ctx) => {
+          const filed = registrationCountries(input.countries);
+          if (filed.length === 0) return;
+          for (const field of REGISTRATION_FIELDS) {
+            const value = input[field.key];
+            if (value && value.length >= field.min) continue;
+            ctx.addIssue({
+              code: "custom",
+              path: [field.key],
+              message: `${field.message}. ${filed.join(", ")} needs a carrier registration filed.`,
+            });
+          }
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       assertOrgAdmin(ctx.org);
@@ -105,9 +145,9 @@ export const smsSenderRouter = router({
           userId: ctx.session.user.id,
           senderId: input.senderId,
           countries: input.countries,
-          useCase: input.useCase,
-          sampleMessage: input.sampleMessage,
-          companyName: input.companyName,
+          useCase: input.useCase ?? null,
+          sampleMessage: input.sampleMessage ?? null,
+          companyName: input.companyName ?? null,
           companyWebsite: input.companyWebsite ?? null,
         })
         .returning();

@@ -26,9 +26,11 @@ import { toast } from "sonner";
 const SENDER_ID_REGEX = /^[A-Za-z0-9][A-Za-z0-9 _-]*$/;
 
 /**
- * The one setup step SMS has. Everything the form asks for is what a carrier
- * asks for on a sender id registration — use case, a sample message, the
- * legal entity — so the request can be filed without a follow-up email.
+ * The one setup step SMS has. The name and the destinations are all it takes:
+ * in most countries the sender id goes upstream as-is, so the registration
+ * questions — use case, sample message, legal entity — only appear as
+ * required once a selected country is one the carriers make us file for. The
+ * platform asks for exactly what the upstream does, no more.
  *
  * Countries the carriers do not allow alphanumeric sender ids in are listed
  * but disabled, with the reason: the honest answer belongs on screen, not in
@@ -53,14 +55,27 @@ export function RequestSenderSheet({
   const [companyWebsite, setCompanyWebsite] = useState("");
 
   const trimmedSender = senderId.trim();
+
+  // Which of the picked destinations actually get filed with a carrier. Only
+  // those make the registration questions mandatory; the same rule runs again
+  // in the router, which is what the API contract is.
+  const filedCountries = useMemo(() => {
+    const list = catalog.data?.countries ?? [];
+    return countries.filter(
+      (code) => list.find((country) => country.code === code)?.senderId === "registration",
+    );
+  }, [catalog.data, countries]);
+  const needsFiling = filedCountries.length > 0;
+
   const isValid =
     trimmedSender.length >= 3 &&
     trimmedSender.length <= 11 &&
     SENDER_ID_REGEX.test(trimmedSender) &&
     countries.length > 0 &&
-    useCase.trim().length >= 10 &&
-    sampleMessage.trim().length >= 10 &&
-    companyName.trim().length >= 2;
+    (!needsFiling ||
+      (useCase.trim().length >= 10 &&
+        sampleMessage.trim().length >= 10 &&
+        companyName.trim().length >= 2));
 
   const reset = () => {
     setSenderId("");
@@ -78,7 +93,11 @@ export function RequestSenderSheet({
         void queryClient.invalidateQueries(trpc.smsSender.pathFilter());
         onOpenChange(false);
         reset();
-        toast.success(`${created.senderId} requested. We will file the registration.`);
+        toast.success(
+          needsFiling
+            ? `${created.senderId} requested. We will file the registration.`
+            : `${created.senderId} requested. No carrier filing needed here, so review is quick.`,
+        );
       },
     }),
   );
@@ -107,9 +126,9 @@ export function RequestSenderSheet({
     createMutation.mutate({
       senderId: trimmedSender,
       countries: countries as [string, ...string[]],
-      useCase: useCase.trim(),
-      sampleMessage: sampleMessage.trim(),
-      companyName: companyName.trim(),
+      useCase: useCase.trim() || undefined,
+      sampleMessage: sampleMessage.trim() || undefined,
+      companyName: companyName.trim() || undefined,
       companyWebsite: companyWebsite.trim() || undefined,
     });
   };
@@ -228,8 +247,16 @@ export function RequestSenderSheet({
             )}
           </div>
 
+          <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            {needsFiling
+              ? `${filedCountries.join(", ")} needs the sender id registered with the carriers, so the questions below go on that filing.`
+              : "The destinations you picked take the sender id as-is, so nothing below is required. Answering anyway speeds up a later registration if you add a country that needs one."}
+          </p>
+
           <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-use-case">What do you send?</Label>
+            <Label htmlFor="sender-use-case">
+              What do you send?{needsFiling ? "" : " (optional)"}
+            </Label>
             <Textarea
               id="sender-use-case"
               placeholder="One-time passcodes and delivery notifications for customers who signed up on our site."
@@ -242,7 +269,9 @@ export function RequestSenderSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-sample">Sample message</Label>
+            <Label htmlFor="sender-sample">
+              Sample message{needsFiling ? "" : " (optional)"}
+            </Label>
             <Textarea
               id="sender-sample"
               placeholder="Your Acme code is 123456. It expires in 10 minutes."
@@ -258,7 +287,7 @@ export function RequestSenderSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-company">Company</Label>
+            <Label htmlFor="sender-company">Company{needsFiling ? "" : " (optional)"}</Label>
             <Input
               id="sender-company"
               placeholder="Acme SARL"
@@ -273,7 +302,7 @@ export function RequestSenderSheet({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-website">Website</Label>
+            <Label htmlFor="sender-website">Website (optional)</Label>
             <Input
               id="sender-website"
               type="url"

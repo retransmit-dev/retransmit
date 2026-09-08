@@ -83,6 +83,12 @@ For thousands of emails, use [Send Batch](/email/send-batch)
 
 ## Send an SMS
 
+To have your own name on the handset, request a sender ID in the dashboard
+under **SMS > Sender IDs** first. It asks for the name and the countries you
+send to; only countries whose carriers require a registration ask for more.
+Sending with a name that is not approved returns `422 sender_not_allowed`.
+Leave `from` out and the message goes under the route's default sender.
+
 Recipients use international E.164 format with the leading `+` and country
 code. All recipients in one request must be in the same country.
 
