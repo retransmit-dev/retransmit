@@ -99,7 +99,9 @@ export function SmsRatesTable() {
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
 
-  const rates = useQuery(trpc.admin.smsRates.queryOptions(undefined, { throwOnError: true }));
+  const rates = useQuery(
+    trpc.admin.smsRates.queryOptions(undefined, { throwOnError: true }),
+  );
 
   // Seeding is insert-only, so this is safe to press on a live deployment: it
   // fills destinations that have no price and leaves every existing one alone.
@@ -107,7 +109,9 @@ export function SmsRatesTable() {
     trpc.admin.seedRates.mutationOptions({
       onSuccess: ({ sms, whatsapp }) => {
         void queryClient.invalidateQueries(trpc.admin.smsRates.pathFilter());
-        void queryClient.invalidateQueries(trpc.admin.whatsappRates.pathFilter());
+        void queryClient.invalidateQueries(
+          trpc.admin.whatsappRates.pathFilter(),
+        );
         toast.success(
           sms === 0 && whatsapp === 0
             ? "Every destination already has a price"
@@ -123,7 +127,9 @@ export function SmsRatesTable() {
     trpc.admin.setSmsRate.mutationOptions({
       onSuccess: (_, variables) => {
         void queryClient.invalidateQueries(trpc.admin.smsRates.pathFilter());
-        toast.success(`${variables.country} is now $${variables.priceUsd} per segment`);
+        toast.success(
+          `${variables.country} is now $${variables.priceUsd} per segment`,
+        );
       },
       onError: (error) => toast.error(error.message),
       onSettled: () => setSaving(null),
@@ -163,8 +169,9 @@ export function SmsRatesTable() {
           />
         </div>
         <span className="text-muted-foreground text-sm">
-          {rows.length} of {rates.data.rates.length} destinations · AWS list prices from{" "}
-          {formatDate(rates.data.costsFetchedAt)} · {rates.data.configuredProviders} carrier
+          {rows.length} of {rates.data.rates.length} destinations · AWS list
+          prices from {formatDate(rates.data.costsFetchedAt)} ·{" "}
+          {rates.data.configuredProviders} carrier
           {rates.data.configuredProviders === 1 ? "" : "s"} configured
         </span>
         {belowCost > 0 && (
@@ -187,42 +194,61 @@ export function SmsRatesTable() {
             : "Seed rate card"}
         </Button>
         <p className="text-muted-foreground text-sm">
-          {rates.data.seed.missing === 0 && rates.data.seed.missingWhatsapp === 0 ? (
+          {rates.data.seed.missing === 0 &&
+          rates.data.seed.missingWhatsapp === 0 ? (
             <>
-              All {rates.data.seed.total} destinations in the {rates.data.seed.generatedAt}{" "}
-              snapshot are priced here. Seeding again would change nothing.
+              All {rates.data.seed.total} destinations in the{" "}
+              {rates.data.seed.generatedAt} snapshot are priced here. Seeding
+              again would change nothing.
             </>
           ) : (
             <>
               Writes the {rates.data.seed.generatedAt} snapshot
-              {rates.data.seed.tuned > 0 && `, including ${rates.data.seed.tuned} hand-tuned prices`}
-              , into destinations with no price yet. Prices already set are never overwritten.
+              {rates.data.seed.tuned > 0 &&
+                `, including ${rates.data.seed.tuned} hand-tuned prices`}
+              , into destinations with no price yet. Prices already set are
+              never overwritten.
             </>
           )}
         </p>
       </div>
 
-      <div className="max-h-[32rem] overflow-y-auto rounded-md border">
+      <div className="max-h-128 overflow-y-auto ">
         <Table>
           <TableHeader className="bg-background sticky top-0 z-10">
             <TableRow>
               <TableHead>Destination</TableHead>
-              <TableHead className="hidden md:table-cell text-right">AWS list</TableHead>
-              <TableHead className="hidden sm:table-cell text-right">Route cost</TableHead>
-              <TableHead className="hidden sm:table-cell text-right">Margin</TableHead>
+              <TableHead className="hidden md:table-cell text-right">
+                AWS list
+              </TableHead>
+              <TableHead className="hidden sm:table-cell text-right">
+                Route cost
+              </TableHead>
+              <TableHead className="hidden sm:table-cell text-right">
+                Margin
+              </TableHead>
               <TableHead className="text-right">Price / segment</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.country} className={row.offered ? undefined : "opacity-60"}>
+              <TableRow
+                key={row.country}
+                className={row.offered ? undefined : "opacity-60"}
+              >
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span aria-hidden>{row.flag ?? "🏳️"}</span>
                     <span>{row.name}</span>
-                    <code className="text-muted-foreground font-mono text-xs">{row.country}</code>
-                    {row.source === "manual" && <Badge variant="outline">edited</Badge>}
-                    {!row.offered && <Badge variant="outline">not offered</Badge>}
+                    <code className="text-muted-foreground font-mono text-xs">
+                      {row.country}
+                    </code>
+                    {row.source === "manual" && (
+                      <Badge variant="outline">edited</Badge>
+                    )}
+                    {!row.offered && (
+                      <Badge variant="outline">not offered</Badge>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground hidden md:table-cell text-right tabular-nums">
@@ -231,7 +257,9 @@ export function SmsRatesTable() {
                 <TableCell className="hidden sm:table-cell text-right tabular-nums">
                   ${formatMicros(row.costMicros)}
                   {!row.fallbackOnly && (
-                    <span className="text-muted-foreground ml-1 text-xs">direct</span>
+                    <span className="text-muted-foreground ml-1 text-xs">
+                      direct
+                    </span>
                   )}
                 </TableCell>
                 <TableCell className="hidden sm:table-cell text-right tabular-nums">

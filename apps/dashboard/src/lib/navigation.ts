@@ -198,9 +198,36 @@ const settings: NavSection = {
 const admin: NavSection = {
   href: "/admin",
   title: "Admin",
-  description: "Registered users and when they last connected.",
+  description: "Operator tools: sender ids, routing, rates and users.",
   icon: ShieldCheckIcon,
   adminOnly: true,
+  items: [
+    {
+      href: "/admin/senders",
+      title: "Sender IDs",
+      description: "Review and register sender id requests.",
+    },
+    {
+      href: "/admin/sms-routing",
+      title: "SMS routing",
+      description: "Carriers this deployment can route through.",
+    },
+    {
+      href: "/admin/sms-rates",
+      title: "SMS rates",
+      description: "What a customer pays per SMS segment, by destination.",
+    },
+    {
+      href: "/admin/whatsapp-rates",
+      title: "WhatsApp rates",
+      description: "What a customer pays per WhatsApp message.",
+    },
+    {
+      href: "/admin/users",
+      title: "Users",
+      description: "Registered users and when they last connected.",
+    },
+  ],
 };
 
 export const navGroups: NavGroup[] = [
