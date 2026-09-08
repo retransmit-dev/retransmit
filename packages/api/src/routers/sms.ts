@@ -148,7 +148,8 @@ export const smsRouter = router({
       if (!to) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Enter the number in international format, e.g. +237670000000",
+          message:
+            "Enter a valid number in international format, e.g. +237670000000",
         });
       }
       const country = detectCountry(to);

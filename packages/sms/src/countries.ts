@@ -38,8 +38,10 @@ export interface SmsCountry {
 }
 
 /**
- * Countries with a dial code in phone.ts, in the order the dashboard shows
- * them: the operating footprint first, then the rest alphabetically.
+ * Destinations we are willing to route, in the order the dashboard shows them:
+ * the operating footprint first, then the rest alphabetically. `detectCountry`
+ * recognizes far more than this list (it reads libphonenumber's metadata); a
+ * country absent here is one no sender id flow is offered for.
  */
 export const SMS_COUNTRIES: readonly SmsCountry[] = [
   // -- Central and West Africa: the launch footprint -----------------------

@@ -917,7 +917,7 @@ export const OPENAPI_DOCUMENT = {
           },
           to: {
             description:
-              "One recipient or up to 50, in international format, e.g. +237670000000. All recipients must be in the same country.",
+              "One recipient or up to 50, in international format, e.g. +237670000000. Each number is checked against its country's numbering plan and rejected if it does not fit. All recipients must be in the same country.",
             oneOf: [
               { type: "string" },
               {
@@ -1037,7 +1037,8 @@ export const OPENAPI_DOCUMENT = {
           },
           to: {
             type: "string",
-            description: "One recipient in international format, e.g. +237670000000.",
+            description:
+              "One recipient in international format, e.g. +237670000000. Checked against its country's numbering plan and rejected if it does not fit.",
           },
           type: {
             type: "string",

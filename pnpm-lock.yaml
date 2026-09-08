@@ -54,6 +54,9 @@ catalogs:
     hono:
       specifier: ^4.9.0
       version: 4.13.5
+    libphonenumber-js:
+      specifier: ^1.13.12
+      version: 1.13.12
     lucide-react:
       specifier: ^1.27.0
       version: 1.39.0
@@ -594,6 +597,9 @@ importers:
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0)
+      libphonenumber-js:
+        specifier: 'catalog:'
+        version: 1.13.12
       zod:
         specifier: 'catalog:'
         version: 4.5.4
@@ -4136,6 +4142,9 @@ packages:
 
   leac@0.6.0:
     resolution: {integrity: sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg==}
+
+  libphonenumber-js@1.13.12:
+    resolution: {integrity: sha512-uLVeV1c9OTk6qkdqnj+mpMD+ZdnZ0szVyWu58HwMmpwkHA1gCEkyjd3veZQXDnuw9KEwSRjcc9B1pS9XKIN1fA==}
 
   lightningcss-android-arm64@1.32.0:
     resolution: {integrity: sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==}
@@ -9189,6 +9198,8 @@ snapshots:
   layout-base@2.0.1: {}
 
   leac@0.6.0: {}
+
+  libphonenumber-js@1.13.12: {}
 
   lightningcss-android-arm64@1.32.0:
     optional: true

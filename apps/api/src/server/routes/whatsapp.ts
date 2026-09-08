@@ -22,7 +22,8 @@ const sendWhatsappSchema = z
     /** Connected number to send from (E.164 or `wab_` id). Optional with a single number. */
     from: z.string().min(1).max(64).optional(),
     to: z.string().refine((value) => normalizePhone(value) !== null, {
-      message: "Invalid phone number. Numbers must be in international format, e.g. +237670000000",
+      message:
+        "Invalid phone number. Numbers must be in international format and valid for their country, e.g. +237670000000",
     }),
     /** Defaults to `text`. */
     type: z.enum(WHATSAPP_MESSAGE_TYPES).default("text"),

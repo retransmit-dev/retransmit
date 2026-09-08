@@ -17,6 +17,7 @@
     "@retransmit/email": "workspace:*",
     "@retransmit/queue": "workspace:*",
     "drizzle-orm": "catalog:",
+    "libphonenumber-js": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

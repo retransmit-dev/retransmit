@@ -17,7 +17,7 @@ const phoneList = z
   .transform((value) => (Array.isArray(value) ? value : [value]))
   .refine((values) => values.every((value) => normalizePhone(value) !== null), {
     message:
-      "Contains an invalid phone number. Numbers must be in international format, e.g. +237670000000",
+      "Contains an invalid phone number. Numbers must be in international format and valid for their country, e.g. +237670000000",
   });
 
 const sendSmsSchema = z.object({
