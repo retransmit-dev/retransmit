@@ -1,8 +1,8 @@
 /**
  * Next.js instrumentation hook — runs once when the API server boots.
  * Starts the pg-boss workers (throttled SES sender, webhook dispatcher,
- * dead-letter handlers) inside this same long-running process, so the API
- * deployment doubles as the queue consumer.
+ * dead-letter handlers, hourly billing reconciler) inside this same
+ * long-running process, so the API deployment doubles as the queue consumer.
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
@@ -12,5 +12,7 @@ export async function register() {
     await startSmsWorkers();
     const { startWhatsappWorkers } = await import("@retransmit/whatsapp/worker");
     await startWhatsappWorkers();
+    const { startBillingWorkers } = await import("@retransmit/billing/worker");
+    await startBillingWorkers();
   }
 }

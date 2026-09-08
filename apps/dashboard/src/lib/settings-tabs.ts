@@ -9,7 +9,7 @@
  */
 
 import type { RouteTab } from "@/components/route-tabs";
-import { Building2Icon, UsersRoundIcon } from "lucide-react";
+import { Building2Icon, CreditCardIcon, UsersRoundIcon } from "lucide-react";
 
 export const settingsTabs = [
   {
@@ -23,5 +23,11 @@ export const settingsTabs = [
     icon: UsersRoundIcon,
     label: "Team",
     tone: "emerald",
+  },
+  {
+    href: "/settings/billing",
+    icon: CreditCardIcon,
+    label: "Billing",
+    tone: "violet",
   },
 ] as const satisfies ReadonlyArray<RouteTab>;

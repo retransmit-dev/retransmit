@@ -12,6 +12,7 @@
     "@base-ui/react": "^1.7.0",
     "@retransmit/api": "workspace:*",
     "@retransmit/auth": "workspace:*",
+    "@retransmit/billing": "workspace:*",
     "@shadcn/react": "^0.3.1",
     "@swc/helpers": "^0.5.23",
     "@tanstack/react-form": "^1.33.2",

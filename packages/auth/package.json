@@ -11,6 +11,7 @@
   },
   "scripts": {},
   "dependencies": {
+    "@retransmit/billing": "workspace:*",
     "@retransmit/db": "workspace:*",
     "@retransmit/email": "workspace:*",
     "@retransmit/transactional": "workspace:*",

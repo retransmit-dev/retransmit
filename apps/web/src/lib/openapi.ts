@@ -71,6 +71,7 @@ const ERROR_CODES = [
   "invalid_json",
   "validation_error",
   "unauthorized",
+  "quota_exceeded",
   "domain_not_found",
   "domain_not_verified",
   "invalid_idempotency_key",
@@ -267,6 +268,9 @@ export const OPENAPI_DOCUMENT = {
             "Body is not valid JSON (`invalid_json`), or `Idempotency-Key` is empty or longer than 256 characters (`invalid_idempotency_key`).",
           ),
           "401": errorResponse("Missing, invalid, or revoked API key."),
+          "402": errorResponse(
+            "The plan's included emails are used up and no payment method is on file (`quota_exceeded`).",
+          ),
           "403": errorResponse(
             "Sender domain not registered (`domain_not_found`) or not verified (`domain_not_verified`).",
           ),
@@ -442,6 +446,9 @@ export const OPENAPI_DOCUMENT = {
             "Body is not valid JSON (`invalid_json`), or `Idempotency-Key` is empty or longer than 256 characters (`invalid_idempotency_key`).",
           ),
           "401": errorResponse("Missing, invalid, or revoked API key."),
+          "402": errorResponse(
+            "The batch would take the account past its included emails with no payment method on file (`quota_exceeded`).",
+          ),
           "403": errorResponse(
             "A sender domain is not registered (`domain_not_found`) or not verified (`domain_not_verified`).",
           ),
@@ -508,6 +515,9 @@ export const OPENAPI_DOCUMENT = {
           },
           "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
           "401": errorResponse("Missing, invalid, or revoked API key."),
+          "402": errorResponse(
+            "SMS is pay as you go and the account has no payment method (`quota_exceeded`).",
+          ),
           "422": errorResponse(
             "Schema validation failed (`validation_error`), recipients span countries (`validation_error`), no provider — or not the requested one — is configured for the destination (`no_route`), or `from` is not an approved sender id for the destination country (`sender_not_allowed`).",
           ),
@@ -570,6 +580,9 @@ export const OPENAPI_DOCUMENT = {
           },
           "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
           "401": errorResponse("Missing, invalid, or revoked API key."),
+          "402": errorResponse(
+            "WhatsApp is pay as you go and the account has no payment method (`quota_exceeded`).",
+          ),
           "422": errorResponse(
             "Schema validation failed, the object required by `type` is missing, or `from` is needed to pick between several numbers (`validation_error`); or no connected WhatsApp number matches (`no_whatsapp_account`).",
           ),
@@ -629,6 +642,14 @@ export const OPENAPI_DOCUMENT = {
             properties: {
               code: { type: "string", enum: [...ERROR_CODES] },
               message: { type: "string" },
+              limit: {
+                type: "integer",
+                description: "On `quota_exceeded`, the plan's allowance for the period.",
+              },
+              used: {
+                type: "integer",
+                description: "On `quota_exceeded`, how much of the allowance is already used.",
+              },
             },
           },
         },

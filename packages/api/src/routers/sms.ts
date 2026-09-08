@@ -1,3 +1,4 @@
+import { logRetentionCutoff } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { SMS_PROVIDER_NAMES, SMS_STATUSES, sms, smsEvent } from "@retransmit/db/schema/sms";
@@ -53,8 +54,11 @@ export const smsRouter = router({
     return { counts, total };
   }),
 
-  /** Message logs, newest first, cursor-paginated by createdAt. */
-  list: protectedProcedure
+  /**
+   * Message logs, newest first, cursor-paginated by createdAt. Rows older than
+   * the plan's log retention are not returned.
+   */
+  list: orgProcedure
     .input(
       z.object({
         limit: z.number().int().min(1).max(100).default(50),
@@ -67,7 +71,10 @@ export const smsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const conditions: (SQL | undefined)[] = [eq(sms.userId, ctx.session.user.id)];
+      const conditions: (SQL | undefined)[] = [
+        eq(sms.userId, ctx.session.user.id),
+        gte(sms.createdAt, await logRetentionCutoff(ctx.org.id)),
+      ];
       if (input.cursor) conditions.push(lt(sms.createdAt, input.cursor));
       if (input.status) conditions.push(eq(sms.status, input.status));
       if (input.search) conditions.push(searchCondition(input.search));
@@ -108,11 +115,17 @@ export const smsRouter = router({
       };
     }),
 
-  get: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+  get: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const [row] = await db
       .select()
       .from(sms)
-      .where(and(eq(sms.id, input.id), eq(sms.userId, ctx.session.user.id)));
+      .where(
+        and(
+          eq(sms.id, input.id),
+          eq(sms.userId, ctx.session.user.id),
+          gte(sms.createdAt, await logRetentionCutoff(ctx.org.id)),
+        ),
+      );
     if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "SMS not found" });
 
     const events = await db

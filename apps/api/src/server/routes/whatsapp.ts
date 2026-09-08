@@ -1,3 +1,4 @@
+import { checkPayAsYouGo, recordUsage, whatsappUnits } from "@retransmit/billing";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { WHATSAPP_MESSAGE_TYPES, whatsappEvent, whatsappMessage } from "@retransmit/db/schema/whatsapp";
@@ -10,6 +11,7 @@ import z from "zod";
 
 import { apiKeyAuth } from "../auth";
 import type { ApiKeyEnv } from "../auth";
+import { limitErrorResponse, limitFailure } from "../billing";
 
 const mediaSchema = z.object({
   /** Public HTTPS link Meta fetches at send time. */
@@ -98,9 +100,17 @@ whatsappRoutes.post("/", async (c) => {
   const to = normalizePhone(input.to)!;
   const country = detectCountry(to);
 
+  // WhatsApp is pay as you go on every plan, so it needs a card, not a quota.
+  const organizationId = c.get("organizationId");
+  const unpayable = limitFailure(await checkPayAsYouGo(organizationId, "WhatsApp"));
+  if (unpayable) {
+    const { status, body } = limitErrorResponse(unpayable);
+    return c.json(body, status);
+  }
+
   let account;
   try {
-    account = await resolveSenderAccount(c.get("organizationId"), input.from);
+    account = await resolveSenderAccount(organizationId, input.from);
   } catch (cause) {
     if (cause instanceof WhatsappAccountError) {
       return c.json(
@@ -120,7 +130,7 @@ whatsappRoutes.post("/", async (c) => {
   const row = {
     id: createId("wa"),
     userId: c.get("userId"),
-    organizationId: c.get("organizationId"),
+    organizationId,
     apiKeyId: c.get("apiKeyId"),
     accountId: account.id,
     from: account.phoneNumber,
@@ -138,6 +148,7 @@ whatsappRoutes.post("/", async (c) => {
   }
 
   await enqueueWhatsappSend(row.id);
+  await recordUsage(organizationId, "whatsapp", whatsappUnits());
 
   return c.json(
     {

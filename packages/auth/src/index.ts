@@ -1,3 +1,4 @@
+import { checkSeatLimit } from "@retransmit/billing/limits";
 import { createDb } from "@retransmit/db";
 import * as schema from "@retransmit/db/schema/auth";
 import {
@@ -6,6 +7,7 @@ import {
 } from "@retransmit/transactional";
 import { sendTransactionalEmail } from "@retransmit/transactional/send";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
@@ -97,6 +99,21 @@ export function createAuth() {
       organization({
         invitationExpiresIn: 60 * 60 * 24 * 7, // 7 days
         cancelPendingInvitationsOnReInvite: true,
+        organizationHooks: {
+          // Seats are a plan limit, and an invitation reserves one the moment
+          // it is sent, so it has to be checked here rather than on accept.
+          // Accepting is net zero: the invitation stops being pending as the
+          // member appears.
+          beforeCreateInvitation: async ({ invitation }) => {
+            const seats = await checkSeatLimit(invitation.organizationId);
+            if (!seats.ok) {
+              throw new APIError("PAYMENT_REQUIRED", {
+                code: "SEAT_LIMIT_REACHED",
+                message: seats.message,
+              });
+            }
+          },
+        },
         sendInvitationEmail: async (data) => {
           const inviteUrl = `${process.env.BETTER_AUTH_URL}/accept-invitation/${data.id}`;
           try {

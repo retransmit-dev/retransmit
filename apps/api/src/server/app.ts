@@ -4,6 +4,7 @@ import { callbackRoutes } from "./routes/callbacks";
 import { emailRoutes } from "./routes/emails";
 import { smsRoutes } from "./routes/sms";
 import { smsCallbackRoutes } from "./routes/sms-callbacks";
+import { stripeRoutes } from "./routes/stripe";
 import { unsubscribeRoutes } from "./routes/unsubscribe";
 import { whatsappRoutes } from "./routes/whatsapp";
 import { whatsappCallbackRoutes } from "./routes/whatsapp-callbacks";
@@ -25,6 +26,7 @@ app.route("/v1/whatsapp", whatsappRoutes);
 app.route("/v1/callbacks", callbackRoutes);
 app.route("/v1/callbacks/sms", smsCallbackRoutes);
 app.route("/v1/callbacks/whatsapp", whatsappCallbackRoutes);
+app.route("/v1/callbacks/stripe", stripeRoutes);
 // Public, token-authenticated pages linked from marketing emails.
 app.route("/unsubscribe", unsubscribeRoutes);
 

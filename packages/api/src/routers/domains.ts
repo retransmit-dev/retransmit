@@ -1,3 +1,4 @@
+import { checkDomainLimit } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { domain } from "@retransmit/db/schema/email";
@@ -73,6 +74,13 @@ export const domainRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Checked before touching SES so a plan limit never leaves an orphaned
+      // identity behind.
+      const allowed = await checkDomainLimit(ctx.org.id);
+      if (!allowed.ok) {
+        throw new TRPCError({ code: "FORBIDDEN", message: allowed.message });
+      }
+
       const [existing] = await db.select().from(domain).where(eq(domain.name, input.name));
       if (existing) {
         throw new TRPCError({

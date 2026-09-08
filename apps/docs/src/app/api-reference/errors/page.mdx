@@ -18,6 +18,7 @@ All errors share one shape:
 | `400` | `invalid_json` | The request body could not be parsed as JSON. |
 | `400` | `invalid_idempotency_key` | `Idempotency-Key` is empty or longer than 256 characters. |
 | `401` | `unauthorized` | Missing, malformed, invalid, or revoked API key. |
+| `402` | `quota_exceeded` | The plan's included emails are used up and no payment method is on file, or SMS or WhatsApp was sent without one. The body also carries `limit` and `used`. |
 | `403` | `domain_not_found` | The `from` domain is not registered on your account. |
 | `403` | `domain_not_verified` | The `from` domain is registered but not verified. |
 | `404` | `not_found` | The resource or route does not exist. |
@@ -42,6 +43,10 @@ All errors share one shape:
   body.
 - `403` domain errors are configuration problems. Fix them in the dashboard
   instead of retrying.
+- `402 quota_exceeded` is not retryable. Add a payment method or change plan in
+  [the dashboard](https://app.retransmit.dev/settings/billing). Emails past the
+  plan's included volume are billed at the overage rate once a card is on file;
+  SMS and WhatsApp are pay as you go on every plan and always need one.
 - `422 no_route` means the destination country has no SMS provider yet.
 - `422 no_whatsapp_account` means no WhatsApp number is connected. Connect one
   in the dashboard before sending.

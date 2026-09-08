@@ -1,3 +1,4 @@
+import { checkEmailQuota, getBillingAccount, recordUsage } from "@retransmit/billing";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import {
@@ -27,6 +28,7 @@ import z from "zod";
 
 import { apiKeyAuth } from "../auth";
 import type { ApiKeyEnv } from "../auth";
+import { limitErrorResponse, limitFailure, recipientCount } from "../billing";
 import { readIdempotencyKey, runIdempotent, sendIdempotent } from "../idempotency";
 
 const addressList = z
@@ -399,6 +401,16 @@ emailRoutes.post("/batch", async (c) => {
   const resolved = await resolveSenderDomains(organizationId, inputs.map((input) => input.from));
   if (resolved.error) return c.json(resolved.error.body, resolved.error.status);
 
+  // A batch is all or nothing against the allowance: partially accepting one
+  // would leave the caller unable to tell which emails were queued.
+  const account = await getBillingAccount(organizationId);
+  const recipients = inputs.reduce((total, input) => total + recipientCount(input), 0);
+  const overQuota = limitFailure(await checkEmailQuota(organizationId, recipients, { account }));
+  if (overQuota) {
+    const { status, body } = limitErrorResponse(overQuota);
+    return c.json(body, status);
+  }
+
   const result = await runIdempotent(
     { organizationId, key: idempotency.key, endpoint: "POST /v1/emails/batch", body: parsed.data },
     async () => {
@@ -430,6 +442,10 @@ emailRoutes.post("/batch", async (c) => {
         await db.insert(email).values(rows.slice(i, i + CHUNK));
       }
       await enqueueEmailSendBatch(rows.map((row) => row.id));
+      // Billed at acceptance, like SES: the recipient count is fixed once the
+      // rows exist, and a later bounce is still a delivery attempt that cost
+      // money. Recorded after the insert so a failed batch bills nothing.
+      await recordUsage(organizationId, "email", recipients, { account });
 
       return {
         status: 202,
@@ -530,6 +546,14 @@ emailRoutes.post(
   const name = extractEmailDomain(input.from) ?? "";
   const sender = resolved.byName.get(name)!;
 
+  const account = await getBillingAccount(organizationId);
+  const recipients = recipientCount(input);
+  const overQuota = limitFailure(await checkEmailQuota(organizationId, recipients, { account }));
+  if (overQuota) {
+    const { status, body } = limitErrorResponse(overQuota);
+    return c.json(body, status);
+  }
+
   const result = await runIdempotent(
     { organizationId, key: idempotency.key, endpoint: "POST /v1/emails", body: input },
     async () => {
@@ -581,6 +605,7 @@ emailRoutes.post(
       }
 
       await enqueueEmailSend(row.id);
+      await recordUsage(organizationId, "email", recipients, { account });
 
       return {
         status: 202,

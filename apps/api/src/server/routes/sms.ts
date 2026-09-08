@@ -1,3 +1,4 @@
+import { checkPayAsYouGo, recordUsage, smsUnits } from "@retransmit/billing";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { SMS_PROVIDER_NAMES, sms, smsEvent } from "@retransmit/db/schema/sms";
@@ -11,6 +12,7 @@ import z from "zod";
 
 import { apiKeyAuth } from "../auth";
 import type { ApiKeyEnv } from "../auth";
+import { limitErrorResponse, limitFailure } from "../billing";
 
 const phoneList = z
   .union([z.string(), z.array(z.string()).min(1).max(50)])
@@ -94,7 +96,8 @@ smsRoutes.post("/", async (c) => {
 
   // Fail fast on unroutable destinations instead of queueing a doomed job.
   // The worker re-routes at send time, so this is only an availability check.
-  if (!selectProvider(country, input.provider)) {
+  const provider = selectProvider(country, input.provider);
+  if (!provider) {
     return c.json(
       {
         error: {
@@ -108,11 +111,20 @@ smsRoutes.post("/", async (c) => {
     );
   }
 
+  // SMS has no included allowance on any plan, so it needs a card rather than
+  // a quota check.
+  const organizationId = c.get("organizationId");
+  const unpayable = limitFailure(await checkPayAsYouGo(organizationId, "SMS"));
+  if (unpayable) {
+    const { status, body } = limitErrorResponse(unpayable);
+    return c.json(body, status);
+  }
+
   // The sender id is settled before queueing so a caller learns straight away
   // that a name is not approved, rather than finding a failed row later.
   let from: string | null;
   try {
-    ({ from } = await resolveSender(c.get("organizationId") ?? null, country, input.from));
+    ({ from } = await resolveSender(organizationId ?? null, country, input.from));
   } catch (cause) {
     if (cause instanceof SenderNotAllowedError) {
       return c.json({ error: { code: cause.code, message: cause.message } }, 422);
@@ -123,7 +135,7 @@ smsRoutes.post("/", async (c) => {
   const row = {
     id: createId("sms"),
     userId: c.get("userId"),
-    organizationId: c.get("organizationId"),
+    organizationId,
     apiKeyId: c.get("apiKeyId"),
     from,
     to,
@@ -138,6 +150,15 @@ smsRoutes.post("/", async (c) => {
   }
 
   await enqueueSmsSend(row.id);
+
+  // Priced from the provider that routing picked here. The worker may end up on
+  // another carrier if this one fails, which is a difference of cents against a
+  // price that already carries a margin, so it is not worth re-billing for.
+  await recordUsage(
+    organizationId,
+    "sms",
+    smsUnits(provider.costFor(country), row.segments) * to.length,
+  );
 
   return c.json(
     {

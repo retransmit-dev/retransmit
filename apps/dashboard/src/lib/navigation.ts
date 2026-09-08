@@ -187,6 +187,11 @@ const settings: NavSection = {
       title: "Team",
       description: "Manage members and roles.",
     },
+    {
+      href: "/settings/billing",
+      title: "Billing",
+      description: "Plan, usage and payment.",
+    },
   ],
 };
 

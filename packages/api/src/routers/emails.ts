@@ -1,3 +1,4 @@
+import { logRetentionCutoff } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { email, emailAttachment, emailBatch, emailEvent } from "@retransmit/db/schema/email";
 import { EMAIL_STATUSES } from "@retransmit/db/schema/email";
@@ -8,7 +9,7 @@ import { and, asc, count, desc, eq, gte, ilike, inArray, lt, lte, or, sql } from
 import type { SQL } from "drizzle-orm";
 import z from "zod";
 
-import { protectedProcedure, router } from "../index";
+import { orgProcedure, protectedProcedure, router } from "../index";
 
 /** Case-insensitive match on recipient, sender or subject. */
 function searchCondition(search: string) {
@@ -123,8 +124,12 @@ export const emailRouter = router({
     return rows.rows;
   }),
 
-  /** Email logs, newest first, cursor-paginated by createdAt. */
-  list: protectedProcedure
+  /**
+   * Email logs, newest first, cursor-paginated by createdAt. Rows older than
+   * the plan's log retention are not returned, which is what makes retention a
+   * real limit rather than a line on the pricing page.
+   */
+  list: orgProcedure
     .input(
       z.object({
         limit: z.number().int().min(1).max(100).default(50),
@@ -138,7 +143,10 @@ export const emailRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const conditions: (SQL | undefined)[] = [eq(email.userId, ctx.session.user.id)];
+      const conditions: (SQL | undefined)[] = [
+        eq(email.userId, ctx.session.user.id),
+        gte(email.createdAt, await logRetentionCutoff(ctx.org.id)),
+      ];
       if (input.tag) conditions.push(tagCondition(input.tag));
       if (input.cursor) conditions.push(lt(email.createdAt, input.cursor));
       if (input.status) conditions.push(eq(email.status, input.status));
@@ -172,11 +180,17 @@ export const emailRouter = router({
       };
     }),
 
-  get: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+  get: orgProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
     const [row] = await db
       .select()
       .from(email)
-      .where(and(eq(email.id, input.id), eq(email.userId, ctx.session.user.id)));
+      .where(
+        and(
+          eq(email.id, input.id),
+          eq(email.userId, ctx.session.user.id),
+          gte(email.createdAt, await logRetentionCutoff(ctx.org.id)),
+        ),
+      );
     if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Email not found" });
 
     const events = await db

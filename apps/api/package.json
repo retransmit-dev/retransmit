@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@retransmit/auth": "workspace:*",
+    "@retransmit/billing": "workspace:*",
     "@retransmit/db": "workspace:*",
     "@retransmit/email": "workspace:*",
     "@retransmit/queue": "workspace:*",

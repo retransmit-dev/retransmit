@@ -1,5 +1,5 @@
 {
-  "name": "@retransmit/api",
+  "name": "@retransmit/billing",
   "type": "module",
   "exports": {
     ".": {
@@ -11,23 +11,15 @@
   },
   "scripts": {},
   "dependencies": {
-    "@retransmit/auth": "workspace:*",
-    "@retransmit/billing": "workspace:*",
     "@retransmit/db": "workspace:*",
-    "@retransmit/email": "workspace:*",
     "@retransmit/queue": "workspace:*",
-    "@retransmit/sms": "workspace:*",
-    "@retransmit/whatsapp": "workspace:*",
-    "@trpc/client": "catalog:",
-    "@trpc/server": "catalog:",
-    "@types/pg": "catalog:",
-    "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
-    "next": "catalog:",
+    "stripe": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@retransmit/config": "workspace:*",
+    "@types/node": "catalog:",
     "typescript": "catalog:"
   }
 }

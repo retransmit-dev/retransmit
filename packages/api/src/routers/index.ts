@@ -2,6 +2,7 @@ import { protectedProcedure, publicProcedure, router } from "../index";
 import { adminRouter } from "./admin";
 import { analyticsRouter } from "./analytics";
 import { apiKeyRouter } from "./api-keys";
+import { billingRouter } from "./billing";
 import { domainRouter } from "./domains";
 import { emailRouter } from "./emails";
 import { organizationRouter } from "./organizations";
@@ -26,6 +27,7 @@ export const appRouter = router({
   admin: adminRouter,
   analytics: analyticsRouter,
   apiKey: apiKeyRouter,
+  billing: billingRouter,
   domain: domainRouter,
   email: emailRouter,
   organization: organizationRouter,

@@ -13,6 +13,7 @@ export const QUEUES = {
   whatsappSendDead: "whatsapp-send-dead",
   webhookDispatch: "webhook-dispatch",
   webhookDispatchDead: "webhook-dispatch-dead",
+  billingReconcile: "billing-reconcile",
 } as const;
 
 /** Job payload for `email-send` (and its dead-letter queue). */
@@ -87,6 +88,9 @@ export function getBoss(): Promise<PgBoss> {
       ...WEBHOOK_RETRY,
       deadLetter: QUEUES.webhookDispatchDead,
     });
+    // No dead letter and no retry: the job re-reads whatever is still
+    // outstanding, so the next run subsumes a failed one.
+    await boss.createQueue(QUEUES.billingReconcile, { retryLimit: 0 });
 
     return boss;
   })();

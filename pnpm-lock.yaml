@@ -75,6 +75,9 @@ catalogs:
     sonner:
       specifier: ^2.0.7
       version: 2.0.8
+    stripe:
+      specifier: ^22.6.0
+      version: 22.6.1
     tailwindcss:
       specifier: ^4.3.3
       version: 4.3.3
@@ -121,6 +124,9 @@ importers:
       '@retransmit/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@retransmit/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@retransmit/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -185,6 +191,9 @@ importers:
       '@retransmit/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@retransmit/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@shadcn/react':
         specifier: ^0.3.1
         version: 0.3.1(@types/react@19.2.18)(react@19.2.8)
@@ -422,6 +431,9 @@ importers:
       '@retransmit/auth':
         specifier: workspace:*
         version: link:../auth
+      '@retransmit/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@retransmit/db':
         specifier: workspace:*
         version: link:../db
@@ -468,6 +480,9 @@ importers:
 
   packages/auth:
     dependencies:
+      '@retransmit/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@retransmit/db':
         specifier: workspace:*
         version: link:../db
@@ -493,6 +508,34 @@ importers:
       '@retransmit/config':
         specifier: workspace:*
         version: link:../config
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  packages/billing:
+    dependencies:
+      '@retransmit/db':
+        specifier: workspace:*
+        version: link:../db
+      '@retransmit/queue':
+        specifier: workspace:*
+        version: link:../queue
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.23.1)(kysely@0.29.5)(pg@8.23.0)
+      stripe:
+        specifier: 'catalog:'
+        version: 22.6.1(@types/node@26.4.1)
+      zod:
+        specifier: 'catalog:'
+        version: 4.5.4
+    devDependencies:
+      '@retransmit/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -5445,6 +5488,15 @@ packages:
   strip-final-newline@4.0.0:
     resolution: {integrity: sha512-aulFJcD6YK8V1G7iRB5tigAP4TsHBZZrOV8pjV++zdUwmeV8uzbY7yn6h9MswN62adStNZFuCIx4haBnRuMDaw==}
     engines: {node: '>=18'}
+
+  stripe@22.6.1:
+    resolution: {integrity: sha512-hAKSkGeVt2u46TRYhmnvwmVHxBNtOCJnPjc+SH5sP2B2ypElYzAAY3Ljx0Ar8C2w8nfpFQiZ95qoDCDsFkXMTA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/node': '>=18'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
 
   stubborn-fs@2.0.0:
     resolution: {integrity: sha512-Y0AvSwDw8y+nlSNFXMm2g6L51rBGdAQT20J3YSOqxC53Lo3bjWRtr2BKcfYoAf352WYpsZSTURrA0tqhfgudPA==}
@@ -11029,6 +11081,10 @@ snapshots:
   strip-final-newline@3.0.0: {}
 
   strip-final-newline@4.0.0: {}
+
+  stripe@22.6.1(@types/node@26.4.1):
+    optionalDependencies:
+      '@types/node': 26.4.1
 
   stubborn-fs@2.0.0:
     dependencies:
