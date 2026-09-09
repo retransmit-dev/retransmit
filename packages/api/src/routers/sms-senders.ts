@@ -8,6 +8,7 @@ import {
   UNSUPPORTED_REASON,
   registrationCountries,
 } from "@retransmit/sms/countries";
+import { DEFAULT_SMS_REGION, SMS_REGIONS, SMS_REGION_IDS } from "@retransmit/sms/regions";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import z from "zod";
@@ -77,6 +78,17 @@ export const smsSenderRouter = router({
     unsupportedReason: UNSUPPORTED_REASON,
   })),
 
+  /**
+   * Regions a sender id can be registered in, with the default pre-selected.
+   * The region is part of the request rather than something we pick later
+   * because the registration itself happens in one region: a name approved in
+   * Frankfurt cannot send from Cape Town.
+   */
+  regions: orgProcedure.query(() => ({
+    regions: SMS_REGIONS,
+    defaultRegion: DEFAULT_SMS_REGION,
+  })),
+
   list: orgProcedure.query(async ({ ctx }) => {
     return await db
       .select()
@@ -95,6 +107,7 @@ export const smsSenderRouter = router({
         .object({
           senderId: senderIdSchema,
           countries: countriesSchema,
+          region: z.enum(SMS_REGION_IDS).default(DEFAULT_SMS_REGION),
           useCase: optionalText(500),
           sampleMessage: optionalText(500),
           companyName: optionalText(200),
@@ -145,6 +158,7 @@ export const smsSenderRouter = router({
           userId: ctx.session.user.id,
           senderId: input.senderId,
           countries: input.countries,
+          region: input.region,
           useCase: input.useCase ?? null,
           sampleMessage: input.sampleMessage ?? null,
           companyName: input.companyName ?? null,
@@ -182,6 +196,7 @@ export const smsSenderRouter = router({
         id: smsSender.id,
         senderId: smsSender.senderId,
         countries: smsSender.countries,
+        region: smsSender.region,
         status: smsSender.status,
         useCase: smsSender.useCase,
         sampleMessage: smsSender.sampleMessage,
@@ -216,6 +231,12 @@ export const smsSenderRouter = router({
         note: z.string().trim().max(1000).optional(),
         /** Narrows an approval to the countries the carriers actually cleared. */
         countries: z.array(z.enum(SENDER_ID_COUNTRY_CODES)).min(1).optional(),
+        /**
+         * Corrects the region when the registration was filed somewhere other
+         * than the customer asked for. The row has to name where the
+         * origination identity actually lives, or every send using it fails.
+         */
+        region: z.enum(SMS_REGION_IDS).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -234,6 +255,7 @@ export const smsSenderRouter = router({
         .set({
           status: input.status,
           countries: input.countries ? [...new Set(input.countries)] : row.countries,
+          region: input.region ?? row.region,
           registrationId: input.registrationId ?? row.registrationId,
           reviewNote: input.note ?? null,
           reviewedAt: new Date(),

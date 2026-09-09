@@ -1,5 +1,6 @@
 "use client";
 
+import { SmsRegionLabel } from "@/components/sms/region-label";
 import { SmsSenderStatusBadge } from "@/components/status-badges";
 import { TableSkeleton } from "@/components/table-skeleton";
 import {
@@ -103,6 +104,7 @@ export function SendersTable({ onRequest }: { onRequest: () => void }) {
           <TableHead>Sender id</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="hidden sm:table-cell">Countries</TableHead>
+          <TableHead className="hidden lg:table-cell">Region</TableHead>
           <TableHead className="hidden md:table-cell">Requested</TableHead>
           <TableHead className="w-10" />
         </TableRow>
@@ -124,6 +126,9 @@ export function SendersTable({ onRequest }: { onRequest: () => void }) {
             </TableCell>
             <TableCell className="hidden sm:table-cell">
               <CountryChips codes={row.countries} />
+            </TableCell>
+            <TableCell className="hidden text-sm whitespace-nowrap lg:table-cell">
+              <SmsRegionLabel region={row.region} />
             </TableCell>
             <TableCell className="hidden text-muted-foreground md:table-cell">
               {formatDate(row.createdAt)}

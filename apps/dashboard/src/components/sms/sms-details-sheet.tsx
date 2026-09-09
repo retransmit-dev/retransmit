@@ -106,6 +106,12 @@ function SmsSummary({ message }: { message: SmsDetails }) {
           </span>
         )}
       </span>
+      {message.region && (
+        <>
+          <span className="text-muted-foreground">Region</span>
+          <span className="truncate">{message.region}</span>
+        </>
+      )}
       {message.providerMessageId && (
         <>
           <span className="text-muted-foreground">Provider id</span>

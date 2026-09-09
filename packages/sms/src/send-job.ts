@@ -58,12 +58,13 @@ export async function processSmsSend(smsId: string): Promise<void> {
   }
 
   try {
-    const { providerMessageId } = await provider.send({
+    const { providerMessageId, region } = await provider.send({
       id: row.id,
       from: row.from,
       to: row.to,
       text: row.text,
       country: row.country,
+      region: row.region,
     });
 
     await db
@@ -71,6 +72,9 @@ export async function processSmsSend(smsId: string): Promise<void> {
       .set({
         provider: provider.key,
         providerMessageId,
+        // The provider is the authority on where it ended up: the row may
+        // have named no region and let the provider default apply.
+        region: region ?? row.region,
         status: "sent",
         error: null,
         lastEventAt: new Date(),

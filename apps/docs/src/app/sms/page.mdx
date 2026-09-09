@@ -26,10 +26,12 @@ One request takes up to 50 recipients, all in the same country.
 number. Request it in the dashboard under **SMS > Sender IDs**, and pass it as
 `from` once it is approved.
 
-A request asks for two things:
+A request asks for three things:
 
 - **The name.** 3 to 11 letters, digits, spaces, hyphens, or underscores.
 - **The countries you send to.** Approval is per country.
+- **The region.** Where the name is registered. Pick the one closest to your
+  recipients; it cannot be changed afterwards.
 
 In most countries that is the whole form: the carriers there take the name as
 it is. The country picker says which kind each destination is, **No
@@ -68,6 +70,8 @@ Rules:
 
 - A sender ID approved for one country does not work in another. Request each
   country you send to.
+- Messages carrying a sender ID go out of the region it was registered in. You
+  do not pass the region on a send; the name carries it.
 - Sending with a name you have not had approved returns `422 sender_not_allowed`.
 - Omit `from` and Retransmit uses your approved sender for that country. If you
   have none, the message goes out under a shared default, which some carriers

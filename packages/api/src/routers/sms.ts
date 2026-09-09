@@ -6,6 +6,7 @@ import type { SmsStatus } from "@retransmit/db/schema/sms";
 import { enqueueSmsSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone, smsSegments } from "@retransmit/sms/phone";
 import { providerFamilies, providerLabel, selectProvider } from "@retransmit/sms/provider";
+import { DEFAULT_SMS_REGION, SMS_REGIONS, SMS_REGION_IDS } from "@retransmit/sms/regions";
 import { SenderNotAllowedError, resolveSender } from "@retransmit/sms/senders";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, lt, lte, or, sql } from "drizzle-orm";
@@ -149,6 +150,17 @@ export const smsRouter = router({
   providers: protectedProcedure.query(() => providerFamilies()),
 
   /**
+   * Regions a test send can be forced out of. Same list the sender id form
+   * uses; here it exists because sandbox status and the monthly spend limit
+   * are per region, so "does this work at all" often has a different answer
+   * one region over.
+   */
+  regions: protectedProcedure.query(() => ({
+    regions: SMS_REGIONS,
+    defaultRegion: DEFAULT_SMS_REGION,
+  })),
+
+  /**
    * Queues one message through the same path as `POST /v1/sms`, minus the
    * API key: the row is owned by the signed-in user, routed at send time and
    * shows up in the log like any other. For checking a provider end to end.
@@ -161,6 +173,12 @@ export const smsRouter = router({
         text: z.string().min(1).max(1600),
         /** Pins the send to one carrier; omit to route by country and price. */
         provider: z.enum(SMS_PROVIDER_NAMES).optional(),
+        /**
+         * Forces the AWS region, for checking a region the normal send path
+         * would never pick. Ignored by the direct carrier routes, which have
+         * no region.
+         */
+        region: z.enum(SMS_REGION_IDS).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -188,14 +206,26 @@ export const smsRouter = router({
       // Same allowlist the public API enforces, so a test send proves the
       // sender id as well as the route.
       let from: string | null;
+      let senderRegion: string | null;
       try {
-        ({ from } = await resolveSender(ctx.org.id, country, input.from));
+        ({ from, region: senderRegion } = await resolveSender(ctx.org.id, country, input.from));
       } catch (cause) {
         if (cause instanceof SenderNotAllowedError) {
           throw new TRPCError({ code: "FORBIDDEN", message: cause.message });
         }
         throw cause;
       }
+
+      // A sender id only exists in the region it was registered in, so an
+      // override that disagrees would fail at AWS with a resource error that
+      // says nothing about the cause. Say it here instead of sending it.
+      if (input.region && senderRegion && input.region !== senderRegion) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Sender id "${from}" is registered in ${senderRegion}, so it cannot send from ${input.region}. Drop the sender id to test that region.`,
+        });
+      }
+      const region = input.region ?? senderRegion;
 
       const id = createId("sms");
       const [created] = await db
@@ -208,6 +238,7 @@ export const smsRouter = router({
           to: [to],
           text: input.text,
           country,
+          region,
           segments: smsSegments(input.text),
           requestedProvider: input.provider,
         })
@@ -223,6 +254,7 @@ export const smsRouter = router({
         to,
         country,
         from,
+        region,
         segments: created.segments,
         /**
          * Expected route at enqueue time; the worker picks again when it

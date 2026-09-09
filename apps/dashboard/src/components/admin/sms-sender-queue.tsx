@@ -1,5 +1,6 @@
 "use client";
 
+import { SmsRegionLabel } from "@/components/sms/region-label";
 import { SmsSenderStatusBadge } from "@/components/status-badges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,13 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -85,6 +93,7 @@ export function SmsSenderQueue() {
             <TableHead>Sender id</TableHead>
             <TableHead>Organization</TableHead>
             <TableHead className="hidden lg:table-cell">Countries</TableHead>
+            <TableHead className="hidden xl:table-cell">Region</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="hidden md:table-cell">Requested</TableHead>
             <TableHead className="w-24" />
@@ -124,6 +133,9 @@ export function SmsSenderQueue() {
                     </Badge>
                   ))}
                 </span>
+              </TableCell>
+              <TableCell className="hidden text-sm whitespace-nowrap xl:table-cell">
+                <SmsRegionLabel region={row.region} />
               </TableCell>
               <TableCell>
                 <SmsSenderStatusBadge status={row.status} />
@@ -176,7 +188,9 @@ function ReviewDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const regions = useQuery(trpc.smsSender.regions.queryOptions());
   const [registrationId, setRegistrationId] = useState("");
+  const [region, setRegion] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
   const reviewMutation = useMutation(
@@ -186,6 +200,7 @@ function ReviewDialog({
         toast.success(`${updated.senderId} ${updated.status}`);
         onClose();
         setRegistrationId("");
+        setRegion(null);
         setNote("");
       },
     }),
@@ -193,6 +208,9 @@ function ReviewDialog({
 
   if (!review) return null;
   const { row, approve } = review;
+  // Defaults to what the customer asked for; changed only when the
+  // registration actually landed somewhere else.
+  const selectedRegion = region ?? row.region;
   // A rejection the customer cannot act on is worse than none, so the reason
   // is required here as well as on the server.
   const canSubmit = approve || note.trim().length > 0;
@@ -234,6 +252,34 @@ function ReviewDialog({
             </div>
           )}
 
+          {approve && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="review-region">Region</Label>
+              <Select
+                value={selectedRegion}
+                onValueChange={setRegion}
+                disabled={reviewMutation.isPending || regions.isLoading}
+              >
+                <SelectTrigger id="review-region" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.data?.regions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      <span aria-hidden>{option.flag}</span>
+                      <span>{option.name}</span>
+                      <span className="text-muted-foreground">({option.id})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Where the origination identity actually lives. Correct it if the registration
+                landed somewhere other than {row.region}, or every send with this name fails.
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <Label htmlFor="review-note">{approve ? "Note (optional)" : "Reason"}</Label>
             <Textarea
@@ -263,6 +309,11 @@ function ReviewDialog({
                 id: row.id,
                 status: approve ? "approved" : "rejected",
                 registrationId: registrationId.trim() || undefined,
+                region: approve
+                  ? (selectedRegion as NonNullable<
+                      typeof regions.data
+                    >["regions"][number]["id"])
+                  : undefined,
                 note: note.trim() || undefined,
               })
             }

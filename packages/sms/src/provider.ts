@@ -23,10 +23,19 @@ export interface SmsMessage {
   text: string;
   /** ISO 3166-1 alpha-2 destination country, null when undetected. */
   country: string | null;
+  /**
+   * Region to send from, for the routes that have one. Comes from the sender
+   * id's registration (see senders.ts) or an explicit override on a test
+   * send. Null lets the provider use its configured default; the direct
+   * carrier routes ignore it entirely.
+   */
+  region?: string | null;
 }
 
 export interface SmsSendResult {
   providerMessageId?: string;
+  /** Region the message actually went out of, when the route is regional. */
+  region?: string;
 }
 
 /**

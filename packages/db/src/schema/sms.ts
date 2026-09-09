@@ -62,6 +62,14 @@ export const smsSender = pgTable(
     senderId: text("sender_id").notNull(),
     /** ISO 3166-1 alpha-2 destinations this sender id is requested for. */
     countries: jsonb("countries").$type<string[]>().default([]).notNull(),
+    /**
+     * AWS region the sender id is registered in. An origination identity is a
+     * regional resource: the same name registered in `af-south-1` does not
+     * exist in `eu-central-1`, so a send that used the wrong region would be
+     * rejected upstream. Sends carrying this sender id go out of this region.
+     * See SMS_REGIONS in @retransmit/sms/regions.
+     */
+    region: text("region").notNull(),
     status: text("status").$type<SmsSenderStatus>().default("pending").notNull(),
     /**
      * Registration paperwork, and null when the destinations do not need any.
@@ -129,6 +137,13 @@ export const sms = pgTable(
     requestedProvider: text("requested_provider").$type<SmsProviderName>(),
     /** Routing key of the provider that carried the message, e.g. `mtn_cm`. */
     provider: text("provider"),
+    /**
+     * AWS region the message went out of, for routes that have one. Set at
+     * enqueue time from the resolved sender id (or an explicit test override)
+     * and confirmed by the provider on send. Null on the direct carrier
+     * routes, which are not regional, and on rows that predate this column.
+     */
+    region: text("region"),
     /** Message/transaction id assigned by the upstream provider. */
     providerMessageId: text("provider_message_id"),
     status: text("status").$type<SmsStatus>().default("queued").notNull(),

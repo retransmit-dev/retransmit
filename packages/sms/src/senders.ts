@@ -2,6 +2,9 @@ import { db } from "@retransmit/db";
 import { smsSender } from "@retransmit/db/schema/sms";
 import { and, asc, eq } from "drizzle-orm";
 
+import type { SmsRegion } from "./regions";
+import { isSmsRegion } from "./regions";
+
 /**
  * Resolving what goes in the `from` field of a send.
  *
@@ -14,11 +17,20 @@ import { and, asc, eq } from "drizzle-orm";
  * Approval is per country because that is how carriers grant it: a sender id
  * cleared for Cameroon says nothing about Nigeria. A row only counts for a
  * destination if its `countries` list contains that destination.
+ *
+ * Resolving also decides the region, because on AWS the two are the same
+ * fact: an origination identity only exists in the region it was registered
+ * in, so picking the name picks where the message has to be sent from.
  */
 
 export interface ResolvedSender {
   /** The string to hand the provider, or null to use the provider default. */
   from: string | null;
+  /**
+   * Region the sender id is registered in, or null when no sender id matched
+   * and the provider should use its configured default.
+   */
+  region: SmsRegion | null;
 }
 
 export class SenderNotAllowedError extends Error {
@@ -47,6 +59,16 @@ function covers(row: { countries: string[] }, country: string | null): boolean {
 }
 
 /**
+ * The row's region, or null if it holds a value this build no longer knows.
+ * A retired region is not a reason to fail the send: falling back to the
+ * provider default at least attempts delivery, and the operator sees the
+ * stale row in the queue.
+ */
+function regionOf(row: { region: string }): SmsRegion | null {
+  return isSmsRegion(row.region) ? row.region : null;
+}
+
+/**
  * Decides the sender id for one send.
  *
  * - `requested` given: it must be an approved sender id of this organization
@@ -66,7 +88,7 @@ export async function resolveSender(
   country: string | null,
   requested?: string | null,
 ): Promise<ResolvedSender> {
-  if (!organizationId) return { from: requested ?? null };
+  if (!organizationId) return { from: requested ?? null, region: null };
 
   const senders = await approvedSenders(organizationId);
 
@@ -75,7 +97,7 @@ export async function resolveSender(
     const match = senders.find(
       (row) => row.senderId.toLowerCase() === wanted.toLowerCase() && covers(row, country),
     );
-    if (match) return { from: match.senderId };
+    if (match) return { from: match.senderId, region: regionOf(match) };
 
     const known = senders.find((row) => row.senderId.toLowerCase() === wanted.toLowerCase());
     throw new SenderNotAllowedError(
@@ -86,5 +108,5 @@ export async function resolveSender(
   }
 
   const match = senders.find((row) => covers(row, country));
-  return { from: match?.senderId ?? null };
+  return { from: match?.senderId ?? null, region: match ? regionOf(match) : null };
 }

@@ -5,6 +5,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -26,15 +33,18 @@ import { toast } from "sonner";
 const SENDER_ID_REGEX = /^[A-Za-z0-9][A-Za-z0-9 _-]*$/;
 
 /**
- * The one setup step SMS has. The name and the destinations are all it takes:
- * in most countries the sender id goes upstream as-is, so the registration
- * questions — use case, sample message, legal entity — only appear as
- * required once a selected country is one the carriers make us file for. The
- * platform asks for exactly what the upstream does, no more.
+ * The one setup step SMS has: a name, the destinations, and the region we
+ * register it in.
  *
- * Countries the carriers do not allow alphanumeric sender ids in are listed
- * but disabled, with the reason: the honest answer belongs on screen, not in
- * a support thread after the customer has already integrated.
+ * The registration questions — use case, sample message, legal entity — are
+ * not rendered at all until a selected country is one the carriers make us
+ * file for. They used to sit there marked "(optional)", which is a form
+ * asking for work nobody consumes: in most countries the sender id goes
+ * upstream as-is. The platform asks for exactly what the upstream does.
+ *
+ * Countries that do not allow alphanumeric sender ids are listed but
+ * disabled, with the reason: the honest answer belongs on screen, not in a
+ * support thread after the customer has already integrated.
  */
 export function RequestSenderSheet({
   open,
@@ -45,9 +55,11 @@ export function RequestSenderSheet({
 }) {
   const queryClient = useQueryClient();
   const catalog = useQuery(trpc.smsSender.countries.queryOptions());
+  const regions = useQuery(trpc.smsSender.regions.queryOptions());
 
   const [senderId, setSenderId] = useState("");
   const [countries, setCountries] = useState<string[]>([]);
+  const [region, setRegion] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [useCase, setUseCase] = useState("");
   const [sampleMessage, setSampleMessage] = useState("");
@@ -55,10 +67,11 @@ export function RequestSenderSheet({
   const [companyWebsite, setCompanyWebsite] = useState("");
 
   const trimmedSender = senderId.trim();
+  const selectedRegion = region ?? regions.data?.defaultRegion ?? null;
 
   // Which of the picked destinations actually get filed with a carrier. Only
-  // those make the registration questions mandatory; the same rule runs again
-  // in the router, which is what the API contract is.
+  // those bring up the registration questions; the same rule runs again in
+  // the router, which is what the API contract is.
   const filedCountries = useMemo(() => {
     const list = catalog.data?.countries ?? [];
     return countries.filter(
@@ -72,6 +85,7 @@ export function RequestSenderSheet({
     trimmedSender.length <= 11 &&
     SENDER_ID_REGEX.test(trimmedSender) &&
     countries.length > 0 &&
+    selectedRegion !== null &&
     (!needsFiling ||
       (useCase.trim().length >= 10 &&
         sampleMessage.trim().length >= 10 &&
@@ -80,6 +94,7 @@ export function RequestSenderSheet({
   const reset = () => {
     setSenderId("");
     setCountries([]);
+    setRegion(null);
     setSearch("");
     setUseCase("");
     setSampleMessage("");
@@ -122,14 +137,16 @@ export function RequestSenderSheet({
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!isValid || selectedRegion === null) return;
     createMutation.mutate({
       senderId: trimmedSender,
       countries: countries as [string, ...string[]],
-      useCase: useCase.trim() || undefined,
-      sampleMessage: sampleMessage.trim() || undefined,
-      companyName: companyName.trim() || undefined,
-      companyWebsite: companyWebsite.trim() || undefined,
+      region: selectedRegion as NonNullable<typeof regions.data>["regions"][number]["id"],
+      // Only sent when a filing will actually consume them.
+      useCase: needsFiling ? useCase.trim() || undefined : undefined,
+      sampleMessage: needsFiling ? sampleMessage.trim() || undefined : undefined,
+      companyName: needsFiling ? companyName.trim() || undefined : undefined,
+      companyWebsite: needsFiling ? companyWebsite.trim() || undefined : undefined,
     });
   };
 
@@ -141,8 +158,7 @@ export function RequestSenderSheet({
         <SheetHeader className="p-0">
           <SheetTitle>Request a sender id</SheetTitle>
           <SheetDescription>
-            The name your messages arrive from. Carriers approve it per country, which takes a few
-            days.
+            The name your messages arrive from. Carriers approve it per country.
           </SheetDescription>
         </SheetHeader>
 
@@ -162,16 +178,12 @@ export function RequestSenderSheet({
               spellCheck={false}
             />
             <p className="text-xs text-muted-foreground">
-              3 to 11 characters, letters and digits. Shown instead of a phone number on the
-              handset.
+              3 to 11 characters. Shown instead of a phone number.
             </p>
           </div>
 
           <div className="flex flex-col gap-2">
             <Label id="sender-countries-label">Countries</Label>
-            <p className="text-xs text-muted-foreground">
-              Approval is per country. Pick every destination you send to.
-            </p>
             {catalog.isLoading ? (
               <div className="grid gap-2">
                 <Skeleton className="h-10 w-full" />
@@ -247,75 +259,103 @@ export function RequestSenderSheet({
             )}
           </div>
 
-          <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            {needsFiling
-              ? `${filedCountries.join(", ")} needs the sender id registered with the carriers, so the questions below go on that filing.`
-              : "The destinations you picked take the sender id as-is, so nothing below is required. Answering anyway speeds up a later registration if you add a country that needs one."}
-          </p>
-
           <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-use-case">
-              What do you send?{needsFiling ? "" : " (optional)"}
-            </Label>
-            <Textarea
-              id="sender-use-case"
-              placeholder="One-time passcodes and delivery notifications for customers who signed up on our site."
-              value={useCase}
-              onChange={(e) => setUseCase(e.target.value)}
-              rows={3}
-              maxLength={500}
-              disabled={pending}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-sample">
-              Sample message{needsFiling ? "" : " (optional)"}
-            </Label>
-            <Textarea
-              id="sender-sample"
-              placeholder="Your Acme code is 123456. It expires in 10 minutes."
-              value={sampleMessage}
-              onChange={(e) => setSampleMessage(e.target.value)}
-              rows={2}
-              maxLength={500}
-              disabled={pending}
-            />
+            <Label htmlFor="sender-region">Region</Label>
+            {regions.isLoading ? (
+              <Skeleton className="h-9 w-full" />
+            ) : (
+              <Select
+                value={selectedRegion ?? undefined}
+                onValueChange={setRegion}
+                disabled={pending}
+              >
+                <SelectTrigger id="sender-region" className="w-full">
+                  <SelectValue placeholder="Pick a region" />
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.data?.regions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      <span aria-hidden>{option.flag}</span>
+                      <span>{option.name}</span>
+                      <span className="text-muted-foreground">({option.id})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <p className="text-xs text-muted-foreground">
-              Carriers reject registrations whose sample does not match the traffic.
+              Where we register the name. It can only send from there, so this cannot be changed
+              later.
             </p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-company">Company{needsFiling ? "" : " (optional)"}</Label>
-            <Input
-              id="sender-company"
-              placeholder="Acme SARL"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              maxLength={200}
-              disabled={pending}
-            />
-            <p className="text-xs text-muted-foreground">
-              The legal entity behind the sender id, as it appears on your registration.
-            </p>
-          </div>
+          {/* Only what a filing consumes. In every other country the sender id
+              goes upstream as-is, so there is nothing to ask. */}
+          {needsFiling && (
+            <>
+              <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                {filedCountries.join(", ")} needs the name registered with the carriers. The rest
+                goes on that filing.
+              </p>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="sender-website">Website (optional)</Label>
-            <Input
-              id="sender-website"
-              type="url"
-              placeholder="https://acme.com"
-              value={companyWebsite}
-              onChange={(e) => setCompanyWebsite(e.target.value)}
-              maxLength={300}
-              disabled={pending}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-          </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sender-use-case">What do you send?</Label>
+                <Textarea
+                  id="sender-use-case"
+                  placeholder="One-time passcodes and delivery notifications for customers who signed up on our site."
+                  value={useCase}
+                  onChange={(e) => setUseCase(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  disabled={pending}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sender-sample">Sample message</Label>
+                <Textarea
+                  id="sender-sample"
+                  placeholder="Your Acme code is 123456. It expires in 10 minutes."
+                  value={sampleMessage}
+                  onChange={(e) => setSampleMessage(e.target.value)}
+                  rows={2}
+                  maxLength={500}
+                  disabled={pending}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Carriers reject filings whose sample does not match the traffic.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sender-company">Company</Label>
+                <Input
+                  id="sender-company"
+                  placeholder="Acme SARL"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  maxLength={200}
+                  disabled={pending}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sender-website">Website (optional)</Label>
+                <Input
+                  id="sender-website"
+                  type="url"
+                  placeholder="https://acme.com"
+                  value={companyWebsite}
+                  onChange={(e) => setCompanyWebsite(e.target.value)}
+                  maxLength={300}
+                  disabled={pending}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+              </div>
+            </>
+          )}
 
           <SheetFooter className="p-0">
             <Button type="submit" disabled={pending || !isValid}>

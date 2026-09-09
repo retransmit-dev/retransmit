@@ -4,3 +4,4 @@
 export * from "./delivery";
 export * from "./phone";
 export * from "./provider";
+export * from "./regions";

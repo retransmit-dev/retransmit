@@ -195,7 +195,8 @@ done
 echo "Per-region state:"
 printf "%b" "$SUMMARY"
 echo
-echo "Add to .env (pick the region sends should originate from):"
+echo "Add to .env (the fallback region; a sender id sends from the region it"
+echo "was registered in, which the dashboard records per sender id):"
 echo "  SNS_SMS_REGION=${REGIONS[0]}"
 echo "  SNS_SMS_CONFIGURATION_SET=$CONFIG_SET"
 echo
@@ -204,5 +205,6 @@ echo "  - tier=SANDBOX means only verified destination numbers receive messages.
 echo "    Request production access in the End User Messaging console (support case)."
 echo "  - Raise the monthly spend limit in the same case."
 echo "  - Register a sender id per country as requests come in (SMS > Sender IDs"
-echo "    in the dashboard is the queue):"
+echo "    in the dashboard is the queue). Register it in the region the request"
+echo "    names, or correct the region on the row when you approve it:"
 echo "      aws pinpoint-sms-voice-v2 describe-sender-ids --region <region>"

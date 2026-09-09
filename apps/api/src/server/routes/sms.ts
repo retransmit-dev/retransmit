@@ -120,10 +120,13 @@ smsRoutes.post("/", async (c) => {
   }
 
   // The sender id is settled before queueing so a caller learns straight away
-  // that a name is not approved, rather than finding a failed row later.
+  // that a name is not approved, rather than finding a failed row later. It
+  // also decides the region: an AWS sender id only exists in the region it
+  // was registered in.
   let from: string | null;
+  let region: string | null;
   try {
-    ({ from } = await resolveSender(organizationId ?? null, country, input.from));
+    ({ from, region } = await resolveSender(organizationId ?? null, country, input.from));
   } catch (cause) {
     if (cause instanceof SenderNotAllowedError) {
       return c.json({ error: { code: cause.code, message: cause.message } }, 422);
@@ -140,6 +143,7 @@ smsRoutes.post("/", async (c) => {
     to,
     text: input.text,
     country,
+    region,
     segments: smsSegments(input.text),
     requestedProvider: input.provider,
   };

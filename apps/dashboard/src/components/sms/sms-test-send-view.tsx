@@ -38,8 +38,12 @@ const RESULT_REFETCH_MS = 2000;
 /** Select value for "let routing decide" — an empty string is not a valid item. */
 const AUTO_PROVIDER = "auto";
 
+/** Select value for "whatever the sender id or env says". */
+const AUTO_REGION = "auto";
+
 type ProviderOption = RouterOutputs["sms"]["providers"][number];
 type ProviderName = NonNullable<RouterInputs["sms"]["sendTest"]["provider"]>;
+type RegionName = NonNullable<RouterInputs["sms"]["sendTest"]["region"]>;
 
 /** What picking this option means, under the select. */
 function providerHint(option: ProviderOption | undefined): string {
@@ -71,10 +75,12 @@ export function SmsTestSendView() {
   const [to, setTo] = useState("");
   const [text, setText] = useState("Hello from Retransmit.");
   const [provider, setProvider] = useState<string>(AUTO_PROVIDER);
+  const [region, setRegion] = useState<string>(AUTO_REGION);
 
   const providers = useQuery(
     trpc.sms.providers.queryOptions(undefined, { throwOnError: false }),
   );
+  const regions = useQuery(trpc.sms.regions.queryOptions(undefined, { throwOnError: false }));
 
   const sendMutation = useMutation(
     trpc.sms.sendTest.mutationOptions({
@@ -92,6 +98,7 @@ export function SmsTestSendView() {
       to,
       text,
       provider: provider === AUTO_PROVIDER ? undefined : (provider as ProviderName),
+      region: region === AUTO_REGION ? undefined : (region as RegionName),
     });
   };
 
@@ -179,6 +186,37 @@ export function SmsTestSendView() {
                   {providerHint(
                     providers.data?.find((option) => option.family === provider),
                   )}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sms-test-region">Region</Label>
+                <Select
+                  value={region}
+                  onValueChange={(value) => setRegion((value as string) || AUTO_REGION)}
+                  disabled={sendMutation.isPending}
+                >
+                  <SelectTrigger id="sms-test-region" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={AUTO_REGION}>
+                      Automatic
+                      {regions.data ? ` (${regions.data.defaultRegion})` : ""}
+                    </SelectItem>
+                    {regions.data?.regions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        <span aria-hidden>{option.flag}</span>
+                        <span>{option.name}</span>
+                        <span className="text-muted-foreground">({option.id})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {region === AUTO_REGION
+                    ? "The sender id decides, or the deployment default. Only the AWS route has a region."
+                    : "Sandbox status and the monthly spend limit are per region, so a region that is out of budget can still work here. Fails if the sender id is registered elsewhere."}
                 </p>
               </div>
 

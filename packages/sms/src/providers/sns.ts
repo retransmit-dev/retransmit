@@ -28,9 +28,12 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
  *
  * Credentials come from the default AWS provider chain, the same as SES.
  * Env:
- * - `SNS_SMS_REGION` — region to send from. Turns the provider on; SMS is only
- *   available in some regions, and the account's spend limit, sandbox status
- *   and origination identities are all per region.
+ * - `SNS_SMS_REGION` — region to send from when the message does not name one.
+ *   Turns the provider on; SMS is only available in some regions, and the
+ *   account's spend limit, sandbox status and origination identities are all
+ *   per region. A message carrying an approved sender id overrides it with
+ *   the region that sender id was registered in, because an origination
+ *   identity does not exist outside its own region.
  * - `SNS_SMS_CONFIGURATION_SET` — configuration set carrying the event
  *   destination that feeds delivery receipts back to
  *   `/v1/callbacks/sms/sns`. Without it a send still goes out, but its status
@@ -78,10 +81,14 @@ function allowedCountries(): Set<string> | null {
 }
 
 export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
-  const region = () => process.env.SNS_SMS_REGION;
+  // Env only answers "is this route on, and where does an unattributed
+  // message go". A message that names a region wins, so the send lands in the
+  // region its origination identity lives in.
+  const defaultRegion = () => process.env.SNS_SMS_REGION;
+  const regionFor = (message: SmsMessage) => message.region || defaultRegion();
 
   async function sendOne(to: string, message: SmsMessage): Promise<string | undefined> {
-    const currentRegion = region();
+    const currentRegion = regionFor(message);
     if (!currentRegion) throw new Error(`${options.name}: SNS_SMS_REGION is not set`);
 
     // The message's own sender id has already been checked against the
@@ -120,10 +127,16 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
         if (id) ids.push(id);
       } catch (cause) {
         const detail = cause instanceof Error ? cause.message : String(cause);
-        throw new Error(`${options.name} send failed: ${detail}`);
+        // The spend limit, the sandbox and the sender id registration are all
+        // per region, so which region this was is half the answer to why it
+        // failed. Without it the message reads as an account-wide problem.
+        throw new Error(`${options.name} send failed in ${regionFor(message)}: ${detail}`);
       }
     }
-    return { providerMessageId: ids.length ? ids.join(",") : undefined };
+    return {
+      providerMessageId: ids.length ? ids.join(",") : undefined,
+      region: regionFor(message),
+    };
   }
 
   return {
@@ -131,7 +144,7 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
     family: options.family,
     name: options.name,
     isConfigured() {
-      return Boolean(region());
+      return Boolean(defaultRegion());
     },
     countries() {
       // Null means "every destination": AWS quotes anywhere it sells SMS,
