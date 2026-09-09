@@ -15,7 +15,7 @@ import { getPeriodUsage } from "./usage";
  * card" and "you are past your limit".
  */
 export interface LimitFailure {
-  code: "quota_exceeded" | "limit_exceeded";
+  code: "quota_exceeded" | "limit_exceeded" | "payment_method_required";
   message: string;
   limit: number;
   used: number;
@@ -77,6 +77,49 @@ export async function checkEmailQuota(
 }
 
 /**
+ * Whether the organization has a card Stripe can charge. Self-hosted
+ * deployments bill nothing, so they never need one.
+ *
+ * `upgrade` is false on every failure from here: a bigger plan does not put a
+ * card on file, so the dashboard asks for one instead of showing the plans.
+ */
+async function requirePaymentMethod(
+  organizationId: string,
+  failure: { code: LimitFailure["code"]; message: string },
+  options: { account?: BillingAccount } = {},
+): Promise<LimitCheck> {
+  if (isSelfHostedMode()) return ok;
+  const account = options.account ?? (await getBillingAccount(organizationId));
+  if (account.hasPaymentMethod) return ok;
+  return { ok: false, ...failure, limit: 0, used: 0, upgrade: false };
+}
+
+/**
+ * A card, for work that commits the organization to a bill it cannot pay for
+ * yet: registering a sender id, submitting a WhatsApp template, a test send.
+ * None of them costs anything by itself, but each one only exists to send
+ * messages that are billed per message, and a carrier registration in
+ * particular takes days to undo.
+ *
+ * `message` says which of those was refused, since "add a payment method" on
+ * its own does not tell anyone what they were doing.
+ *
+ * The code is dashboard-only: the public API's pay-as-you-go refusal keeps
+ * `quota_exceeded`, which is the code documented for it.
+ */
+export async function checkPaymentMethod(
+  organizationId: string,
+  message: string,
+  options: { account?: BillingAccount } = {},
+): Promise<LimitCheck> {
+  return requirePaymentMethod(
+    organizationId,
+    { code: "payment_method_required", message },
+    options,
+  );
+}
+
+/**
  * SMS and WhatsApp are pay as you go on every plan, so they need a card rather
  * than an allowance.
  */
@@ -85,17 +128,14 @@ export async function checkPayAsYouGo(
   channel: "SMS" | "WhatsApp",
   options: { account?: BillingAccount } = {},
 ): Promise<LimitCheck> {
-  if (isSelfHostedMode()) return ok;
-  const account = options.account ?? (await getBillingAccount(organizationId));
-  if (account.hasPaymentMethod) return ok;
-  return {
-    ok: false,
-    code: "quota_exceeded",
-    limit: 0,
-    used: 0,
-    upgrade: false,
-    message: `${channel} is billed per message. Add a payment method in the dashboard to send.`,
-  };
+  return requirePaymentMethod(
+    organizationId,
+    {
+      code: "quota_exceeded",
+      message: `${channel} is billed per message. Add a payment method in the dashboard to send.`,
+    },
+    options,
+  );
 }
 
 /** Verified and pending domains an organization holds. */

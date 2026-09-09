@@ -1,6 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { MobileTopBar } from "@/components/mobile-top-bar";
-import { UpgradeDialog } from "@/components/settings/billing/upgrade-dialog";
+import { BillingGateDialog } from "@/components/settings/billing/billing-gate-dialog";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { auth } from "@retransmit/auth";
 import { isAdminEmail } from "@retransmit/auth/admin";
@@ -69,8 +69,8 @@ export default async function Layout(props: PropsWithChildren) {
         </div>
       </SidebarInset>
 
-      {/* Opens itself when a plan limit refuses something, anywhere. */}
-      {isCloudMode() && <UpgradeDialog />}
+      {/* Opens itself when a billing check refuses something, anywhere. */}
+      {isCloudMode() && <BillingGateDialog />}
     </SidebarProvider>
   );
 }

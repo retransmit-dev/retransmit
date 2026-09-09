@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { fullOrganizationKey, useCurrentOrganization } from "@/hooks/use-organization";
 import { authClient } from "@/lib/auth-client";
-import { LimitReachedError } from "@/lib/upgrade";
+import { LimitReachedError } from "@/lib/billing-gate";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SendIcon } from "lucide-react";
 import { useState } from "react";

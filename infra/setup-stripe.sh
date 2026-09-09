@@ -235,3 +235,14 @@ echo "to be copied into .env. Still to do by hand, because Stripe has no API for
 echo "  - Stripe Tax: add a registration before turning automatic_tax on"
 echo "    (https://dashboard.stripe.com/test/tax/registrations), otherwise no tax is collected"
 echo "  - production: run this against the live key once the plans are final"
+echo
+# The endpoint is created by hand because its signing secret has to be copied
+# into STRIPE_WEBHOOK_SECRET anyway. Keep this list in step with
+# HANDLED_EVENTS in packages/billing/src/webhook.ts.
+echo "Webhook endpoint (dashboard > Developers > Webhooks), POST to"
+echo "<api>/v1/callbacks/stripe, subscribed to:"
+echo "  checkout.session.completed"
+echo "  customer.subscription.created, .updated, .deleted, .paused, .resumed"
+echo "  invoice.paid, invoice.payment_failed"
+echo "  customer.updated, payment_method.attached, payment_method.detached"
+echo "Then copy the signing secret into STRIPE_WEBHOOK_SECRET."

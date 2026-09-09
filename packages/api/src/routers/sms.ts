@@ -1,4 +1,4 @@
-import { logRetentionCutoff } from "@retransmit/billing/limits";
+import { checkPaymentMethod, logRetentionCutoff } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { SMS_PROVIDER_NAMES, SMS_STATUSES, sms, smsEvent } from "@retransmit/db/schema/sms";
@@ -13,7 +13,13 @@ import { and, asc, count, desc, eq, gte, ilike, lt, lte, or, sql } from "drizzle
 import type { SQL } from "drizzle-orm";
 import z from "zod";
 
-import { assertOrgAdmin, orgProcedure, protectedProcedure, router } from "../index";
+import {
+  assertOrgAdmin,
+  assertWithinLimit,
+  orgProcedure,
+  protectedProcedure,
+  router,
+} from "../index";
 
 /** Case-insensitive match on recipient, sender id or body. */
 function searchCondition(search: string) {
@@ -183,6 +189,14 @@ export const smsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       assertOrgAdmin(ctx.org);
+      // It goes out over a real carrier and is metered like any other send, so
+      // it needs a card exactly as `POST /v1/sms` does.
+      assertWithinLimit(
+        await checkPaymentMethod(
+          ctx.org.id,
+          "SMS is billed per message. Add a payment method to send.",
+        ),
+      );
 
       const to = normalizePhone(input.to);
       if (!to) {

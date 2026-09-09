@@ -1,3 +1,4 @@
+import { checkPaymentMethod } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { organization } from "@retransmit/db/schema/auth";
@@ -13,7 +14,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import z from "zod";
 
-import { adminProcedure, assertOrgAdmin, orgProcedure, router } from "../index";
+import { adminProcedure, assertOrgAdmin, assertWithinLimit, orgProcedure, router } from "../index";
 
 /**
  * Sender ids: the one thing a customer must set up before SMS reaches a
@@ -133,6 +134,15 @@ export const smsSenderRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       assertOrgAdmin(ctx.org);
+      // A registration is filed with a carrier and takes days to undo, so the
+      // card comes first. Nothing here is billed, but a sender id has no use
+      // except sending SMS, which is.
+      assertWithinLimit(
+        await checkPaymentMethod(
+          ctx.org.id,
+          "SMS is billed per message. Add a payment method before requesting a sender id.",
+        ),
+      );
 
       const [existing] = await db
         .select()

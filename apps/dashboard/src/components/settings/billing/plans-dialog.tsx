@@ -158,7 +158,7 @@ function PlanGrid({ onSwitched }: { onSwitched: () => void }) {
 
 /**
  * The plans, in a dialog. Opened from the billing page, and on its own whenever
- * a plan limit stops something (see `UpgradeDialog`).
+ * a plan limit stops something (see `BillingGateDialog`).
  */
 export function PlansDialog({
   open,

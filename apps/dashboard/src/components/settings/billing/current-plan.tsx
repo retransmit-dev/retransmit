@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentOrganization } from "@/hooks/use-organization";
 import { formatDate } from "@/lib/format";
-import { trpc } from "@/utils/trpc";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRightLeftIcon, CreditCardIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { PlansDialog } from "./plans-dialog";
+import { usePaymentMethod } from "./use-payment-method";
 
 /** Statuses worth interrupting someone about, and what to say. */
 const WARNINGS: Partial<Record<string, string>> = {
@@ -25,43 +23,15 @@ const WARNINGS: Partial<Record<string, string>> = {
 
 export function CurrentPlan() {
   const { canManage } = useCurrentOrganization();
-  const overview = useQuery(trpc.billing.overview.queryOptions());
   const [plansOpen, setPlansOpen] = useState(false);
-
-  const portal = useMutation(
-    trpc.billing.portal.mutationOptions({
-      onSuccess: ({ url }) => {
-        window.location.href = url;
-      },
-      onError: (error) => toast.error(error.message),
-    }),
-  );
-
-  // Checkout is what collects the first card, on the plan the organization is
-  // already on, so it reads as "add a card" rather than a plan change. Free
-  // charges nothing for it.
-  const checkout = useMutation(
-    trpc.billing.checkout.mutationOptions({
-      onSuccess: ({ url }) => {
-        window.location.href = url;
-      },
-    }),
-  );
+  const { overview, hasPaymentMethod, configured, pending, openPortal, addPaymentMethod } =
+    usePaymentMethod();
 
   if (overview.isLoading) return <Skeleton className="h-24 w-full" />;
   if (!overview.data) return null;
 
-  const { plan, planName, status, cancelAtPeriodEnd, periodEnd } = overview.data;
-  const { hasPaymentMethod, configured } = overview.data;
+  const { planName, status, cancelAtPeriodEnd, periodEnd } = overview.data;
   const warning = WARNINGS[status];
-
-  /**
-   * Checkout can only create a subscription, so it is right exactly once: for
-   * an organization that has never had one. After that a second session would
-   * mean a second subscription, and the portal is where a card is replaced.
-   */
-  const addPaymentMethod = () =>
-    status === "none" ? checkout.mutate({ plan }) : portal.mutate();
 
   return (
     <div className="flex flex-col gap-4">
@@ -91,19 +61,12 @@ export function CurrentPlan() {
               Change plan
             </Button>
             {hasPaymentMethod ? (
-              <Button
-                variant="outline"
-                onClick={() => portal.mutate()}
-                disabled={portal.isPending}
-              >
+              <Button variant="outline" onClick={openPortal} disabled={pending}>
                 <CreditCardIcon />
                 Payment and invoices
               </Button>
             ) : (
-              <Button
-                onClick={addPaymentMethod}
-                disabled={checkout.isPending || portal.isPending}
-              >
+              <Button onClick={addPaymentMethod} disabled={pending}>
                 <CreditCardIcon />
                 Add payment method
               </Button>

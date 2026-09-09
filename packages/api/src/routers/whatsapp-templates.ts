@@ -1,3 +1,4 @@
+import { checkPaymentMethod } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { whatsappAccount, whatsappTemplate } from "@retransmit/db/schema/whatsapp";
 import {
@@ -10,7 +11,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import z from "zod";
 
-import { assertOrgAdmin, orgProcedure, router } from "../index";
+import { assertOrgAdmin, assertWithinLimit, orgProcedure, router } from "../index";
 
 /**
  * The connected number whose credentials manage templates on a WABA. Any
@@ -50,6 +51,14 @@ function rethrow(cause: unknown): never {
   });
 }
 
+/**
+ * Templates exist to send WhatsApp messages, which are billed per conversation,
+ * and Meta's review of one takes hours to days. So the card comes before the
+ * template rather than at the first send, when the wait is already spent.
+ */
+const TEMPLATES_NEED_A_CARD =
+  "WhatsApp is billed per message. Add a payment method to work with templates.";
+
 export const whatsappTemplateRouter = router({
   list: orgProcedure.query(({ ctx }) =>
     db
@@ -64,6 +73,7 @@ export const whatsappTemplateRouter = router({
     .input(z.object({ accountId: z.string().optional(), draft: templateDraftSchema }))
     .mutation(async ({ ctx, input }) => {
       assertOrgAdmin(ctx.org);
+      assertWithinLimit(await checkPaymentMethod(ctx.org.id, TEMPLATES_NEED_A_CARD));
       const account = await findManagingAccount(ctx.org.id, input.accountId);
       try {
         return await createTemplate(account, input.draft);
@@ -74,6 +84,7 @@ export const whatsappTemplateRouter = router({
 
   /** Pulls every template on each connected WABA, including ones made in WhatsApp Manager. */
   sync: orgProcedure.mutation(async ({ ctx }) => {
+    assertWithinLimit(await checkPaymentMethod(ctx.org.id, TEMPLATES_NEED_A_CARD));
     const accounts = await db
       .select()
       .from(whatsappAccount)
