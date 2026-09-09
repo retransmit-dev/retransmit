@@ -1,5 +1,6 @@
 "use client";
 
+import { RegionSelect } from "@/components/selectors/region-select";
 import { SmsRegionLabel } from "@/components/sms/region-label";
 import { SmsSenderStatusBadge } from "@/components/status-badges";
 import { Badge } from "@/components/ui/badge";
@@ -22,13 +23,6 @@ import {
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -255,24 +249,14 @@ function ReviewDialog({
           {approve && (
             <div className="flex flex-col gap-2">
               <Label htmlFor="review-region">Region</Label>
-              <Select
+              <RegionSelect
+                id="review-region"
+                regions={regions.data?.regions}
                 value={selectedRegion}
                 onValueChange={setRegion}
-                disabled={reviewMutation.isPending || regions.isLoading}
-              >
-                <SelectTrigger id="review-region" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {regions.data?.regions.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      <span aria-hidden>{option.flag}</span>
-                      <span>{option.name}</span>
-                      <span className="text-muted-foreground">({option.id})</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                loading={regions.isLoading}
+                disabled={reviewMutation.isPending}
+              />
               <p className="text-xs text-muted-foreground">
                 Where the origination identity actually lives. Correct it if the registration
                 landed somewhere other than {row.region}, or every send with this name fails.

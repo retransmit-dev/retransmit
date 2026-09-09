@@ -4,7 +4,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { useCurrentOrganization } from "@/hooks/use-organization";
 import { useState } from "react";
 
-import { AddSuppressionsSheet } from "./add-suppressions-sheet";
+import { AddSuppressionsDialog } from "./add-suppressions-dialog";
 import { SuppressionFilterBar } from "./suppression-filters";
 import type { SuppressionFilters } from "./suppression-filters";
 import { SuppressionsActionsMenu } from "./suppressions-actions-menu";
@@ -28,7 +28,7 @@ export function SuppressionsView() {
   return (
     <>
       <SuppressionFilterBar filters={filters} onChange={changeFilters}>
-        {canManage && <AddSuppressionsSheet />}
+        {canManage && <AddSuppressionsDialog />}
         <SuppressionsActionsMenu canManage={canManage} />
       </SuppressionFilterBar>
 

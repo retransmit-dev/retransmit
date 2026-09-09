@@ -3,12 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/utils/trpc";
@@ -18,8 +19,8 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { toast } from "sonner";
 
-/** The "Add address" button and the sheet it opens. */
-export function AddSuppressionsSheet() {
+/** The "Add address" button and the modal it opens. */
+export function AddSuppressionsDialog() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
@@ -60,15 +61,15 @@ export function AddSuppressionsSheet() {
         Add address
       </Button>
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="p-4 sm:max-w-md">
-          <SheetHeader className="p-0">
-            <SheetTitle>Add suppressions</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Add suppressions</DialogTitle>
+            <DialogDescription>
               Blocks addresses until removed. Use @example.com to block a domain.
-            </SheetDescription>
-          </SheetHeader>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="suppress-addresses">Addresses</Label>
               <Textarea
@@ -84,16 +85,18 @@ export function AddSuppressionsSheet() {
                 One per line, comma, or space. Limit 100.
               </p>
             </div>
-            <Button
-              type="submit"
-              disabled={addMutation.isPending || !value.trim()}
-            >
-              {addMutation.isPending ? <Spinner /> : <PlusIcon />}
-              Suppress addresses
-            </Button>
+            <DialogFooter>
+              <Button
+                type="submit"
+                disabled={addMutation.isPending || !value.trim()}
+              >
+                {addMutation.isPending ? <Spinner /> : <PlusIcon />}
+                Suppress addresses
+              </Button>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

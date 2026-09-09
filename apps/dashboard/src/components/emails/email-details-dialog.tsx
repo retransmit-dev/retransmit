@@ -5,12 +5,13 @@ import { EmailStatusBadge } from "@/components/status-badges";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { RouterOutputs } from "@/lib/api-types";
 import { formatBytes, formatDateTime } from "@/lib/format";
@@ -21,7 +22,7 @@ import { Fragment } from "react";
 
 type EmailDetails = RouterOutputs["email"]["get"];
 
-export function EmailDetailsSheet({
+export function EmailDetailsDialog({
   emailId,
   onClose,
 }: {
@@ -29,16 +30,13 @@ export function EmailDetailsSheet({
   onClose: () => void;
 }) {
   return (
-    <Sheet open={emailId !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent
-        side="right"
-        className="overflow-y-auto p-4 data-[side=right]:sm:max-w-2xl"
-      >
+    <Dialog open={emailId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-3xl">
         <ErrorBoundary title="Could not load this email">
           {emailId !== null && <EmailDetailsBody emailId={emailId} />}
         </ErrorBoundary>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -48,36 +46,38 @@ function EmailDetailsBody({ emailId }: { emailId: string }) {
 
   return (
     <>
-      <SheetHeader className="p-0">
-        <SheetTitle className="flex items-center gap-2">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
           <span className="truncate">{email?.subject ?? "Email"}</span>
           {email && <EmailStatusBadge status={email.status} />}
-        </SheetTitle>
-        <SheetDescription>
+        </DialogTitle>
+        <DialogDescription>
           {email ? `Sent ${formatDateTime(email.createdAt)}` : null}
-        </SheetDescription>
-      </SheetHeader>
+        </DialogDescription>
+      </DialogHeader>
 
-      {details.isLoading ? (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      ) : email ? (
-        <div className="flex flex-col gap-4 text-sm">
-          <EmailAddresses email={email} />
+      <DialogBody>
+        {details.isLoading ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : email ? (
+          <div className="flex flex-col gap-4 text-sm">
+            <EmailAddresses email={email} />
 
-          {email.error && (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
-              {email.error}
-            </p>
-          )}
+            {email.error && (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+                {email.error}
+              </p>
+            )}
 
-          <EmailBody html={email.html} text={email.text} />
-          <EmailAttachments attachments={email.attachments} />
-          <EmailEvents events={email.events} />
-        </div>
-      ) : null}
+            <EmailBody html={email.html} text={email.text} />
+            <EmailAttachments attachments={email.attachments} />
+            <EmailEvents events={email.events} />
+          </div>
+        ) : null}
+      </DialogBody>
     </>
   );
 }

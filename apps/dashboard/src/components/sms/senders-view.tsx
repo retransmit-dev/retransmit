@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { InfoIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { RequestSenderSheet } from "./request-sender-sheet";
+import { RequestSenderDialog } from "./request-sender-dialog";
 import { SendersTable } from "./senders-table";
 
 /**
@@ -58,7 +58,7 @@ export function SendersView() {
         <SendersTable onRequest={() => setRequestOpen(true)} />
       </ErrorBoundary>
 
-      <RequestSenderSheet open={requestOpen} onOpenChange={setRequestOpen} />
+      <RequestSenderDialog open={requestOpen} onOpenChange={setRequestOpen} />
     </>
   );
 }

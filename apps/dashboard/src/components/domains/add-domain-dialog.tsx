@@ -1,5 +1,6 @@
 "use client";
 
+import { RegionSelect } from "@/components/selectors/region-select";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -9,18 +10,16 @@ import {
 } from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
@@ -31,7 +30,7 @@ import { toast } from "sonner";
 const DOMAIN_REGEX = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$/;
 const LABEL_REGEX = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
 
-export function AddDomainSheet({
+export function AddDomainDialog({
   open,
   onOpenChange,
   onCreated,
@@ -88,109 +87,73 @@ export function AddDomainSheet({
   const pending = createMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="overflow-y-auto p-4 data-[side=right]:sm:max-w-xl">
-        <SheetHeader className="p-0">
-          <SheetTitle>Add a domain</SheetTitle>
-          <SheetDescription>Choose a sending region, then verify with DNS.</SheetDescription>
-        </SheetHeader>
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="domain-name">Domain</Label>
-            <Input
-              id="domain-name"
-              placeholder="example.com"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              disabled={pending}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label id="domain-region-label">Region</Label>
-            {regions.isLoading ? (
-              <div className="grid gap-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : (
-              <RadioGroup
-                aria-labelledby="domain-region-label"
-                value={selectedRegion ?? undefined}
-                onValueChange={(value) => setRegion(value as string)}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Add a domain</DialogTitle>
+          <DialogDescription>Choose a sending region, then verify with DNS.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
+          <DialogBody className="gap-5">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="domain-name">Domain</Label>
+              <Input
+                id="domain-name"
+                placeholder="example.com"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
                 disabled={pending}
-              >
-                {regions.data?.regions.map((option) => {
-                  const checked = option.id === selectedRegion;
-                  return (
-                    <label
-                      key={option.id}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-sm transition-colors",
-                        checked ? "border-primary bg-primary/5" : "hover:bg-muted/50",
-                        pending && "cursor-not-allowed opacity-60",
-                      )}
-                    >
-                      <RadioGroupItem value={option.id} />
-                      <span className="text-lg leading-none" aria-hidden>
-                        {option.flag}
-                      </span>
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="font-medium">
-                          {option.name}
-                          <span className="font-normal text-muted-foreground">
-                            {" "}
-                            ({option.location})
-                          </span>
-                        </span>
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {option.id}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </RadioGroup>
-            )}
-            <p className="text-xs text-muted-foreground">Cannot be changed later.</p>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="domain-return-path">Return-Path</Label>
-            <InputGroup>
-              <InputGroupInput
-                id="domain-return-path"
-                placeholder="mail"
-                value={returnPath}
-                onChange={(e) => setReturnPath(e.target.value)}
-                disabled={pending}
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
               />
-              <InputGroupAddon align="inline-end">
-                <InputGroupText className="font-mono text-xs">
-                  .{domainName || "example.com"}
-                </InputGroupText>
-              </InputGroupAddon>
-            </InputGroup>
-            <p className="text-xs text-muted-foreground">
-              Subdomain for bounces. Keep <code className="font-mono">mail</code> unless it is
-              taken.
-            </p>
-          </div>
+            </div>
 
-          <SheetFooter className="p-0">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="domain-region">Region</Label>
+              <RegionSelect
+                id="domain-region"
+                regions={regions.data?.regions}
+                value={selectedRegion ?? undefined}
+                onValueChange={setRegion}
+                loading={regions.isLoading}
+                disabled={pending}
+              />
+              <p className="text-xs text-muted-foreground">Cannot be changed later.</p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="domain-return-path">Return-Path</Label>
+              <InputGroup>
+                <InputGroupInput
+                  id="domain-return-path"
+                  placeholder="mail"
+                  value={returnPath}
+                  onChange={(e) => setReturnPath(e.target.value)}
+                  disabled={pending}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText className="font-mono text-xs">
+                    .{domainName || "example.com"}
+                  </InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+              <p className="text-xs text-muted-foreground">
+                Subdomain for bounces. Keep <code className="font-mono">mail</code> unless it is
+                taken.
+              </p>
+            </div>
+          </DialogBody>
+
+          <DialogFooter>
             <Button type="submit" disabled={pending || !isValid}>
               {pending ? <Spinner /> : <PlusIcon />}
               Add domain
             </Button>
-          </SheetFooter>
+          </DialogFooter>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -4,12 +4,14 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { DomainStatusBadge } from "@/components/status-badges";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { trpc } from "@/utils/trpc";
@@ -20,7 +22,7 @@ import { toast } from "sonner";
 import { DnsRecords } from "./dns-records";
 import { RegionLabel } from "./region-label";
 
-export function DomainDetailsSheet({
+export function DomainDetailsDialog({
   domainId,
   onClose,
 }: {
@@ -28,13 +30,13 @@ export function DomainDetailsSheet({
   onClose: () => void;
 }) {
   return (
-    <Sheet open={domainId !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="overflow-y-auto p-4 sm:max-w-md">
+    <Dialog open={domainId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-3xl">
         <ErrorBoundary title="Could not load this domain">
           {domainId !== null && <DomainDetailsBody domainId={domainId} />}
         </ErrorBoundary>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -59,43 +61,49 @@ function DomainDetailsBody({ domainId }: { domainId: string }) {
 
   return (
     <>
-      <SheetHeader className="p-0">
-        <SheetTitle className="flex items-center gap-2">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
           {domain?.name ?? "Domain"}
           {domain && <DomainStatusBadge status={domain.status} />}
-        </SheetTitle>
-        <SheetDescription>
+        </DialogTitle>
+        <DialogDescription>
           {isVerified
             ? "Ready to send. Keep these DKIM records published."
             : "Publish these DNS records, then check again. Changes may take up to 72 hours."}
-        </SheetDescription>
-      </SheetHeader>
-      {details.isLoading ? (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </div>
-      ) : domain ? (
-        <>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">Region</dt>
-            <dd>
-              <RegionLabel region={domain.region} />
-            </dd>
-            {domain.mailFromDomain && (
-              <>
-                <dt className="text-muted-foreground">Return-Path</dt>
-                <dd className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-mono text-xs">{domain.mailFromDomain}</span>
-                  {domain.mailFromStatus && (
-                    <DomainStatusBadge status={domain.mailFromStatus} />
-                  )}
-                </dd>
-              </>
-            )}
-          </dl>
-          <DnsRecords records={domain.dnsRecords} />
+        </DialogDescription>
+      </DialogHeader>
+      <DialogBody>
+        {details.isLoading ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+        ) : domain ? (
+          <>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">Region</dt>
+              <dd>
+                <RegionLabel region={domain.region} />
+              </dd>
+              {domain.mailFromDomain && (
+                <>
+                  <dt className="text-muted-foreground">Return-Path</dt>
+                  <dd className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-mono text-xs">{domain.mailFromDomain}</span>
+                    {domain.mailFromStatus && (
+                      <DomainStatusBadge status={domain.mailFromStatus} />
+                    )}
+                  </dd>
+                </>
+              )}
+            </dl>
+            <DnsRecords records={domain.dnsRecords} />
+          </>
+        ) : null}
+      </DialogBody>
+      {domain && (
+        <DialogFooter>
           <Button
             variant={isVerified ? "outline" : "default"}
             onClick={() => verifyMutation.mutate({ id: domain.id })}
@@ -104,8 +112,8 @@ function DomainDetailsBody({ domainId }: { domainId: string }) {
             {verifyMutation.isPending ? <Spinner /> : <RefreshCwIcon />}
             {isVerified ? "Re-check status" : "Check verification status"}
           </Button>
-        </>
-      ) : null}
+        </DialogFooter>
+      )}
     </>
   );
 }

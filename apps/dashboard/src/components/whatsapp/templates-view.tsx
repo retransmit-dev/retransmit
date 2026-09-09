@@ -36,12 +36,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -263,20 +264,20 @@ export function TemplatesView() {
         </div>
       )}
 
-      <Sheet open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-3xl">
+      <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-4xl">
           {selected && (
             <>
-              <SheetHeader className="pr-12">
-                <SheetTitle className="font-mono">{selected.name}</SheetTitle>
-                <SheetDescription className="flex flex-wrap items-center gap-2">
+              <DialogHeader>
+                <DialogTitle className="font-mono">{selected.name}</DialogTitle>
+                <DialogDescription className="flex flex-wrap items-center gap-2">
                   <WhatsappTemplateStatusBadge status={selected.status} />
                   <span>
                     {CATEGORY_LABEL[selected.category] ?? selected.category} · {selected.language}
                   </span>
-                </SheetDescription>
-              </SheetHeader>
-              <div className="grid gap-6 px-4 pb-6 md:grid-cols-[22rem_minmax(0,1fr)]">
+                </DialogDescription>
+              </DialogHeader>
+              <DialogBody className="grid gap-6 md:grid-cols-[22rem_minmax(0,1fr)]">
                 <TemplatePreview
                   senderName={senderName}
                   content={previewFromComponents(selected.components)}
@@ -309,11 +310,11 @@ export function TemplatesView() {
                     </pre>
                   </div>
                 </div>
-              </div>
+              </DialogBody>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

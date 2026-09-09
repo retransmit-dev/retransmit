@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RegionSelect } from "@/components/selectors/region-select";
 import {
   Select,
   SelectContent,
@@ -191,28 +192,18 @@ export function SmsTestSendView() {
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="sms-test-region">Region</Label>
-                <Select
+                <RegionSelect
+                  id="sms-test-region"
+                  regions={regions.data?.regions}
                   value={region}
-                  onValueChange={(value) => setRegion((value as string) || AUTO_REGION)}
+                  onValueChange={(value) => setRegion(value || AUTO_REGION)}
                   disabled={sendMutation.isPending}
                 >
-                  <SelectTrigger id="sms-test-region" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={AUTO_REGION}>
-                      Automatic
-                      {regions.data ? ` (${regions.data.defaultRegion})` : ""}
-                    </SelectItem>
-                    {regions.data?.regions.map((option) => (
-                      <SelectItem key={option.id} value={option.id}>
-                        <span aria-hidden>{option.flag}</span>
-                        <span>{option.name}</span>
-                        <span className="text-muted-foreground">({option.id})</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <SelectItem value={AUTO_REGION}>
+                    Automatic
+                    {regions.data ? ` (${regions.data.defaultRegion})` : ""}
+                  </SelectItem>
+                </RegionSelect>
                 <p className="text-xs text-muted-foreground">
                   {region === AUTO_REGION
                     ? "The sender id decides, or the deployment default. Only the AWS route has a region."

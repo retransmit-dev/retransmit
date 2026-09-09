@@ -3,7 +3,7 @@
 import type { DateRange } from "@/components/date-range-picker";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { PageHeader } from "@/components/page-shell";
-import { SmsDetailsSheet } from "@/components/sms/sms-details-sheet";
+import { SmsDetailsDialog } from "@/components/sms/sms-details-dialog";
 import type { SmsFilters } from "@/components/sms/sms-filters";
 import { SmsFilterBar } from "@/components/sms/sms-filters";
 import { SmsTable } from "@/components/sms/sms-table";
@@ -78,7 +78,7 @@ export function SmsView({
         />
       </ErrorBoundary>
 
-      <SmsDetailsSheet smsId={selectedId} onClose={() => setSelectedId(null)} />
+      <SmsDetailsDialog smsId={selectedId} onClose={() => setSelectedId(null)} />
     </>
   );
 }

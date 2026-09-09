@@ -4,12 +4,13 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { SmsStatusBadge } from "@/components/status-badges";
 import { Separator } from "@/components/ui/separator";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { RouterOutputs } from "@/lib/api-types";
 import { formatDateTime } from "@/lib/format";
@@ -19,7 +20,7 @@ import { Fragment } from "react";
 
 type SmsDetails = RouterOutputs["sms"]["get"];
 
-export function SmsDetailsSheet({
+export function SmsDetailsDialog({
   smsId,
   onClose,
 }: {
@@ -27,16 +28,13 @@ export function SmsDetailsSheet({
   onClose: () => void;
 }) {
   return (
-    <Sheet open={smsId !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent
-        side="right"
-        className="overflow-y-auto p-4 data-[side=right]:sm:max-w-xl"
-      >
+    <Dialog open={smsId !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-2xl">
         <ErrorBoundary title="Could not load this message">
           {smsId !== null && <SmsDetailsBody smsId={smsId} />}
         </ErrorBoundary>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -46,41 +44,43 @@ function SmsDetailsBody({ smsId }: { smsId: string }) {
 
   return (
     <>
-      <SheetHeader className="p-0">
-        <SheetTitle className="flex items-center gap-2">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
           <span className="truncate">{message?.to.join(", ") ?? "SMS"}</span>
           {message && <SmsStatusBadge status={message.status} />}
-        </SheetTitle>
-        <SheetDescription>
+        </DialogTitle>
+        <DialogDescription>
           {message ? `Sent ${formatDateTime(message.createdAt)}` : null}
-        </SheetDescription>
-      </SheetHeader>
+        </DialogDescription>
+      </DialogHeader>
 
-      {details.isLoading ? (
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-40 w-full" />
-        </div>
-      ) : message ? (
-        <div className="flex flex-col gap-4 text-sm">
-          <SmsSummary message={message} />
-
-          {message.error && (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
-              {message.error}
-            </p>
-          )}
-
-          <div>
-            <h3 className="mb-2 font-medium">Message</h3>
-            <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-md border p-3 font-sans">
-              {message.text}
-            </pre>
+      <DialogBody>
+        {details.isLoading ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-40 w-full" />
           </div>
+        ) : message ? (
+          <div className="flex flex-col gap-4 text-sm">
+            <SmsSummary message={message} />
 
-          <SmsEvents events={message.events} />
-        </div>
-      ) : null}
+            {message.error && (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+                {message.error}
+              </p>
+            )}
+
+            <div>
+              <h3 className="mb-2 font-medium">Message</h3>
+              <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-md border p-3 font-sans">
+                {message.text}
+              </pre>
+            </div>
+
+            <SmsEvents events={message.events} />
+          </div>
+        ) : null}
+      </DialogBody>
     </>
   );
 }

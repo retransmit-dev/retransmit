@@ -86,7 +86,24 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex flex-col gap-2 pr-8", className)}
+      {...props}
+    />
+  );
+}
+
+/**
+ * Scrollable middle of a tall modal. Pair with a `flex max-h-[85vh] flex-col`
+ * DialogContent so the header and footer stay put while this scrolls.
+ */
+function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn(
+        "-mx-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4",
+        className,
+      )}
       {...props}
     />
   );
@@ -150,6 +167,7 @@ function DialogDescription({
 
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,

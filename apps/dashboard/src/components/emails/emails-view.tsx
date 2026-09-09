@@ -1,7 +1,7 @@
 "use client";
 
 import type { DateRange } from "@/components/date-range-picker";
-import { EmailDetailsSheet } from "@/components/emails/email-details-sheet";
+import { EmailDetailsDialog } from "@/components/emails/email-details-dialog";
 import { EmailFilterBar } from "@/components/emails/email-filters";
 import type { EmailFilters } from "@/components/emails/email-filters";
 import { EmailsTable } from "@/components/emails/emails-table";
@@ -43,7 +43,7 @@ export function EmailsView({ initialRange }: { initialRange: DateRange }) {
         />
       </ErrorBoundary>
 
-      <EmailDetailsSheet
+      <EmailDetailsDialog
         emailId={selectedId}
         onClose={() => setSelectedId(null)}
       />

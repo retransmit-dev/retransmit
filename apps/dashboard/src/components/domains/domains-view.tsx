@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
-import { AddDomainSheet } from "./add-domain-sheet";
-import { DomainDetailsSheet } from "./domain-details-sheet";
+import { AddDomainDialog } from "./add-domain-dialog";
+import { DomainDetailsDialog } from "./domain-details-dialog";
 import { DomainsTable } from "./domains-table";
 
 /**
@@ -35,12 +35,12 @@ export function DomainsView() {
         <DomainsTable onSelect={setSelectedId} onAdd={() => setAddOpen(true)} />
       </ErrorBoundary>
 
-      <AddDomainSheet
+      <AddDomainDialog
         open={addOpen}
         onOpenChange={setAddOpen}
         onCreated={setSelectedId}
       />
-      <DomainDetailsSheet
+      <DomainDetailsDialog
         domainId={selectedId}
         onClose={() => setSelectedId(null)}
       />

@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
  * Keeps one broken section from taking the page down with it.
  *
  * Every data-bearing block on a screen (a table, a stats row, a chart, a
- * sheet body) sits in its own boundary, so a failed query renders a
+ * modal body) sits in its own boundary, so a failed query renders a
  * "Try again" in that block's place and everything around it keeps working.
  * "Try again" clears the query error and remounts the block, which refetches.
  *
