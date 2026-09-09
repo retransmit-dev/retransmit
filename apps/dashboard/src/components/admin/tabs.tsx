@@ -9,6 +9,15 @@
 import { RouteTabs } from "@/components/route-tabs";
 import { adminTabs } from "@/lib/admin-tabs";
 
-export function AdminTabs() {
-  return <RouteTabs tabs={adminTabs} ariaLabel="Admin sections" />;
+const selfHostedTabs = adminTabs.filter(
+  (tab) => tab.href !== "/admin/sms-rates" && tab.href !== "/admin/whatsapp-rates",
+);
+
+export function AdminTabs({ isCloud }: { isCloud: boolean }) {
+  return (
+    <RouteTabs
+      tabs={isCloud ? adminTabs : selfHostedTabs}
+      ariaLabel="Admin sections"
+    />
+  );
 }

@@ -5,6 +5,7 @@ import { and, count, eq } from "drizzle-orm";
 
 import { getBillingAccount } from "./account";
 import type { BillingAccount } from "./account";
+import { isSelfHostedMode } from "./mode";
 import { getPeriodUsage } from "./usage";
 
 /**
@@ -38,6 +39,7 @@ export async function checkEmailQuota(
   recipients: number,
   options: { account?: BillingAccount } = {},
 ): Promise<LimitCheck> {
+  if (isSelfHostedMode()) return ok;
   const account = options.account ?? (await getBillingAccount(organizationId));
   if (account.hasPaymentMethod) return ok;
 
@@ -67,6 +69,7 @@ export async function checkPayAsYouGo(
   channel: "SMS" | "WhatsApp",
   options: { account?: BillingAccount } = {},
 ): Promise<LimitCheck> {
+  if (isSelfHostedMode()) return ok;
   const account = options.account ?? (await getBillingAccount(organizationId));
   if (account.hasPaymentMethod) return ok;
   return {
@@ -89,6 +92,7 @@ export async function countDomains(organizationId: string): Promise<number> {
 }
 
 export async function checkDomainLimit(organizationId: string): Promise<LimitCheck> {
+  if (isSelfHostedMode()) return ok;
   const account = await getBillingAccount(organizationId);
   const used = await countDomains(organizationId);
   if (used < account.plan.domains) return ok;
@@ -120,6 +124,7 @@ export async function countSeats(organizationId: string): Promise<number> {
 }
 
 export async function checkSeatLimit(organizationId: string): Promise<LimitCheck> {
+  if (isSelfHostedMode()) return ok;
   const account = await getBillingAccount(organizationId);
   const used = await countSeats(organizationId);
   if (used < account.plan.teamMembers) return ok;
@@ -137,6 +142,7 @@ export async function checkSeatLimit(organizationId: string): Promise<LimitCheck
 
 /** Oldest timestamp an organization can still see logs for. */
 export async function logRetentionCutoff(organizationId: string): Promise<Date> {
+  if (isSelfHostedMode()) return new Date(0);
   const account = await getBillingAccount(organizationId);
   return new Date(Date.now() - account.plan.logRetentionDays * 24 * 60 * 60 * 1000);
 }

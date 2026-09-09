@@ -3,6 +3,7 @@ import { MobileTopBar } from "@/components/mobile-top-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { auth } from "@retransmit/auth";
 import { isAdminEmail } from "@retransmit/auth/admin";
+import { isCloudMode } from "@retransmit/billing/mode";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { PropsWithChildren } from "react";
@@ -51,6 +52,7 @@ export default async function Layout(props: PropsWithChildren) {
         workspaces={workspaces}
         activeWorkspaceId={activeWorkspaceId}
         isAdmin={isAdminEmail(session.user.email)}
+        isCloud={isCloudMode()}
       />
 
       <SidebarInset className="min-h-0 overflow-hidden">

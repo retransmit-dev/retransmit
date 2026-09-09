@@ -9,6 +9,13 @@
 import { RouteTabs } from "@/components/route-tabs";
 import { settingsTabs } from "@/lib/settings-tabs";
 
-export function SettingsTabs() {
-  return <RouteTabs tabs={settingsTabs} ariaLabel="Settings sections" />;
+const selfHostedTabs = settingsTabs.filter((tab) => tab.href !== "/settings/billing");
+
+export function SettingsTabs({ isCloud }: { isCloud: boolean }) {
+  return (
+    <RouteTabs
+      tabs={isCloud ? settingsTabs : selfHostedTabs}
+      ariaLabel="Settings sections"
+    />
+  );
 }

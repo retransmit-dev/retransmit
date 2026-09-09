@@ -1,5 +1,6 @@
 import { PageHeader, PageShell } from "@/components/page-shell";
 import { SettingsTabs } from "@/components/settings/tabs";
+import { isCloudMode } from "@retransmit/billing/mode";
 import type { PropsWithChildren } from "react";
 
 /**
@@ -11,7 +12,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
   return (
     <PageShell>
       <PageHeader href="/settings" className="gap-4">
-        <SettingsTabs />
+        <SettingsTabs isCloud={isCloudMode()} />
       </PageHeader>
 
       {children}

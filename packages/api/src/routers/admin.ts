@@ -8,6 +8,7 @@ import {
   seedWhatsappRates,
   smsCostMicros,
 } from "@retransmit/billing/rates";
+import { isCloudMode } from "@retransmit/billing/mode";
 import { db } from "@retransmit/db";
 import { session, user } from "@retransmit/db/schema/auth";
 import { smsRate, whatsappRate } from "@retransmit/db/schema/billing";
@@ -15,10 +16,21 @@ import { WHATSAPP_BILLING_CATEGORIES } from "@retransmit/db/schema/billing";
 import { AWS_SMS_PRICES_FETCHED_AT } from "@retransmit/sms/aws-prices";
 import { SMS_COUNTRIES } from "@retransmit/sms/countries";
 import { providerCoverage, selectProvider } from "@retransmit/sms/provider";
+import { TRPCError } from "@trpc/server";
 import { asc, count, desc, eq, max, sql } from "drizzle-orm";
 import z from "zod";
 
 import { adminProcedure, router } from "../index";
+
+const cloudAdminProcedure = adminProcedure.use(({ next }) => {
+  if (!isCloudMode()) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Customer rate cards are not available in self-hosted mode",
+    });
+  }
+  return next();
+});
 
 /**
  * A price typed into the admin editor, in dollars. Stored as micros, so four
@@ -102,7 +114,7 @@ export const adminRouter = router({
    * needs attention: a price under the fallback carrier's own rate is money
    * lost on every message.
    */
-  smsRates: adminProcedure.query(async () => {
+  smsRates: cloudAdminProcedure.query(async () => {
     const rows = await db
       .select({
         country: smsRate.country,
@@ -168,14 +180,14 @@ export const adminRouter = router({
    * wants to restart the process to retry it. Insert-only, so pressing it on a
    * deployment whose rates have been tuned changes nothing.
    */
-  seedRates: adminProcedure.mutation(async () => {
+  seedRates: cloudAdminProcedure.mutation(async () => {
     const sms = await seedSmsRates();
     const whatsapp = await seedWhatsappRates();
     return { sms, whatsapp };
   }),
 
   /** Sets what a customer pays per SMS segment to one destination. */
-  setSmsRate: adminProcedure
+  setSmsRate: cloudAdminProcedure
     .input(z.object({ country: z.string().length(2).toUpperCase(), priceUsd }))
     .mutation(async ({ input }) => {
       const priceMicros = toMicros(input.priceUsd);
@@ -200,7 +212,7 @@ export const adminRouter = router({
    * — so rows exist only where an operator entered one, and everything else
    * shows the per-category default it currently bills at.
    */
-  whatsappRates: adminProcedure.query(async () => {
+  whatsappRates: cloudAdminProcedure.query(async () => {
     const rows = await db
       .select({
         id: whatsappRate.id,
@@ -226,7 +238,7 @@ export const adminRouter = router({
     };
   }),
 
-  setWhatsappRate: adminProcedure
+  setWhatsappRate: cloudAdminProcedure
     .input(
       z.object({
         country: z.string().length(2).toUpperCase(),
@@ -254,7 +266,7 @@ export const adminRouter = router({
     }),
 
   /** Drops an override so the destination falls back to the category default. */
-  clearWhatsappRate: adminProcedure
+  clearWhatsappRate: cloudAdminProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       await db.delete(whatsappRate).where(eq(whatsappRate.id, input.id));

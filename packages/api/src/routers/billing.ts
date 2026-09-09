@@ -8,6 +8,7 @@ import {
   getBillingAccount,
   getPeriodUsage,
   isBillingConfigured,
+  isCloudMode,
   unitsToCents,
   usagePeriodEnd,
   usagePeriodStart,
@@ -36,11 +37,21 @@ function requireConfigured(): void {
   }
 }
 
+const cloudOrgProcedure = orgProcedure.use(({ next }) => {
+  if (!isCloudMode()) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Billing is not available in self-hosted mode",
+    });
+  }
+  return next();
+});
+
 const planInput = z.object({ plan: z.enum(PLAN_IDS) });
 
 export const billingRouter = router({
   /** The plan table, for the dashboard's plan picker. */
-  plans: orgProcedure.query(() =>
+  plans: cloudOrgProcedure.query(() =>
     PLAN_LIST.map((plan) => ({
       id: plan.id,
       name: plan.name,
@@ -58,7 +69,7 @@ export const billingRouter = router({
    * Everything the billing page shows: the current plan, how much of each limit
    * is used, and what the metered channels have cost so far this period.
    */
-  overview: orgProcedure.query(async ({ ctx }) => {
+  overview: cloudOrgProcedure.query(async ({ ctx }) => {
     const account = await getBillingAccount(ctx.org.id);
     const [usage, domains, seats] = await Promise.all([
       getPeriodUsage(ctx.org.id, { account }),
@@ -98,7 +109,7 @@ export const billingRouter = router({
    * through it too: the $0 price collects nothing but puts a card on file, which
    * is what email overage, SMS and WhatsApp need.
    */
-  checkout: orgProcedure.input(planInput).mutation(async ({ ctx, input }) => {
+  checkout: cloudOrgProcedure.input(planInput).mutation(async ({ ctx, input }) => {
     assertOrgAdmin(ctx.org);
     requireConfigured();
     const url = await createCheckoutSession({
@@ -111,7 +122,7 @@ export const billingRouter = router({
   }),
 
   /** Moves an existing subscription between plans, prorating the difference. */
-  changePlan: orgProcedure.input(planInput).mutation(async ({ ctx, input }) => {
+  changePlan: cloudOrgProcedure.input(planInput).mutation(async ({ ctx, input }) => {
     assertOrgAdmin(ctx.org);
     requireConfigured();
     const account = await getBillingAccount(ctx.org.id);
@@ -128,7 +139,7 @@ export const billingRouter = router({
   }),
 
   /** Customer portal, for cards, invoices, tax ids and cancellation. */
-  portal: orgProcedure.mutation(async ({ ctx }) => {
+  portal: cloudOrgProcedure.mutation(async ({ ctx }) => {
     assertOrgAdmin(ctx.org);
     requireConfigured();
     const url = await createPortalSession(ctx.org.id, dashboardUrl("/settings/billing"));

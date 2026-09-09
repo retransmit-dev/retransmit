@@ -1,4 +1,9 @@
-import { checkPayAsYouGo, recordUsage, whatsappUnits } from "@retransmit/billing";
+import {
+  checkPayAsYouGo,
+  isCloudMode,
+  recordUsage,
+  whatsappUnits,
+} from "@retransmit/billing";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import type { WhatsappBillingCategory } from "@retransmit/db/schema/billing";
@@ -134,7 +139,8 @@ whatsappRoutes.post("/", async (c) => {
   const to = normalizePhone(input.to)!;
   const country = detectCountry(to);
 
-  // WhatsApp is pay as you go on every plan, so it needs a card, not a quota.
+  // Cloud WhatsApp is pay as you go, so it needs a card. Self-hosters pay Meta
+  // directly and the policy check allows the send.
   const organizationId = c.get("organizationId");
   const unpayable = limitFailure(await checkPayAsYouGo(organizationId, "WhatsApp"));
   if (unpayable) {
@@ -182,11 +188,13 @@ whatsappRoutes.post("/", async (c) => {
   }
 
   await enqueueWhatsappSend(row.id);
-  await recordUsage(
-    organizationId,
-    "whatsapp",
-    await whatsappUnits(country, await billingCategory(organizationId, input)),
-  );
+  if (isCloudMode()) {
+    await recordUsage(
+      organizationId,
+      "whatsapp",
+      await whatsappUnits(country, await billingCategory(organizationId, input)),
+    );
+  }
 
   return c.json(
     {

@@ -6,6 +6,7 @@ import { and, eq, gt, sql } from "drizzle-orm";
 
 import { getBillingAccount, usagePeriodStart } from "./account";
 import type { BillingAccount } from "./account";
+import { isSelfHostedMode } from "./mode";
 import { getStripe } from "./stripe";
 
 /** Meter event names created by `infra/setup-stripe.sh`. */
@@ -32,6 +33,7 @@ export async function recordUsage(
   quantity: number,
   options: { account?: BillingAccount; when?: Date } = {},
 ): Promise<void> {
+  if (isSelfHostedMode()) return;
   if (quantity <= 0) return;
 
   const account = options.account ?? (await getBillingAccount(organizationId));

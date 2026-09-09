@@ -1,15 +1,21 @@
 import Stripe from "stripe";
 
+import { isCloudMode } from "./mode";
+
 /**
- * Stripe is optional at boot: a developer without keys still gets a working
- * dashboard, they just cannot subscribe. Every caller goes through
- * `getStripe()` and handles null, or through `requireStripe()` when the
- * operation is meaningless without it.
+ * Stripe exists only in cloud mode. Self-hosted mode ignores Stripe credentials
+ * even if they are present; cloud startup validates the required credentials.
+ * Every caller goes through `getStripe()` and handles null, or through
+ * `requireStripe()` when the operation is meaningless without it.
  */
 let client: Stripe | null | undefined;
 
 export function getStripe(): Stripe | null {
   if (client === undefined) {
+    if (!isCloudMode()) {
+      client = null;
+      return client;
+    }
     const key = process.env.STRIPE_SECRET_KEY;
     client = key
       ? new Stripe(key, {
@@ -25,7 +31,13 @@ export function getStripe(): Stripe | null {
 
 export function requireStripe(): Stripe {
   const stripe = getStripe();
-  if (!stripe) throw new Error("STRIPE_SECRET_KEY is not configured");
+  if (!stripe) {
+    throw new Error(
+      isCloudMode()
+        ? "STRIPE_SECRET_KEY is not configured for this cloud deployment"
+        : "Stripe billing is not available in self-hosted mode",
+    );
+  }
   return stripe;
 }
 

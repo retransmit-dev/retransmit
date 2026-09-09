@@ -29,6 +29,7 @@ export function AppSidebar({
   workspaces,
   activeWorkspaceId,
   isAdmin = false,
+  isCloud,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: SidebarUser;
@@ -36,9 +37,11 @@ export function AppSidebar({
   activeWorkspaceId: string;
   /** Adds the operator-only rows. Decided on the server from the session. */
   isAdmin?: boolean;
+  /** Adds hosted billing rows. Decided on the server from RETRANSMIT_MODE. */
+  isCloud: boolean;
 }) {
   const { open } = useSidebar();
-  const groups = visibleNavGroups(isAdmin);
+  const groups = visibleNavGroups(isAdmin, isCloud);
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>

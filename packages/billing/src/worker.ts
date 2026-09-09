@@ -1,5 +1,6 @@
 import { QUEUES, getBoss } from "@retransmit/queue";
 
+import { isSelfHostedMode } from "./mode";
 import { refreshSmsCosts, seedSmsRates, seedWhatsappRates } from "./rates";
 import { isBillingConfigured } from "./stripe";
 import { reportUnbilledUsage } from "./usage";
@@ -22,6 +23,17 @@ export async function startBillingWorkers(): Promise<void> {
   if (workersStarted) return;
   workersStarted = true;
 
+  // Self-hosters pay their configured providers directly. They need neither a
+  // customer rate card nor a Stripe reconciliation worker.
+  if (isSelfHostedMode()) return;
+
+  if (!isBillingConfigured()) {
+    throw new Error("RETRANSMIT_MODE=cloud requires STRIPE_SECRET_KEY");
+  }
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    throw new Error("RETRANSMIT_MODE=cloud requires STRIPE_WEBHOOK_SECRET");
+  }
+
   // The SMS rate card seeds itself so a fresh database prices every
   // destination without an operator having to fill in 246 rows. Existing rows
   // are never overwritten, so this is a no-op after the first boot; only the
@@ -38,9 +50,6 @@ export async function startBillingWorkers(): Promise<void> {
     // price off the AWS-derived default when the table is empty.
     console.error("[billing] could not seed SMS rates", error);
   }
-
-  // Nothing to reconcile against without a Stripe key.
-  if (!isBillingConfigured()) return;
 
   const boss = await getBoss();
 

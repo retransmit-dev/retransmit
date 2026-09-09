@@ -3,10 +3,14 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { PageHeader } from "@/components/page-shell";
 import { navMetadata } from "@/lib/navigation";
 import { HydrateClient, prefetch, trpc } from "@/trpc/server";
+import { isCloudMode } from "@retransmit/billing/mode";
+import { notFound } from "next/navigation";
 
 export const metadata = navMetadata("/admin/whatsapp-rates");
 
 export default function AdminWhatsappRatesPage() {
+  if (!isCloudMode()) notFound();
+
   prefetch(trpc.admin.whatsappRates.queryOptions());
 
   return (

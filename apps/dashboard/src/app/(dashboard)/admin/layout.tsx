@@ -2,6 +2,7 @@ import { AdminTabs } from "@/components/admin/tabs";
 import { PageHeader, PageShell } from "@/components/page-shell";
 import { auth } from "@retransmit/auth";
 import { isAdminEmail } from "@retransmit/auth/admin";
+import { isCloudMode } from "@retransmit/billing/mode";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import type { PropsWithChildren } from "react";
@@ -23,7 +24,7 @@ export default async function AdminLayout({ children }: PropsWithChildren) {
   return (
     <PageShell>
       <PageHeader href="/admin" className="gap-4">
-        <AdminTabs />
+        <AdminTabs isCloud={isCloudMode()} />
       </PageHeader>
 
       {children}

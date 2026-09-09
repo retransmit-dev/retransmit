@@ -1,3 +1,4 @@
+import { isCloudMode } from "@retransmit/billing/mode";
 import { Hono } from "hono";
 
 import { callbackRoutes } from "./routes/callbacks";
@@ -26,7 +27,7 @@ app.route("/v1/whatsapp", whatsappRoutes);
 app.route("/v1/callbacks", callbackRoutes);
 app.route("/v1/callbacks/sms", smsCallbackRoutes);
 app.route("/v1/callbacks/whatsapp", whatsappCallbackRoutes);
-app.route("/v1/callbacks/stripe", stripeRoutes);
+if (isCloudMode()) app.route("/v1/callbacks/stripe", stripeRoutes);
 // Public, token-authenticated pages linked from marketing emails.
 app.route("/unsubscribe", unsubscribeRoutes);
 

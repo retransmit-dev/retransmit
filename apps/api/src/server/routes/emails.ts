@@ -1,4 +1,9 @@
-import { checkEmailQuota, getBillingAccount, recordUsage } from "@retransmit/billing";
+import {
+  checkEmailQuota,
+  getBillingAccount,
+  isCloudMode,
+  recordUsage,
+} from "@retransmit/billing";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import {
@@ -403,7 +408,7 @@ emailRoutes.post("/batch", async (c) => {
 
   // A batch is all or nothing against the allowance: partially accepting one
   // would leave the caller unable to tell which emails were queued.
-  const account = await getBillingAccount(organizationId);
+  const account = isCloudMode() ? await getBillingAccount(organizationId) : undefined;
   const recipients = inputs.reduce((total, input) => total + recipientCount(input), 0);
   const overQuota = limitFailure(await checkEmailQuota(organizationId, recipients, { account }));
   if (overQuota) {
@@ -445,7 +450,7 @@ emailRoutes.post("/batch", async (c) => {
       // Billed at acceptance, like SES: the recipient count is fixed once the
       // rows exist, and a later bounce is still a delivery attempt that cost
       // money. Recorded after the insert so a failed batch bills nothing.
-      await recordUsage(organizationId, "email", recipients, { account });
+      if (account) await recordUsage(organizationId, "email", recipients, { account });
 
       return {
         status: 202,
@@ -546,7 +551,7 @@ emailRoutes.post(
   const name = extractEmailDomain(input.from) ?? "";
   const sender = resolved.byName.get(name)!;
 
-  const account = await getBillingAccount(organizationId);
+  const account = isCloudMode() ? await getBillingAccount(organizationId) : undefined;
   const recipients = recipientCount(input);
   const overQuota = limitFailure(await checkEmailQuota(organizationId, recipients, { account }));
   if (overQuota) {
@@ -605,7 +610,7 @@ emailRoutes.post(
       }
 
       await enqueueEmailSend(row.id);
-      await recordUsage(organizationId, "email", recipients, { account });
+      if (account) await recordUsage(organizationId, "email", recipients, { account });
 
       return {
         status: 202,

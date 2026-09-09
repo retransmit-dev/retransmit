@@ -69,10 +69,33 @@ The Node.js SDK ([`retransmit.dev`](https://www.npmjs.com/package/retransmit.dev
 
 ```bash
 pnpm install
-# create .env with DATABASE_URL, BETTER_AUTH_*, AWS credentials, etc.
+# create .env with RETRANSMIT_MODE, DATABASE_URL, BETTER_AUTH_*, provider credentials, etc.
 pnpm db:push           # push schema to the database
 pnpm dev               # start everything
 ```
+
+### Deployment mode
+
+Every deployment must choose its commercial boundary explicitly:
+
+```dotenv
+# Retransmit's hosted service: plans, customer rate cards and Stripe billing.
+RETRANSMIT_MODE=cloud
+
+# A self-hosted installation: no plans, customer billing or Stripe dependency.
+RETRANSMIT_MODE=self-hosted
+```
+
+`cloud` requires `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. It enables
+plan limits, usage metering, the billing settings page and the operator rate
+cards. `self-hosted` bypasses those commercial limits, retains all message
+logs, hides the billing and customer-rate screens, and does not start Stripe
+workers or expose the Stripe callback route. Self-hosters configure and pay
+their email, SMS and WhatsApp providers directly.
+
+The mode is never inferred from Stripe credentials. A missing or misspelled
+value stops the application instead of accidentally turning a cloud deployment
+into an unrestricted self-hosted one.
 
 ### Scripts
 

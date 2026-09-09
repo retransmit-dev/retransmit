@@ -40,6 +40,8 @@ export type NavPage = {
   title: string;
   /** The one-line answer to "what is this screen for". Also the meta description. */
   description: string;
+  /** Hosted commercial surface, omitted from self-hosted navigation. */
+  cloudOnly?: boolean;
 };
 
 export type NavSection = NavPage & {
@@ -191,6 +193,7 @@ const settings: NavSection = {
       href: "/settings/billing",
       title: "Billing",
       description: "Plan, usage and payment.",
+      cloudOnly: true,
     },
   ],
 };
@@ -216,11 +219,13 @@ const admin: NavSection = {
       href: "/admin/sms-rates",
       title: "SMS rates",
       description: "What a customer pays per SMS segment, by destination.",
+      cloudOnly: true,
     },
     {
       href: "/admin/whatsapp-rates",
       title: "WhatsApp rates",
       description: "What a customer pays per WhatsApp message.",
+      cloudOnly: true,
     },
     {
       href: "/admin/users",
@@ -238,12 +243,16 @@ export const navGroups: NavGroup[] = [
 ];
 
 /** The sidebar groups a viewer may see: admin-only rows drop out for everyone else. */
-export function visibleNavGroups(isAdmin: boolean): NavGroup[] {
-  if (isAdmin) return navGroups;
+export function visibleNavGroups(isAdmin: boolean, isCloud: boolean): NavGroup[] {
   return navGroups
     .map((group) => ({
       ...group,
-      sections: group.sections.filter((section) => !section.adminOnly),
+      sections: group.sections
+        .filter((section) => isAdmin || !section.adminOnly)
+        .map((section) => ({
+          ...section,
+          items: section.items?.filter((item) => isCloud || !item.cloudOnly),
+        })),
     }))
     .filter((group) => group.sections.length > 0);
 }

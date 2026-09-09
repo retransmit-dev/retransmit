@@ -1,4 +1,4 @@
-import { checkPayAsYouGo, recordUsage, smsUnits } from "@retransmit/billing";
+import { checkPayAsYouGo, isCloudMode, recordUsage, smsUnits } from "@retransmit/billing";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { SMS_PROVIDER_NAMES, sms, smsEvent } from "@retransmit/db/schema/sms";
@@ -110,8 +110,8 @@ smsRoutes.post("/", async (c) => {
     );
   }
 
-  // SMS has no included allowance on any plan, so it needs a card rather than
-  // a quota check.
+  // Cloud SMS has no included allowance, so it needs a card. Self-hosters pay
+  // the configured provider directly and the policy check allows the send.
   const organizationId = c.get("organizationId");
   const unpayable = limitFailure(await checkPayAsYouGo(organizationId, "SMS"));
   if (unpayable) {
@@ -150,10 +150,12 @@ smsRoutes.post("/", async (c) => {
 
   await enqueueSmsSend(row.id);
 
-  // Priced from the destination's rate card, not from whichever carrier
-  // routing happened to pick: a customer's bill must not move because we
-  // switched them from MTN to Orange behind the scenes.
-  await recordUsage(organizationId, "sms", await smsUnits(country, row.segments, to.length));
+  if (isCloudMode()) {
+    // Priced from the destination's rate card, not from whichever carrier
+    // routing happened to pick: a customer's bill must not move because we
+    // switched them from MTN to Orange behind the scenes.
+    await recordUsage(organizationId, "sms", await smsUnits(country, row.segments, to.length));
+  }
 
   return c.json(
     {
