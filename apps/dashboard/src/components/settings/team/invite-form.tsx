@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { fullOrganizationKey, useCurrentOrganization } from "@/hooks/use-organization";
 import { authClient } from "@/lib/auth-client";
+import { LimitReachedError } from "@/lib/upgrade";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SendIcon } from "lucide-react";
 import { useState } from "react";
@@ -29,7 +30,12 @@ export function InviteForm() {
         organizationId: org!.id,
         resend: true,
       });
-      if (error) throw new Error(error.message ?? "Could not send the invitation");
+      if (!error) return;
+      const message = error.message ?? "Could not send the invitation";
+      // Seats are a plan limit, refused by better-auth's invitation hook rather
+      // than tRPC, so the code is what marks it as one worth an upgrade.
+      if (error.code === "SEAT_LIMIT_REACHED") throw new LimitReachedError(message);
+      throw new Error(message);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: fullOrganizationKey(org?.id) });

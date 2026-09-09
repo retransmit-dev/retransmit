@@ -1,10 +1,38 @@
 import { isAdminEmail } from "@retransmit/auth/admin";
 import { resolveActiveOrganization } from "@retransmit/auth/organization";
+import { LimitError } from "@retransmit/billing/limits";
+import type { LimitCheck } from "@retransmit/billing/limits";
 import { initTRPC, TRPCError } from "@trpc/server";
 
 import type { Context } from "./context";
 
-export const t = initTRPC.context<Context>().create();
+export const t = initTRPC.context<Context>().create({
+  /**
+   * Plan limits travel as data, not prose: the dashboard opens its plan dialog
+   * on `limit.upgrade` rather than matching on the message. Everything else
+   * keeps the default shape and stays a toast.
+   */
+  errorFormatter({ shape, error }) {
+    const limit = error.cause instanceof LimitError ? error.cause.failure : null;
+    return { ...shape, data: { ...shape.data, limit } };
+  },
+});
+
+/**
+ * Refuses a request that a plan limit does not cover. `FORBIDDEN` because the
+ * request is well formed and the caller is who they say they are; what is
+ * missing is entitlement. The failure rides along in the cause so the error
+ * formatter can put it on the wire.
+ */
+export function assertWithinLimit(check: LimitCheck): void {
+  if (check.ok) return;
+  const { ok, ...failure } = check;
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: failure.message,
+    cause: new LimitError(failure),
+  });
+}
 
 export const router = t.router;
 

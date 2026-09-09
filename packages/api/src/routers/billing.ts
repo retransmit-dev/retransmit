@@ -7,6 +7,7 @@ import {
   createPortalSession,
   getBillingAccount,
   getPeriodUsage,
+  getUsageHistory,
   isBillingConfigured,
   isCloudMode,
   unitsToCents,
@@ -101,6 +102,30 @@ export const billingRouter = router({
         logRetentionDays: account.plan.logRetentionDays,
         support: account.plan.support,
       },
+    };
+  }),
+
+  /**
+   * Usage per billing period, newest first, for the table on the billing page.
+   * The allowance is the plan the organization is on now: nothing records which
+   * plan a past period was billed on, so it is only meaningful on the current
+   * row.
+   */
+  usage: cloudOrgProcedure.query(async ({ ctx }) => {
+    const account = await getBillingAccount(ctx.org.id);
+    const periods = await getUsageHistory(ctx.org.id, { account });
+
+    return {
+      includedEmails: account.plan.includedEmails,
+      overageCentsPer1K: account.plan.overageCentsPer1K,
+      periods: periods.map((period) => ({
+        periodStart: period.periodStart,
+        periodEnd: period.periodEnd,
+        current: period.current,
+        emails: period.email,
+        smsCents: unitsToCents(period.sms),
+        whatsappCents: unitsToCents(period.whatsapp),
+      })),
     };
   }),
 

@@ -3,12 +3,13 @@
 import { ErrorBoundary } from "@/components/error-boundary";
 
 import { CurrentPlan } from "./current-plan";
-import { PlanPicker } from "./plan-picker";
 import { UsageSummary } from "./usage-summary";
 
 /**
  * Billing, top to bottom: what the organization is on and how to manage it,
- * what it has used this period, then the plans it could move to.
+ * then what it has used per period. The plans themselves are a dialog, behind
+ * "Change plan", because a page nobody reads twice should not be three columns
+ * of pricing.
  */
 export function BillingView() {
   return (
@@ -18,9 +19,6 @@ export function BillingView() {
       </ErrorBoundary>
       <ErrorBoundary title="Could not load usage">
         <UsageSummary />
-      </ErrorBoundary>
-      <ErrorBoundary title="Could not load plans">
-        <PlanPicker />
       </ErrorBoundary>
     </div>
   );

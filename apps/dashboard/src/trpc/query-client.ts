@@ -6,6 +6,8 @@ import {
 } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { requestUpgrade, upgradeReasonFor } from "@/lib/upgrade";
+
 /**
  * One factory for every query client: the per-request one on the server (see
  * `trpc/server.tsx`) and the browser singleton (see `utils/trpc.ts`).
@@ -15,7 +17,8 @@ import { toast } from "sonner";
  * own "Try again" instead of an empty table, and the rest of the page keeps
  * working. A query that already has data (a background refetch or a poll)
  * keeps showing it and surfaces the failure as a toast. Mutations always
- * toast, so no call site needs its own `onError`.
+ * toast, so no call site needs its own `onError` — except a plan limit, which
+ * opens the plan dialog instead, since a toast cannot fix it.
  */
 export function createQueryClient() {
   return new QueryClient({
@@ -36,6 +39,11 @@ export function createQueryClient() {
     mutationCache: new MutationCache({
       onError: (error) => {
         if (typeof window === "undefined") return;
+        const upgrade = upgradeReasonFor(error);
+        if (upgrade) {
+          requestUpgrade(upgrade);
+          return;
+        }
         toast.error(error.message);
       },
     }),

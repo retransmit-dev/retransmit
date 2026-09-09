@@ -1,10 +1,10 @@
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { billingUsage } from "@retransmit/db/schema/billing";
+import { USAGE_METRICS, billingUsage } from "@retransmit/db/schema/billing";
 import type { UsageMetric } from "@retransmit/db/schema/billing";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 
-import { getBillingAccount, usagePeriodStart } from "./account";
+import { getBillingAccount, usagePeriodEnd, usagePeriodStart } from "./account";
 import type { BillingAccount } from "./account";
 import { isSelfHostedMode } from "./mode";
 import { getStripe } from "./stripe";
@@ -148,4 +148,72 @@ export async function getPeriodUsage(
   const usage: PeriodUsage = { email: 0, sms: 0, whatsapp: 0 };
   for (const row of rows) usage[row.metric] = Number(row.quantity);
   return usage;
+}
+
+export interface UsagePeriod extends PeriodUsage {
+  periodStart: Date;
+  periodEnd: Date;
+  /** Whether this is the period usage is currently being counted in. */
+  current: boolean;
+}
+
+/**
+ * The end of a past period. Only the start is stored, so the next period's
+ * start is the end; the last one falls back to a month later, which is what
+ * both the calendar month and a Stripe anniversary period come out to.
+ */
+function periodEndFrom(start: Date, next: Date | undefined): Date {
+  if (next) return next;
+  const year = start.getUTCFullYear();
+  return new Date(Date.UTC(year, start.getUTCMonth() + 1, start.getUTCDate()));
+}
+
+/**
+ * Usage per billing period, newest first. The current period is always the
+ * first row even when nothing has been sent in it yet, so the table the
+ * dashboard renders never starts on a stale period.
+ */
+export async function getUsageHistory(
+  organizationId: string,
+  options: { account?: BillingAccount; limit?: number } = {},
+): Promise<UsagePeriod[]> {
+  const account = options.account ?? (await getBillingAccount(organizationId));
+  const limit = options.limit ?? 12;
+  const currentStart = usagePeriodStart(account);
+
+  const rows = await db
+    .select({
+      periodStart: billingUsage.periodStart,
+      metric: billingUsage.metric,
+      quantity: billingUsage.quantity,
+    })
+    .from(billingUsage)
+    .where(eq(billingUsage.organizationId, organizationId))
+    .orderBy(desc(billingUsage.periodStart))
+    // Three metrics per period, so a period is never split across the limit.
+    .limit(limit * USAGE_METRICS.length);
+
+  const byPeriod = new Map<number, PeriodUsage>();
+  byPeriod.set(currentStart.getTime(), { email: 0, sms: 0, whatsapp: 0 });
+  for (const row of rows) {
+    const key = row.periodStart.getTime();
+    const usage = byPeriod.get(key) ?? { email: 0, sms: 0, whatsapp: 0 };
+    usage[row.metric] = Number(row.quantity);
+    byPeriod.set(key, usage);
+  }
+
+  const starts = [...byPeriod.keys()].sort((a, b) => b - a).slice(0, limit);
+  return starts.map((start, index) => {
+    const current = start === currentStart.getTime();
+    // The row above is the next period along, so its start is this one's end.
+    const next = starts[index - 1];
+    return {
+      ...(byPeriod.get(start) as PeriodUsage),
+      periodStart: new Date(start),
+      periodEnd: current
+        ? usagePeriodEnd(account)
+        : periodEndFrom(new Date(start), next === undefined ? undefined : new Date(next)),
+      current,
+    };
+  });
 }

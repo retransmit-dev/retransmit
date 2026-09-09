@@ -1,14 +1,23 @@
 "use client";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentOrganization } from "@/hooks/use-organization";
 import { formatCents, formatCount } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 
 type Plan = {
@@ -35,20 +44,25 @@ function features(plan: Plan): string[] {
   ];
 }
 
-export function PlanPicker() {
+/**
+ * The plans, and the button that moves between them. Only mounted while the
+ * dialog is open, so its queries run when someone actually asks for a plan
+ * rather than on every page that could raise one.
+ */
+function PlanGrid({ onSwitched }: { onSwitched: () => void }) {
   const queryClient = useQueryClient();
   const { canManage } = useCurrentOrganization();
   const plans = useQuery(trpc.billing.plans.queryOptions());
   const overview = useQuery(trpc.billing.overview.queryOptions());
 
-  // An organization with no subscription goes through Checkout, which is what
-  // collects the card; one that already has a card changes plan in place.
+  // An organization with no subscription goes through Checkout, which creates
+  // one and collects the card; anything else is changed in place, since a
+  // second Checkout session would mean a second subscription.
   const checkout = useMutation(
     trpc.billing.checkout.mutationOptions({
       onSuccess: ({ url }) => {
         window.location.href = url;
       },
-      onError: (error) => toast.error(error.message),
     }),
   );
 
@@ -57,24 +71,21 @@ export function PlanPicker() {
       onSuccess: () => {
         void queryClient.invalidateQueries(trpc.billing.pathFilter());
         toast.success("Plan updated. The new limits apply right away.");
+        onSwitched();
       },
-      onError: (error) => toast.error(error.message),
     }),
   );
 
-  if (plans.isLoading || overview.isLoading) {
-    return <Skeleton className="h-64 w-full max-w-4xl" />;
-  }
+  if (plans.isLoading || overview.isLoading) return <Skeleton className="h-72 w-full" />;
   if (!plans.data || !overview.data) return null;
 
-  const { plan: currentPlan, hasPaymentMethod, configured } = overview.data;
+  const { plan: currentPlan, status, configured } = overview.data;
+  const subscribed = status !== "none";
   const pending = checkout.isPending || change.isPending;
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-medium">Plans</h2>
-
-      <div className="grid max-w-4xl gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         {plans.data.map((plan) => {
           const current = plan.id === currentPlan;
           return (
@@ -110,12 +121,12 @@ export function PlanPicker() {
                   variant={current ? "outline" : "default"}
                   disabled={current || pending}
                   onClick={() =>
-                    hasPaymentMethod
+                    subscribed
                       ? change.mutate({ plan: plan.id })
                       : checkout.mutate({ plan: plan.id })
                   }
                 >
-                  {current ? "Current plan" : hasPaymentMethod ? "Switch" : "Choose"}
+                  {current ? "Current plan" : subscribed ? "Switch" : "Choose"}
                 </Button>
               )}
             </div>
@@ -123,12 +134,61 @@ export function PlanPicker() {
         })}
       </div>
 
-      {!hasPaymentMethod && (
-        <p className="text-muted-foreground max-w-2xl text-sm">
-          Choosing a plan opens Stripe Checkout. Free costs nothing, but still needs a card on
-          file so email overage, SMS and WhatsApp can be billed.
+      {!canManage && (
+        <p className="text-muted-foreground text-sm">
+          Only owners and admins can change the plan.
+        </p>
+      )}
+
+      {canManage && !configured && (
+        <p className="text-muted-foreground text-sm">
+          This deployment has no Stripe key, so plans cannot be changed here.
+        </p>
+      )}
+
+      {canManage && configured && !subscribed && (
+        <p className="text-muted-foreground text-sm">
+          Opens Stripe Checkout. Free costs nothing, but still needs a card for overage, SMS
+          and WhatsApp.
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * The plans, in a dialog. Opened from the billing page, and on its own whenever
+ * a plan limit stops something (see `UpgradeDialog`).
+ */
+export function PlansDialog({
+  open,
+  onOpenChange,
+  reason,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** What was refused, when the dialog opened because of a limit. */
+  reason?: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>{reason ? "Upgrade to continue" : "Plans"}</DialogTitle>
+          <DialogDescription>
+            {reason ? "The current plan does not cover this." : "Changes apply right away."}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody>
+          {reason && (
+            <Alert>
+              <TriangleAlertIcon />
+              <AlertDescription>{reason}</AlertDescription>
+            </Alert>
+          )}
+          <PlanGrid onSwitched={() => onOpenChange(false)} />
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

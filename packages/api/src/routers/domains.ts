@@ -14,7 +14,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import z from "zod";
 
-import { assertOrgAdmin, orgProcedure, router } from "../index";
+import { assertOrgAdmin, assertWithinLimit, orgProcedure, router } from "../index";
 
 /** One DNS label: the `mail` in `mail.example.com`. */
 const RETURN_PATH_LABEL_REGEX = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;
@@ -76,10 +76,7 @@ export const domainRouter = router({
     .mutation(async ({ ctx, input }) => {
       // Checked before touching SES so a plan limit never leaves an orphaned
       // identity behind.
-      const allowed = await checkDomainLimit(ctx.org.id);
-      if (!allowed.ok) {
-        throw new TRPCError({ code: "FORBIDDEN", message: allowed.message });
-      }
+      assertWithinLimit(await checkDomainLimit(ctx.org.id));
 
       const [existing] = await db.select().from(domain).where(eq(domain.name, input.name));
       if (existing) {

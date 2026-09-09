@@ -27,6 +27,22 @@ export type LimitCheck = { ok: true } | ({ ok: false } & LimitFailure);
 const ok: LimitCheck = { ok: true };
 
 /**
+ * A failed check, as an error a transport can carry whole. tRPC puts it in the
+ * `cause` of its `TRPCError` and the error formatter copies `failure` onto the
+ * wire, so the dashboard can open the plan dialog on `upgrade` instead of
+ * pattern-matching an error message.
+ */
+export class LimitError extends Error {
+  readonly failure: LimitFailure;
+
+  constructor(failure: LimitFailure) {
+    super(failure.message);
+    this.name = "LimitError";
+    this.failure = failure;
+  }
+}
+
+/**
  * Whether an organization may send `recipients` more emails.
  *
  * Every plan bills overage, but only against a card. An organization with a

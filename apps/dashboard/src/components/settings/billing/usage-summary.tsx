@@ -1,72 +1,102 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDate } from "@/lib/format";
 import { formatCents, formatCount } from "@/lib/money";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 
-/** A labelled number with an optional second line of detail underneath. */
-function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-muted-foreground text-sm">{label}</span>
-      <span className="text-2xl font-medium tabular-nums">{value}</span>
-      {detail && <span className="text-muted-foreground text-sm">{detail}</span>}
-    </div>
-  );
+/**
+ * What the emails column says under the count, once a period is past its
+ * allowance. Under it, `0 / 1,000` has said everything already.
+ */
+function overageDetail(
+  emails: number,
+  included: number,
+  overageCentsPer1K: number,
+): string | null {
+  const over = Math.max(0, emails - included);
+  if (over === 0) return null;
+  // Whole thousands, rounded up, is how the overage rate is quoted and how
+  // Stripe's graduated tier bills it.
+  const cents = Math.ceil(over / 1000) * overageCentsPer1K;
+  return `${formatCount(over)} over, about ${formatCents(cents)}`;
 }
 
 export function UsageSummary() {
   const overview = useQuery(trpc.billing.overview.queryOptions());
+  const usage = useQuery(trpc.billing.usage.queryOptions());
 
-  if (overview.isLoading) return <Skeleton className="h-40 w-full max-w-2xl" />;
-  if (!overview.data) return null;
+  if (usage.isLoading) return <Skeleton className="h-48 w-full" />;
+  if (!usage.data) return null;
 
-  const { usage, limits, periodStart, periodEnd } = overview.data;
-  const used = Math.min(usage.emails, usage.includedEmails);
-  const percent = Math.round((used / usage.includedEmails) * 100);
-  // Whole thousands, rounded up, is how the overage rate is quoted and how
-  // Stripe's graduated tier bills it.
-  const overageCents = Math.ceil(usage.overageEmails / 1000) * usage.overageCentsPer1K;
+  const { periods, includedEmails, overageCentsPer1K } = usage.data;
+  const limits = overview.data?.limits;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-medium">This period</h2>
-        <p className="text-muted-foreground text-sm">
-          {formatDate(periodStart)} to {formatDate(periodEnd)}
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <h2 className="text-lg font-medium">Usage</h2>
 
-      <div className="grid max-w-2xl gap-6 sm:grid-cols-2">
-        <Stat
-          label="Emails"
-          value={`${formatCount(usage.emails)} / ${formatCount(usage.includedEmails)}`}
-          detail={
-            usage.overageEmails > 0
-              ? `${formatCount(usage.overageEmails)} over, about ${formatCents(overageCents)}`
-              : `${percent}% of the included allowance`
-          }
-        />
-        <Stat
-          label="Domains"
-          value={`${limits.domains.used} / ${limits.domains.limit}`}
-          detail={`Logs kept ${limits.logRetentionDays} day${
-            limits.logRetentionDays === 1 ? "" : "s"
-          }`}
-        />
-        <Stat
-          label="SMS"
-          value={formatCents(usage.smsCents)}
-          detail="Pay as you go, priced per destination"
-        />
-        <Stat
-          label="WhatsApp"
-          value={formatCents(usage.whatsappCents)}
-          detail="Pay as you go, priced per destination"
-        />
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {/* The period takes the slack so the three figures stay a group. */}
+            <TableHead className="w-full">Period</TableHead>
+            <TableHead className="min-w-48 text-right">Emails</TableHead>
+            <TableHead className="min-w-24 text-right">SMS</TableHead>
+            <TableHead className="min-w-24 text-right">WhatsApp</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {periods.map((period) => {
+            const overage = overageDetail(period.emails, includedEmails, overageCentsPer1K);
+            return (
+              <TableRow key={String(period.periodStart)}>
+                <TableCell>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">
+                      {formatDate(period.periodStart)} to {formatDate(period.periodEnd)}
+                    </span>
+                    {period.current && <Badge variant="outline">Current</Badge>}
+                  </div>
+                </TableCell>
+                {/* The allowance sits with the number it is about. */}
+                <TableCell className="text-right whitespace-nowrap tabular-nums">
+                  {period.current
+                    ? `${formatCount(period.emails)} / ${formatCount(includedEmails)}`
+                    : formatCount(period.emails)}
+                  {overage && (
+                    <p className="text-muted-foreground text-sm font-normal">{overage}</p>
+                  )}
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap tabular-nums">
+                  {formatCents(period.smsCents)}
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap tabular-nums">
+                  {formatCents(period.whatsappCents)}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+
+      {limits && (
+        <p className="text-muted-foreground text-sm">
+          Domains {limits.domains.used} / {limits.domains.limit}. Team members{" "}
+          {limits.teamMembers.used} / {limits.teamMembers.limit}. Logs kept{" "}
+          {limits.logRetentionDays} day{limits.logRetentionDays === 1 ? "" : "s"}.
+        </p>
+      )}
     </div>
   );
 }

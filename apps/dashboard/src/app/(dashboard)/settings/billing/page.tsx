@@ -10,7 +10,7 @@ export default function BillingSettingsPage() {
   if (!isCloudMode()) notFound();
 
   prefetch(trpc.billing.overview.queryOptions());
-  prefetch(trpc.billing.plans.queryOptions());
+  prefetch(trpc.billing.usage.queryOptions());
 
   return (
     <HydrateClient>
