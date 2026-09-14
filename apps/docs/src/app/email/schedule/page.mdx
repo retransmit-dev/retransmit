@@ -1,0 +1,161 @@
+import { Tabs } from "nextra/components";
+
+# Schedule Email
+
+Pass `scheduled_at` to [Send Email](/email/send) and the email waits until then
+instead of going out now. Until it leaves the queue you can move it or stop it.
+
+```http
+POST   /v1/emails            # with scheduled_at
+PATCH  /v1/emails/:id        # move it
+POST   /v1/emails/:id/cancel # stop it
+```
+
+## Scheduling a send
+
+`scheduled_at` is an ISO 8601 instant with an offset, such as
+`2026-09-20T09:00:00Z` or `2026-09-20T11:00:00+02:00`. A bare local time like
+`2026-09-20T09:00:00` is rejected: it would mean one instant on your clock and
+another on ours, and an email that goes out at the wrong hour is the one
+mistake a scheduled send cannot make. Convert to an instant first, in whatever
+timezone you mean.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Your trial ends tomorrow",
+  html: "<p>Here is what happens next.</p>",
+  scheduledAt: "2026-09-20T09:00:00Z",
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "user@example.com",
+    "subject": "Your trial ends tomorrow",
+    "html": "<p>Here is what happens next.</p>",
+    "scheduled_at": "2026-09-20T09:00:00Z"
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+`202 Accepted`
+
+```json
+{
+  "id": "em_xxxxxxxxxxxx",
+  "status": "scheduled",
+  "created_at": "2026-09-01T12:00:00.000Z",
+  "scheduled_at": "2026-09-20T09:00:00.000Z"
+}
+```
+
+Rules:
+
+- The time must be in the future and at most 30 days ahead.
+- The email is created with status `scheduled` and keeps it until the send.
+- Everything else behaves as an immediate send. The `from` domain must be
+  verified, attachments are stored when the request runs, and suppressed
+  recipients are skipped at send time, not now.
+- [Send Batch](/email/send-batch) takes `scheduled_at` per email, so one batch
+  can mix immediate and scheduled sends.
+
+## Rescheduling
+
+```http
+PATCH /v1/emails/:id
+```
+
+Only `scheduled_at` can be changed. The content was validated, billed and (for
+attachments) stored when the email was created, so changing it here would mean
+redoing all three; send a new email instead.
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.emails.reschedule("em_xxxxxxxxxxxx", {
+  scheduledAt: "2026-09-21T09:00:00Z",
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X PATCH https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "scheduled_at": "2026-09-21T09:00:00Z" }'
+```
+</Tabs.Tab>
+</Tabs>
+
+`200 OK`
+
+```json
+{
+  "id": "em_xxxxxxxxxxxx",
+  "status": "scheduled",
+  "scheduled_at": "2026-09-21T09:00:00.000Z"
+}
+```
+
+The new time can be earlier or later than the old one. Reschedule as often as
+you like, while the status is still `scheduled`.
+
+## Cancelling
+
+```http
+POST /v1/emails/:id/cancel
+```
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+const { data, error } = await retransmit.emails.cancel("em_xxxxxxxxxxxx");
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx/cancel \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY"
+```
+</Tabs.Tab>
+</Tabs>
+
+`200 OK`
+
+```json
+{
+  "id": "em_xxxxxxxxxxxx",
+  "status": "canceled"
+}
+```
+
+The email is not deleted. It keeps status `canceled` and stays visible in
+[Get Email](/email/get) and [List Emails](/email/list), so you can tell a
+cancelled send apart from one that never existed.
+
+## Usage and billing
+
+A scheduled email counts against your allowance when you create it, not when
+it sends, because that is when the quota is checked. Cancelling it does not
+give the credit back. If you schedule far more than you expect to send, create
+the emails closer to the time instead.
+
+## Errors
+
+| Status | Code | Cause |
+| --- | --- | --- |
+| `422` | `validation_error` | `scheduled_at` is missing, not an ISO 8601 instant with an offset, in the past, or more than 30 days ahead. |
+| `422` | `not_scheduled` | The email is not scheduled, so there is nothing to move or cancel. An email already sent cannot be recalled. |
+| `404` | `not_found` | No email with this id on your account. |
+| `400` | `invalid_json` | Body is not valid JSON. |
+| `401` | `unauthorized` | Missing, malformed, or revoked API key. |

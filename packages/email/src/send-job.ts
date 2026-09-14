@@ -11,6 +11,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 
 import { extractEmailAddress } from "./address";
 import { AttachmentMissingError, getAttachment } from "./attachments";
+import { mailboxProviderFor } from "./mailbox-provider";
 import { sendEmail } from "./ses";
 import { UNSUBSCRIBE_URL_PLACEHOLDER, unsubscribeUrl } from "./unsubscribe";
 import { dispatchEmailEvent } from "./webhooks";
@@ -83,10 +84,33 @@ function setHeader(headers: { name: string; value: string }[], name: string, val
 }
 
 /**
+ * Records who runs the recipient's mailbox, so deliverability can be read per
+ * provider rather than as one average. A custom domain tells you nothing on
+ * its own: the same small business could be on Microsoft 365, Google
+ * Workspace or their web host, and the three filter very differently.
+ *
+ * Runs after the send and never fails it. The lookup is cached per domain, so
+ * this is one DNS query per new domain rather than one per email.
+ */
+async function recordRecipientProvider(emailId: string, recipient: string | undefined) {
+  if (!recipient) return;
+  try {
+    const provider = await mailboxProviderFor(recipient);
+    if (!provider) return;
+    await db.update(email).set({ recipientProvider: provider }).where(eq(email.id, emailId));
+  } catch {
+    // Diagnostics only. A resolver or database hiccup here must not turn a
+    // delivered email into a retried job.
+  }
+}
+
+/**
  * Processes one `email-send` job: hands the email to SES and records the
- * outcome. Idempotent — a row that is no longer `queued` is skipped, so a
- * retry after a partial failure never double-sends (unless the crash landed
- * exactly between the SES call and the status update, which we accept).
+ * outcome. Idempotent — a row that is no longer `queued` or `scheduled` is
+ * skipped, so a retry after a partial failure never double-sends (unless the
+ * crash landed exactly between the SES call and the status update, which we
+ * accept). Cancelling a scheduled email works the same way: the status moves
+ * to `canceled` and the job that fires later finds nothing to do.
  *
  * Throws on provider failure so pg-boss retries with backoff; the row keeps
  * status `queued` (with the last error recorded) until it either sends or the
@@ -94,7 +118,13 @@ function setHeader(headers: { name: string; value: string }[], name: string, val
  */
 export async function processEmailSend(emailId: string): Promise<void> {
   const [row] = await db.select().from(email).where(eq(email.id, emailId));
-  if (!row || row.status !== "queued") return;
+  if (!row || (row.status !== "queued" && row.status !== "scheduled")) return;
+
+  // A rescheduled email has a second job waiting at its new time, so the job
+  // that fires at the old, earlier time must not send. Cancelling it in
+  // pg-boss would need us to track job ids; letting an early job find the row
+  // not yet due keeps the scheduled time in one place, the row itself.
+  if (row.scheduledAt && row.scheduledAt.getTime() > Date.now()) return;
 
   const recipients = await filterSuppressedRecipients(row);
   if (recipients === null) {
@@ -202,6 +232,10 @@ export async function processEmailSend(emailId: string): Promise<void> {
       .where(eq(email.id, emailId));
     throw cause;
   }
+
+  // Trailing work: outside the try so a slow resolver cannot delay the
+  // `email.sent` webhook, and cannot be mistaken for a send failure.
+  await recordRecipientProvider(emailId, recipients.to[0]);
 }
 
 /**
@@ -211,7 +245,10 @@ export async function processEmailSend(emailId: string): Promise<void> {
  */
 export async function markEmailPermanentlyFailed(emailId: string): Promise<void> {
   const [row] = await db.select().from(email).where(eq(email.id, emailId));
-  if (!row || row.status !== "queued") return;
+  // A scheduled email keeps that status right up to the send, so it has to be
+  // failable too; otherwise an exhausted scheduled job would sit as
+  // `scheduled` for ever with nothing left to run it.
+  if (!row || (row.status !== "queued" && row.status !== "scheduled")) return;
 
   const message = row.error ?? "Send failed after all retries";
   await db

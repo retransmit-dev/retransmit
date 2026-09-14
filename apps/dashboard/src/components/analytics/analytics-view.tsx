@@ -8,6 +8,7 @@ import { useState } from "react";
 import { AnalyticsFilterBar } from "./analytics-filters";
 import { DeliveryIssuesChart } from "./delivery-issues-chart";
 import { EngagementChart } from "./engagement-chart";
+import { ProviderTable } from "./provider-table";
 import { StatTiles } from "./stat-tiles";
 import type { AnalyticsFilters } from "./use-overview";
 import { VolumeChart } from "./volume-chart";
@@ -51,6 +52,10 @@ export function AnalyticsView({ initialRange }: { initialRange: DateRange }) {
             <DeliveryIssuesChart filters={filters} />
           </ErrorBoundary>
         </div>
+
+        <ErrorBoundary title="Could not load mailbox providers">
+          <ProviderTable filters={filters} />
+        </ErrorBoundary>
       </div>
     </>
   );

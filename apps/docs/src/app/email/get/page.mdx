@@ -43,7 +43,9 @@ curl https://api.retransmit.dev/v1/emails/em_xxxxxxxxxxxx \
   "headers": { "X-Entity-Ref-ID": "order_4821" },
   "status": "delivered",
   "error": null,
+  "bounce_reason": null,
   "created_at": "2026-09-01T12:00:00.000Z",
+  "scheduled_at": null,
   "last_event_at": "2026-09-01T12:00:03.000Z",
   "events": [
     { "type": "email.sent", "created_at": "2026-09-01T12:00:01.000Z" },
@@ -79,9 +81,41 @@ use [Attachments](/email/attachments#download-attachments).
 | `bounced` | The recipient's server permanently rejected it. |
 | `complained` | The recipient marked it as spam. |
 | `suppressed` | Not sent. The address is on a suppression list. |
-| `canceled` | A scheduled send was canceled. |
+| `canceled` | A scheduled send was canceled. See [Schedule Email](/email/schedule). |
 | `rejected` | Rejected before sending. |
 | `failed` | The send failed after all retries. `error` contains the reason. |
+
+## Bounce reasons
+
+When the status is `bounced`, `bounce_reason` says why the receiving server
+refused the message, read from the SMTP response it returned. `error` carries
+the same thing as a sentence, with the raw response.
+
+The distinction that matters is whether the address is bad or whether your
+sending was refused. Only the first kind adds the recipient to your
+suppression list; the second leaves the address alone, because the mailbox is
+fine and will accept mail again once the underlying problem is fixed.
+
+| Reason | Suppressed | Meaning |
+| --- | --- | --- |
+| `mailbox_not_found` | Yes | No account with that address. |
+| `mailbox_inactive` | Yes | The account is disabled, suspended or unused. |
+| `dns_failure` | Yes | The domain has no reachable mail server. |
+| `policy_block` | Yes | A rule on the recipient's side refused the message, such as accepting internal mail only. |
+| `provider_suppressed` | Yes | The address is on the upstream provider's suppression list from an earlier bounce. |
+| `mailbox_full` | No | Over quota. Usually clears on its own. |
+| `spam_block` | No | A spam filter rejected the content. Check the subject, links and text-to-image ratio. |
+| `reputation_block` | No | Your sending IP or domain is blocked or on a blocklist. |
+| `authentication_failure` | No | SPF, DKIM or DMARC did not pass at the receiver. Check the domain's DNS records. |
+| `rate_limited` | No | The receiving server is throttling you. Send more slowly. |
+| `message_too_large` | No | Over the receiver's size limit. Link to large files instead of attaching them. |
+| `content_rejected` | No | An attachment or the body was refused, often by a virus scanner. |
+| `unknown` | Yes | The server gave no reason we recognise. Treated as a bad address, since it cannot be told apart from one. |
+
+No mailbox provider tells a sender whether a message reached the inbox or the
+spam folder, so a `spam_block` bounce is the only direct signal you get that
+filtering is happening. Emails that are silently filed as junk are delivered
+as far as the API is concerned.
 
 ## Errors
 

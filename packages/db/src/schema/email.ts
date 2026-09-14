@@ -36,6 +36,76 @@ export const EMAIL_STATUSES = [
 export type EmailStatus = (typeof EMAIL_STATUSES)[number];
 
 /**
+ * Why a bounce happened, derived from the SMTP diagnostic code the receiving
+ * server returned (see `@retransmit/email/bounce`). The distinction that
+ * matters is whether the *address* is bad or whether *we* were blocked: only
+ * the former belongs on the suppression list. A spam filter rejecting a
+ * message says nothing about whether the mailbox exists.
+ */
+export const BOUNCE_REASONS = [
+  /** No such mailbox at this domain. The address is dead. */
+  "mailbox_not_found",
+  /** The mailbox exists but is over quota. Usually temporary. */
+  "mailbox_full",
+  /** The account is disabled, suspended or no longer in use. */
+  "mailbox_inactive",
+  /** A spam filter rejected the message on its content. */
+  "spam_block",
+  /** The sending IP or domain is blocked or on a blocklist. */
+  "reputation_block",
+  /** SPF, DKIM or DMARC did not pass at the receiver. */
+  "authentication_failure",
+  /** The receiver is throttling us and would accept this later. */
+  "rate_limited",
+  /** The message exceeded the receiver's size limit. */
+  "message_too_large",
+  /** An attachment or the body was refused (virus scan, banned file type). */
+  "content_rejected",
+  /** A recipient-side rule refused the message (no external mail, allowlist). */
+  "policy_block",
+  /** The recipient domain does not resolve or has no mail server. */
+  "dns_failure",
+  /** SES refused to send because the address is on its own suppression list. */
+  "provider_suppressed",
+  /** Nothing in the diagnostic code was recognisable. */
+  "unknown",
+] as const;
+export type BounceReason = (typeof BOUNCE_REASONS)[number];
+
+/**
+ * Who runs the recipient's mailbox, resolved from the MX records of their
+ * domain (see `@retransmit/email/mailbox-provider`). A custom domain says
+ * nothing about the provider behind it, and providers differ enormously in
+ * how they filter, so this is what makes deliverability numbers comparable.
+ *
+ * `microsoft365` and `google_workspace` are custom domains hosted by those
+ * providers; `outlook_consumer` and `gmail` are their free consumer domains.
+ * The gateway entries (Mimecast, Proofpoint, Barracuda) usually sit in front
+ * of another provider, but their filtering is what decides delivery.
+ */
+export const MAILBOX_PROVIDERS = [
+  "microsoft365",
+  "outlook_consumer",
+  "google_workspace",
+  "gmail",
+  "yahoo",
+  "apple",
+  "proton",
+  "zoho",
+  "fastmail",
+  "mimecast",
+  "proofpoint",
+  "barracuda",
+  "ovh",
+  "ionos",
+  /** MX records exist but match nothing we know, e.g. self-hosted or cPanel. */
+  "other",
+  /** The domain publishes no usable MX record, so it cannot receive mail. */
+  "none",
+] as const;
+export type MailboxProvider = (typeof MAILBOX_PROVIDERS)[number];
+
+/**
  * A name/value label attached to an email at send time (for example
  * `{ name: "campaign", value: "outreach-1" }`). Tags never reach the
  * recipient; they exist so the dashboard and API can filter sends.
@@ -181,10 +251,30 @@ export const email = pgTable(
     tags: jsonb("tags").$type<EmailTag[]>(),
     /** Custom message headers sent with the email, e.g. X-Entity-Ref-ID. */
     headers: jsonb("headers").$type<EmailHeaders>(),
+    /**
+     * When a scheduled send should go out. Null for an immediate send. The
+     * queue job is delayed until this time, and the worker refuses to send
+     * before it, so a reschedule only has to move this column and enqueue a
+     * fresh job: an older job that fires early finds the row not yet due and
+     * does nothing.
+     */
+    scheduledAt: timestamp("scheduled_at"),
     /** Message id assigned by the upstream provider (SES). */
     providerMessageId: text("provider_message_id"),
     status: text("status").$type<EmailStatus>().default("queued").notNull(),
     error: text("error"),
+    /**
+     * Set when status is `bounced`: why the receiving server refused the
+     * message, classified from its SMTP diagnostic code. `error` carries the
+     * matching sentence and the raw code.
+     */
+    bounceReason: text("bounce_reason").$type<BounceReason>(),
+    /**
+     * Who runs the first recipient's mailbox, from the MX records of their
+     * domain. Resolved after the send and best-effort, so it stays null when
+     * the lookup failed or the row predates the lookup.
+     */
+    recipientProvider: text("recipient_provider").$type<MailboxProvider>(),
     lastEventAt: timestamp("last_event_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -198,6 +288,8 @@ export const email = pgTable(
     index("email_batchId_idx").on(table.batchId),
     index("email_userId_status_idx").on(table.userId, table.status),
     index("email_tags_gin_idx").using("gin", table.tags),
+    index("email_userId_recipientProvider_idx").on(table.userId, table.recipientProvider),
+    index("email_scheduledAt_idx").on(table.scheduledAt),
   ],
 );
 
@@ -281,6 +373,21 @@ export const suppression = pgTable(
     index("suppression_organizationId_createdAt_idx").on(table.organizationId, table.createdAt),
   ],
 );
+
+/**
+ * MX lookup cache, keyed by recipient domain. DNS is public and the same for
+ * every organization, so this table is global rather than org-scoped: one
+ * lookup per domain serves every sender. Rows are refreshed once they pass
+ * `MAILBOX_DOMAIN_TTL_MS`, since a domain can migrate between providers.
+ */
+export const mailboxDomain = pgTable("mailbox_domain", {
+  /** Bare domain, lowercased, without the `@`. */
+  domain: text("domain").primaryKey(),
+  provider: text("provider").$type<MailboxProvider>().notNull(),
+  /** The MX hostnames the lookup returned, lowest preference first. */
+  mxHosts: jsonb("mx_hosts").$type<string[]>(),
+  checkedAt: timestamp("checked_at").defaultNow().notNull(),
+});
 
 export const IDEMPOTENCY_STATUSES = ["in_progress", "completed"] as const;
 export type IdempotencyStatus = (typeof IDEMPOTENCY_STATUSES)[number];

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { RouterOutputs } from "@/lib/api-types";
+import { BOUNCE_REASON_LABELS, providerLabel } from "@/lib/deliverability";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
@@ -66,11 +67,7 @@ function EmailDetailsBody({ emailId }: { emailId: string }) {
           <div className="flex flex-col gap-4 text-sm">
             <EmailAddresses email={email} />
 
-            {email.error && (
-              <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
-                {email.error}
-              </p>
-            )}
+            <EmailFailure error={email.error} bounceReason={email.bounceReason} />
 
             <EmailBody html={email.html} text={email.text} />
             <EmailAttachments attachments={email.attachments} />
@@ -79,6 +76,48 @@ function EmailDetailsBody({ emailId }: { emailId: string }) {
         ) : null}
       </DialogBody>
     </>
+  );
+}
+
+/**
+ * Why a send failed. For a bounce the classified reason leads, because it is
+ * what tells you whether to fix the address or fix the sending: a message
+ * filtered as spam says nothing about whether the mailbox exists. The raw
+ * server response stays underneath for when the classification is wrong.
+ */
+function EmailFailure({
+  error,
+  bounceReason,
+}: {
+  error: string | null;
+  bounceReason: string | null;
+}) {
+  if (!error) return null;
+  const reason = bounceReason ? BOUNCE_REASON_LABELS[bounceReason] : undefined;
+
+  return (
+    <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+      {reason ? (
+        <>
+          <p className="flex items-center gap-2 font-medium">
+            {reason.label}
+            <Badge variant="outline" className="border-destructive/30 text-destructive">
+              {reason.fault === "sender"
+                ? "Sending issue"
+                : reason.fault === "recipient"
+                  ? "Recipient issue"
+                  : reason.fault === "message"
+                    ? "Message issue"
+                    : "Unclassified"}
+            </Badge>
+          </p>
+          <p className="mt-1">{reason.hint}</p>
+          <p className="mt-2 break-words text-xs opacity-80">{error}</p>
+        </>
+      ) : (
+        <p>{error}</p>
+      )}
+    </div>
   );
 }
 
@@ -99,6 +138,12 @@ function EmailAddresses({ email }: { email: EmailDetails }) {
         <>
           <span className="text-muted-foreground">Reply-To</span>
           <span className="truncate">{email.replyTo.join(", ")}</span>
+        </>
+      )}
+      {email.recipientProvider && (
+        <>
+          <span className="text-muted-foreground">Mailbox</span>
+          <span className="truncate">{providerLabel(email.recipientProvider)}</span>
         </>
       )}
       <span className="text-muted-foreground">Subject</span>

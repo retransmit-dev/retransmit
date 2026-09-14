@@ -4,6 +4,8 @@ import { createId } from "@retransmit/db/id";
 import { email, emailEvent, suppression } from "@retransmit/db/schema/email";
 import type { EmailStatus, SuppressionReason, WebhookEventType } from "@retransmit/db/schema/email";
 import { extractEmailAddress } from "@retransmit/email/address";
+import { classifyBounce } from "@retransmit/email/bounce";
+import type { SesBounce } from "@retransmit/email/bounce";
 import { dispatchEmailEvent } from "@retransmit/email/webhooks";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -63,12 +65,13 @@ async function recordSuppressions(
   let reason: SuppressionReason;
   let recipients: unknown;
   if (eventType === "Bounce") {
-    const bounce = sesEvent.bounce as
-      | { bounceType?: string; bouncedRecipients?: { emailAddress?: string }[] }
-      | undefined;
-    if (bounce?.bounceType !== "Permanent") return;
+    const bounce = sesEvent.bounce as SesBounce | undefined;
+    // Not every permanent bounce is the recipient's fault. A spam filter or
+    // an IP block rejects with 5.x.x too, and suppressing on those would
+    // quietly burn good addresses whenever our reputation dips.
+    if (!classifyBounce(bounce).suppress) return;
     reason = "bounce";
-    recipients = bounce.bouncedRecipients;
+    recipients = bounce?.bouncedRecipients;
   } else {
     const complaint = sesEvent.complaint as
       | { complainedRecipients?: { emailAddress?: string }[] }
@@ -184,10 +187,20 @@ callbackRoutes.post("/ses", async (c) => {
     await recordSuppressions(row, sesEvent as Record<string, unknown>, eventType);
   }
 
-  if (STATUS_RANK[mapping.status] >= STATUS_RANK[row.status]) {
+  // Bounce diagnostics are recorded even when the status does not move on
+  // (an email that already complained, say): the reason is what the dashboard
+  // shows and what the suppression decision above was made from.
+  const changes: Partial<typeof email.$inferInsert> = {};
+  if (STATUS_RANK[mapping.status] >= STATUS_RANK[row.status]) changes.status = mapping.status;
+  if (eventType === "Bounce") {
+    const { reason, message } = classifyBounce(sesEvent.bounce as SesBounce | undefined);
+    changes.bounceReason = reason;
+    changes.error = message;
+  }
+  if (Object.keys(changes).length > 0) {
     await db
       .update(email)
-      .set({ status: mapping.status, lastEventAt: new Date() })
+      .set({ ...changes, lastEventAt: new Date() })
       .where(eq(email.id, row.id));
   }
 

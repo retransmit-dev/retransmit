@@ -65,8 +65,10 @@ curl "https://api.retransmit.dev/v1/emails?tag=campaign:spring-2026&status=bounc
       "marketing": false,
       "tags": [{ "name": "campaign", "value": "spring-2026" }],
       "status": "bounced",
-      "error": "550 5.1.1 User unknown",
+      "error": "The recipient's mailbox does not exist. (smtp; 550 5.1.1 User unknown)",
+      "bounce_reason": "mailbox_not_found",
       "created_at": "2026-09-01T12:00:00.000Z",
+      "scheduled_at": null,
       "last_event_at": "2026-09-01T12:00:03.000Z"
     }
   ],
@@ -77,6 +79,11 @@ curl "https://api.retransmit.dev/v1/emails?tag=campaign:spring-2026&status=bounc
 
 Pass `next_cursor` back as `cursor`, with the same filters, to fetch the next
 page. It is `null` on the last page.
+
+Filter on `status=bounced` and group the results by `bounce_reason` to see
+whether your bounces are dead addresses or your sending being refused. The
+reasons are listed in [Get Email](/email/get#bounce-reasons). Filter on
+`status=scheduled` for sends that have not gone out yet.
 
 ## List tags
 

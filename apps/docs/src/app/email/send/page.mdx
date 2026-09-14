@@ -32,6 +32,7 @@ transient failures. For many emails at once, use [Send Batch](/email/send-batch)
 | `marketing` | boolean | No | Marks this as a marketing email: `{{{unsubscribe_url}}}` in the body becomes a hosted unsubscribe link, `List-Unsubscribe` headers are added, and unsubscribed recipients are skipped. See [Marketing Email](/email/marketing-email). Defaults to `false`. |
 | `tags` | array | No | Up to 10 `{ "name", "value" }` pairs for filtering in the dashboard and [List Emails](/email/list), e.g. `{ "name": "campaign", "value": "outreach-1" }`. Letters, digits, `_` and `-`, up to 256 characters each. Names must be unique per email. Tags are not sent to the recipient. |
 | `headers` | object | No | Custom message headers as `{ "Header-Name": "value" }`, up to 20. See [Custom headers](#custom-headers). |
+| `scheduled_at` | string | No | Send at this time instead of now. ISO 8601 with an offset, up to 30 days ahead. See [Schedule Email](/email/schedule). |
 | `attachments` | array | No | Up to 20 files, 30 MB in total. Each has a `filename` and either `content` (base64) or `path` (public URL). See [Attachments](/email/attachments). |
 
 \* At least one of `html` or `text` is required. You can provide both.
@@ -133,6 +134,41 @@ Rules:
 The headers you sent are returned by [Get Email](/email/get). Batch emails
 accept the same `headers` field.
 
+## Scheduling
+
+Pass `scheduled_at` to send later instead of now:
+
+<Tabs items={["Node.js", "cURL"]}>
+<Tabs.Tab>
+```ts
+await retransmit.emails.send({
+  from: "Acme <hello@yourdomain.com>",
+  to: "user@example.com",
+  subject: "Your trial ends tomorrow",
+  html: "<p>Here is what happens next.</p>",
+  scheduledAt: "2026-09-20T09:00:00Z",
+});
+```
+</Tabs.Tab>
+<Tabs.Tab>
+```sh
+curl -X POST https://api.retransmit.dev/v1/emails \
+  -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "Acme <hello@yourdomain.com>",
+    "to": "user@example.com",
+    "subject": "Your trial ends tomorrow",
+    "html": "<p>Here is what happens next.</p>",
+    "scheduled_at": "2026-09-20T09:00:00Z"
+  }'
+```
+</Tabs.Tab>
+</Tabs>
+
+A scheduled email can be moved or stopped until it goes out. See
+[Schedule Email](/email/schedule) for the rules, rescheduling and cancelling.
+
 ## Idempotency
 
 A request can succeed on our side and still fail on yours: a timeout, a
@@ -200,7 +236,8 @@ How it behaves:
 {
   "id": "em_xxxxxxxxxxxx",
   "status": "queued",
-  "created_at": "2026-09-01T12:00:00.000Z"
+  "created_at": "2026-09-01T12:00:00.000Z",
+  "scheduled_at": null
 }
 ```
 
@@ -210,6 +247,18 @@ worker hands it to the provider, then follows delivery events. If every retry
 fails, the status becomes `failed` with the provider error, and an
 `email.failed` webhook fires.
 
+With `scheduled_at`, the status is `scheduled` and `scheduled_at` echoes the
+time you asked for:
+
+```json
+{
+  "id": "em_xxxxxxxxxxxx",
+  "status": "scheduled",
+  "created_at": "2026-09-01T12:00:00.000Z",
+  "scheduled_at": "2026-09-20T09:00:00.000Z"
+}
+```
+
 ## Errors
 
 | Status | Code | Cause |
@@ -217,7 +266,7 @@ fails, the status becomes `failed` with the provider error, and an
 | `400` | `invalid_json` | Body is not valid JSON. |
 | `400` | `invalid_idempotency_key` | `Idempotency-Key` is empty or longer than 256 characters. |
 | `413` | `payload_too_large` | The request body is over 43 MB. Attachments may total 30 MB before base64 encoding. |
-| `422` | `validation_error` | A field failed validation. The message names the field. |
+| `422` | `validation_error` | A field failed validation. The message names the field, for example a `scheduled_at` in the past. |
 | `422` | `invalid_attachment` | An attachment has a blocked file type, is over the size budget, or its `path` could not be fetched. |
 | `403` | `domain_not_found` | The `from` domain is not registered on your account. |
 | `403` | `domain_not_verified` | The `from` domain exists but is not verified yet. |

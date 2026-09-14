@@ -186,6 +186,29 @@ const attachmentSchema = z
     message: "Provide either `content` (base64) or `path` (URL), not both",
   });
 
+/** How far ahead a send may be scheduled. Matches Resend's limit. */
+const SCHEDULE_MAX_DAYS = 30;
+
+/**
+ * An ISO 8601 instant to send at, such as `2026-09-20T09:00:00Z`. An offset
+ * is required: a bare local time would mean a different instant to the caller
+ * and the server, and "send at 9am" going out at the wrong hour is exactly
+ * the kind of bug a scheduled send must not have.
+ *
+ * Resend also accepts natural language here ("in 1 min"). We do not: the
+ * phrasing is ambiguous about whose clock and whose timezone it means.
+ */
+const scheduledAtSchema = z
+  .string()
+  .datetime({ offset: true, message: "scheduled_at must be an ISO 8601 instant with an offset" })
+  .transform((value) => new Date(value))
+  .refine((date) => date.getTime() > Date.now(), {
+    message: "scheduled_at must be in the future",
+  })
+  .refine((date) => date.getTime() <= Date.now() + SCHEDULE_MAX_DAYS * 86_400_000, {
+    message: `scheduled_at may be at most ${SCHEDULE_MAX_DAYS} days ahead`,
+  });
+
 const emailFields = z.object({
   from: z.string().refine((value) => extractEmailAddress(value) !== null, {
     message: "`from` must be an email address or `Name <address>`",
@@ -200,6 +223,7 @@ const emailFields = z.object({
   marketing: z.boolean().optional(),
   tags: tagList.optional(),
   headers: headersSchema.optional(),
+  scheduled_at: scheduledAtSchema.optional(),
 });
 
 const hasBody = { message: "Provide `html`, `text`, or both" };
@@ -357,6 +381,10 @@ function toEmailRow(
     marketing: input.marketing ?? false,
     tags: input.tags && input.tags.length > 0 ? input.tags : null,
     headers: toStoredHeaders(input.headers),
+    scheduledAt: input.scheduled_at,
+    // `scheduled` rather than `queued` from the start, so a caller polling
+    // the email never sees it claim to be on its way out before it is.
+    status: input.scheduled_at ? ("scheduled" as const) : ("queued" as const),
   };
 }
 
@@ -446,7 +474,9 @@ emailRoutes.post("/batch", async (c) => {
       for (let i = 0; i < rows.length; i += CHUNK) {
         await db.insert(email).values(rows.slice(i, i + CHUNK));
       }
-      await enqueueEmailSendBatch(rows.map((row) => row.id));
+      await enqueueEmailSendBatch(
+        rows.map((row) => ({ emailId: row.id, startAfter: row.scheduledAt })),
+      );
       // Billed at acceptance, like SES: the recipient count is fixed once the
       // rows exist, and a later bounce is still a delivery attempt that cost
       // money. Recorded after the insert so a failed batch bills nothing.
@@ -609,12 +639,17 @@ emailRoutes.post(
         };
       }
 
-      await enqueueEmailSend(row.id);
+      await enqueueEmailSend(row.id, { startAfter: input.scheduled_at });
       if (account) await recordUsage(organizationId, "email", recipients, { account });
 
       return {
         status: 202,
-        body: { id: row.id, status: "queued", created_at: created.createdAt.toISOString() },
+        body: {
+          id: row.id,
+          status: created.status,
+          created_at: created.createdAt.toISOString(),
+          scheduled_at: created.scheduledAt?.toISOString() ?? null,
+        },
       };
     },
   );
@@ -661,7 +696,9 @@ emailRoutes.get("/", async (c) => {
       tags: email.tags,
       status: email.status,
       error: email.error,
+      bounceReason: email.bounceReason,
       createdAt: email.createdAt,
+      scheduledAt: email.scheduledAt,
       lastEventAt: email.lastEventAt,
     })
     .from(email)
@@ -684,7 +721,9 @@ emailRoutes.get("/", async (c) => {
       tags: row.tags ?? [],
       status: row.status,
       error: row.error,
+      bounce_reason: row.bounceReason,
       created_at: row.createdAt.toISOString(),
+      scheduled_at: row.scheduledAt?.toISOString() ?? null,
       last_event_at: row.lastEventAt?.toISOString() ?? null,
     })),
     has_more: hasMore,
@@ -742,7 +781,9 @@ emailRoutes.get("/:id", async (c) => {
     headers: row.headers,
     status: row.status,
     error: row.error,
+    bounce_reason: row.bounceReason,
     created_at: row.createdAt.toISOString(),
+    scheduled_at: row.scheduledAt?.toISOString() ?? null,
     last_event_at: row.lastEventAt?.toISOString() ?? null,
     events: events.map((event) => ({
       type: event.type,
@@ -750,6 +791,98 @@ emailRoutes.get("/:id", async (c) => {
     })),
     attachments: attachments.map(attachmentSummary),
   });
+});
+
+/**
+ * Reschedules an email that has not gone out yet. Only `scheduled_at` can be
+ * changed: the content was validated, billed and (for attachments) stored at
+ * creation, so editing it here would mean redoing all three.
+ */
+emailRoutes.patch("/:id", async (c) => {
+  let json: unknown;
+  try {
+    json = await c.req.json();
+  } catch {
+    return c.json({ error: { code: "invalid_json", message: "Body must be valid JSON" } }, 400);
+  }
+
+  const parsed = z.object({ scheduled_at: scheduledAtSchema }).safeParse(json);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return c.json(
+      {
+        error: {
+          code: "validation_error",
+          message: issue ? `${issue.path.join(".") || "body"}: ${issue.message}` : "Invalid body",
+        },
+      },
+      422,
+    );
+  }
+
+  const [row] = await db
+    .select()
+    .from(email)
+    .where(and(eq(email.id, c.req.param("id")), eq(email.userId, c.get("userId"))));
+  if (!row) {
+    return c.json({ error: { code: "not_found", message: "Email not found" } }, 404);
+  }
+  if (row.status !== "scheduled") {
+    return c.json(
+      {
+        error: {
+          code: "not_scheduled",
+          message: `Only a scheduled email can be rescheduled (status: ${row.status}).`,
+        },
+      },
+      422,
+    );
+  }
+
+  const scheduledAt = parsed.data.scheduled_at;
+  await db.update(email).set({ scheduledAt }).where(eq(email.id, row.id));
+  // A second job, rather than cancelling the first: the worker refuses to
+  // send before the row's own `scheduled_at`, so whichever job fires early
+  // does nothing and the one at the new time does the send.
+  await enqueueEmailSend(row.id, { startAfter: scheduledAt });
+
+  return c.json({
+    id: row.id,
+    status: row.status,
+    scheduled_at: scheduledAt.toISOString(),
+  });
+});
+
+/**
+ * Cancels a scheduled email. The queue job is left alone: it fires at the
+ * original time, finds the row cancelled and does nothing.
+ */
+emailRoutes.post("/:id/cancel", async (c) => {
+  const [row] = await db
+    .select()
+    .from(email)
+    .where(and(eq(email.id, c.req.param("id")), eq(email.userId, c.get("userId"))));
+  if (!row) {
+    return c.json({ error: { code: "not_found", message: "Email not found" } }, 404);
+  }
+  if (row.status !== "scheduled") {
+    return c.json(
+      {
+        error: {
+          code: "not_scheduled",
+          message: `Only a scheduled email can be canceled (status: ${row.status}).`,
+        },
+      },
+      422,
+    );
+  }
+
+  await db
+    .update(email)
+    .set({ status: "canceled", lastEventAt: new Date() })
+    .where(eq(email.id, row.id));
+
+  return c.json({ id: row.id, status: "canceled" });
 });
 
 type AttachmentRow = typeof emailAttachment.$inferSelect;

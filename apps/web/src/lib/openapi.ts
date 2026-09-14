@@ -23,6 +23,23 @@ const EMAIL_STATUSES = [
   "complained",
 ] as const;
 
+/** Mirrors BOUNCE_REASONS in @retransmit/db. */
+const BOUNCE_REASONS = [
+  "mailbox_not_found",
+  "mailbox_full",
+  "mailbox_inactive",
+  "spam_block",
+  "reputation_block",
+  "authentication_failure",
+  "rate_limited",
+  "message_too_large",
+  "content_rejected",
+  "policy_block",
+  "dns_failure",
+  "provider_suppressed",
+  "unknown",
+] as const;
+
 const EVENT_TYPES = [
   "email.sent",
   "email.delivered",
@@ -243,7 +260,7 @@ export const OPENAPI_DOCUMENT = {
         tags: ["Emails"],
         summary: "Queue one email",
         description:
-          "Returns 202 immediately; a rate-aware worker performs the send. Poll GET /v1/emails/{id} or subscribe to webhooks for the outcome. The `from` domain must be registered and verified on your account. Send an `Idempotency-Key` header to make retries safe.",
+          "Returns 202 immediately; a rate-aware worker performs the send. Poll GET /v1/emails/{id} or subscribe to webhooks for the outcome. The `from` domain must be registered and verified on your account. Send an `Idempotency-Key` header to make retries safe. Pass `scheduled_at` to send later instead of now.",
         parameters: [idempotencyKeyHeader],
         requestBody: {
           required: true,
@@ -282,6 +299,40 @@ export const OPENAPI_DOCUMENT = {
           ),
           "422": errorResponse(
             "Schema validation failed (`validation_error`), or an attachment could not be used: blocked file type, over the size budget, or a `path` that could not be fetched (`invalid_attachment`).",
+          ),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
+    },
+    "/v1/emails/{id}/cancel": {
+      post: {
+        operationId: "cancelEmail",
+        tags: ["Emails"],
+        summary: "Cancel a scheduled email",
+        description:
+          "Stops a scheduled email before it goes out. The email keeps status `canceled`; it is not deleted, and it stays on your usage for the period in which it was created.",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            description: "Email id, e.g. `em_...`.",
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "The email is canceled.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CanceledEmail" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "404": errorResponse("No email with this id on your account."),
+          "422": errorResponse(
+            "The email is not scheduled, so there is nothing to cancel (`not_scheduled`).",
           ),
           "500": errorResponse("Unexpected server error."),
         },
@@ -376,6 +427,58 @@ export const OPENAPI_DOCUMENT = {
       },
     },
     "/v1/emails/{id}": {
+      patch: {
+        operationId: "rescheduleEmail",
+        tags: ["Emails"],
+        summary: "Reschedule an email that has not been sent",
+        description:
+          "Moves a scheduled email to a new time. Only `scheduled_at` can be changed; the content was validated and billed when the email was created. Works until the email leaves the queue.",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            description: "Email id, e.g. `em_...`.",
+            schema: { type: "string" },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["scheduled_at"],
+                properties: {
+                  scheduled_at: {
+                    type: "string",
+                    format: "date-time",
+                    description:
+                      "New send time, as an ISO 8601 instant with an offset. At most 30 days ahead.",
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "The email's new schedule.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ScheduledEmail" },
+              },
+            },
+          },
+          "400": errorResponse("Body is not valid JSON (`invalid_json`)."),
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "404": errorResponse("No email with this id on your account."),
+          "422": errorResponse(
+            "`scheduled_at` is missing, not an ISO 8601 instant with an offset, in the past, or more than 30 days ahead (`validation_error`); or the email is no longer scheduled (`not_scheduled`).",
+          ),
+          "500": errorResponse("Unexpected server error."),
+        },
+      },
       get: {
         operationId: "getEmail",
         tags: ["Emails"],
@@ -685,6 +788,12 @@ export const OPENAPI_DOCUMENT = {
             items: { $ref: "#/components/schemas/EmailTag" },
           },
           headers: { $ref: "#/components/schemas/EmailHeaders" },
+          scheduled_at: {
+            type: "string",
+            format: "date-time",
+            description:
+              "Send at this time instead of now. An ISO 8601 instant with an offset, e.g. `2026-09-20T09:00:00Z`; a bare local time is rejected, because it would mean a different instant to you and to the server. At most 30 days ahead. The email is created with status `scheduled`, and can be moved with PATCH /v1/emails/{id} or stopped with POST /v1/emails/{id}/cancel until it goes out.",
+          },
           attachments: {
             type: "array",
             maxItems: 20,
@@ -797,8 +906,36 @@ export const OPENAPI_DOCUMENT = {
         required: ["id", "status", "created_at"],
         properties: {
           id: { type: "string" },
-          status: { type: "string", const: "queued" },
+          status: {
+            type: "string",
+            enum: ["queued", "scheduled"],
+            description: "`scheduled` when the request carried `scheduled_at`, otherwise `queued`.",
+          },
           created_at: { type: "string", format: "date-time" },
+          scheduled_at: {
+            type: ["string", "null"],
+            format: "date-time",
+            description: "When the email will be sent, or null for an immediate send.",
+          },
+        },
+      },
+      ScheduledEmail: {
+        type: "object",
+        required: ["id", "status", "scheduled_at"],
+        description: "The result of rescheduling an email.",
+        properties: {
+          id: { type: "string" },
+          status: { type: "string", const: "scheduled" },
+          scheduled_at: { type: "string", format: "date-time" },
+        },
+      },
+      CanceledEmail: {
+        type: "object",
+        required: ["id", "status"],
+        description: "The result of cancelling a scheduled email.",
+        properties: {
+          id: { type: "string" },
+          status: { type: "string", const: "canceled" },
         },
       },
       QueuedBatch: {
@@ -853,7 +990,18 @@ export const OPENAPI_DOCUMENT = {
             type: ["string", "null"],
             description: "Failure detail when status is a failure state.",
           },
+          bounce_reason: {
+            type: ["string", "null"],
+            enum: [...BOUNCE_REASONS, null],
+            description:
+              "Why the receiving server refused the message, when status is `bounced`. `mailbox_not_found`, `mailbox_inactive`, `dns_failure`, `policy_block` and `provider_suppressed` are about the address, and put it on your suppression list. `spam_block`, `reputation_block`, `authentication_failure`, `rate_limited`, `message_too_large` and `content_rejected` are about your sending or this message, and do not: the address is still good.",
+          },
           created_at: { type: "string", format: "date-time" },
+          scheduled_at: {
+            type: ["string", "null"],
+            format: "date-time",
+            description: "When the email is due to be sent, or null for an immediate send.",
+          },
           last_event_at: { type: ["string", "null"], format: "date-time" },
           events: {
             type: "array",
@@ -881,7 +1029,9 @@ export const OPENAPI_DOCUMENT = {
           tags: { type: "array", items: { $ref: "#/components/schemas/EmailTag" } },
           status: { type: "string", enum: [...EMAIL_STATUSES] },
           error: { type: ["string", "null"] },
+          bounce_reason: { type: ["string", "null"], enum: [...BOUNCE_REASONS, null] },
           created_at: { type: "string", format: "date-time" },
+          scheduled_at: { type: ["string", "null"], format: "date-time" },
           last_event_at: { type: ["string", "null"], format: "date-time" },
         },
       },

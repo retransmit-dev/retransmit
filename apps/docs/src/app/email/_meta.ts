@@ -3,6 +3,7 @@ export default {
   send: "Send Email",
   "send-batch": "Send Batch",
   attachments: "Attachments",
+  schedule: "Schedule Email",
   get: "Get Email",
   list: "List Emails",
   "get-batch": "Get Batch",

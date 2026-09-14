@@ -1,7 +1,7 @@
 import { db } from "@retransmit/db";
 import { email, emailEvent } from "@retransmit/db/schema/email";
-import type { WebhookEventType } from "@retransmit/db/schema/email";
-import { and, count, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import type { BounceReason, MailboxProvider, WebhookEventType } from "@retransmit/db/schema/email";
+import { and, count, desc, eq, gte, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import z from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -27,6 +27,13 @@ const TRACKED_EVENT_TYPES = Object.keys(EVENT_METRIC_MAP) as WebhookEventType[];
 
 /** Ranges up to this long are bucketed hourly; anything longer daily. */
 const HOURLY_RANGE_MS = 2 * 24 * 60 * 60 * 1000;
+
+/** One mailbox provider's numbers over the window. */
+export type ProviderRow = Record<AnalyticsMetric, number> & {
+  provider: MailboxProvider;
+  /** Why this provider bounced us, commonest first. */
+  bounceReasons: { reason: BounceReason; count: number }[];
+};
 
 const emptyCounts = () =>
   Object.fromEntries(ANALYTICS_METRICS.map((metric) => [metric, 0])) as Record<
@@ -136,5 +143,92 @@ export const analyticsRouter = router({
         .map(([bucket, counts]) => ({ bucket, ...counts }));
 
       return { interval, totals, series };
+    }),
+
+  /**
+   * Deliverability split by who runs the recipient's mailbox, plus the
+   * bounce reasons behind it.
+   *
+   * No mailbox provider reports spam-folder placement back to a sender, so
+   * this is the closest usable signal: a provider whose open rate sits well
+   * below the others, on comparable volume, is filtering us into junk. The
+   * bounce reasons say whether that is our sending reputation, our
+   * authentication, or just dead addresses.
+   */
+  byProvider: protectedProcedure
+    .input(
+      z.object({
+        from: z.coerce.date(),
+        to: z.coerce.date(),
+        domainId: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const conditions = [
+        eq(email.userId, ctx.session.user.id),
+        gte(email.createdAt, input.from),
+        lte(email.createdAt, input.to),
+        // Rows that predate provider detection, or whose lookup failed, would
+        // otherwise pile up in a meaningless "unknown" bucket.
+        isNotNull(email.recipientProvider),
+      ];
+      if (input.domainId) conditions.push(eq(email.domainId, input.domainId));
+
+      const distinctEmails = sql<number>`count(distinct ${emailEvent.emailId})`.mapWith(Number);
+
+      const [sentRows, eventRows, reasonRows] = await Promise.all([
+        db
+          .select({ provider: email.recipientProvider, count: count() })
+          .from(email)
+          .where(and(...conditions))
+          .groupBy(email.recipientProvider),
+        // Events are counted against the email's own window rather than the
+        // event's, so every column of a row describes the same set of sends.
+        db
+          .select({
+            provider: email.recipientProvider,
+            type: emailEvent.type,
+            count: distinctEmails,
+          })
+          .from(emailEvent)
+          .innerJoin(email, eq(emailEvent.emailId, email.id))
+          .where(and(...conditions, inArray(emailEvent.type, TRACKED_EVENT_TYPES)))
+          .groupBy(email.recipientProvider, emailEvent.type),
+        db
+          .select({
+            provider: email.recipientProvider,
+            reason: email.bounceReason,
+            count: count(),
+          })
+          .from(email)
+          .where(and(...conditions, isNotNull(email.bounceReason)))
+          .groupBy(email.recipientProvider, email.bounceReason)
+          .orderBy(desc(count())),
+      ]);
+
+      const rows = new Map<MailboxProvider, ProviderRow>();
+      const rowFor = (provider: MailboxProvider) => {
+        let entry = rows.get(provider);
+        if (!entry) {
+          entry = { provider, ...emptyCounts(), bounceReasons: [] };
+          rows.set(provider, entry);
+        }
+        return entry;
+      };
+
+      for (const row of sentRows) {
+        if (row.provider) rowFor(row.provider).sent = row.count;
+      }
+      for (const row of eventRows) {
+        const metric = EVENT_METRIC_MAP[row.type];
+        if (row.provider && metric) rowFor(row.provider)[metric] = row.count;
+      }
+      for (const row of reasonRows) {
+        if (row.provider && row.reason) {
+          rowFor(row.provider).bounceReasons.push({ reason: row.reason, count: row.count });
+        }
+      }
+
+      return [...rows.values()].sort((a, b) => b.sent - a.sent);
     }),
 });

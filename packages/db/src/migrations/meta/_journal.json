@@ -127,6 +127,20 @@
       "when": 1788915866250,
       "tag": "0017_sms_region",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789411662346,
+      "tag": "0018_email_bounce_reason_provider",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789412529309,
+      "tag": "0019_email_scheduled_at",
+      "breakpoints": true
     }
   ]
 }

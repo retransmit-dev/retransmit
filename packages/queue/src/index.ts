@@ -104,19 +104,38 @@ export async function stopBoss(): Promise<void> {
   started = undefined;
 }
 
-export async function enqueueEmailSend(emailId: string): Promise<void> {
+/**
+ * Queues a send. `startAfter` holds the job back until then, for a scheduled
+ * email; the worker checks the row's own `scheduled_at` as well, so a job
+ * that runs early (after a reschedule) does nothing rather than sending.
+ */
+export async function enqueueEmailSend(
+  emailId: string,
+  options: { startAfter?: Date } = {},
+): Promise<void> {
   const instance = await getBoss();
-  await instance.send(QUEUES.emailSend, { emailId } satisfies EmailSendJob);
+  await instance.send(QUEUES.emailSend, { emailId } satisfies EmailSendJob, {
+    startAfter: options.startAfter,
+  });
 }
 
-/** Bulk-enqueue send jobs; chunked so a 5000+ batch is a handful of inserts. */
-export async function enqueueEmailSendBatch(emailIds: string[]): Promise<void> {
+/**
+ * Bulk-enqueue send jobs; chunked so a 5000+ batch is a handful of inserts.
+ * Each job carries its own `startAfter`, because a batch may mix immediate
+ * emails with ones scheduled for different times.
+ */
+export async function enqueueEmailSendBatch(
+  jobs: { emailId: string; startAfter?: Date }[],
+): Promise<void> {
   const instance = await getBoss();
   const CHUNK = 500;
-  for (let i = 0; i < emailIds.length; i += CHUNK) {
+  for (let i = 0; i < jobs.length; i += CHUNK) {
     await instance.insert(
       QUEUES.emailSend,
-      emailIds.slice(i, i + CHUNK).map((emailId) => ({ data: { emailId } })),
+      jobs.slice(i, i + CHUNK).map((job) => ({
+        data: { emailId: job.emailId } satisfies EmailSendJob,
+        startAfter: job.startAfter,
+      })),
     );
   }
 }

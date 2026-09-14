@@ -165,9 +165,10 @@ on), but the payload and the signature differ:
 | `headers` | `headers` | Same shape, up to 20. See [Custom headers](/email/send#custom-headers). |
 | `tags` | `tags` | Same `{ name, value }` shape, up to 10. Filter by tag in [List Emails](/email/list). |
 | `attachments` | `attachments` | Same shape: `filename` plus `content` or `path`, and `contentId` for inline images. Up to 20 files and 30 MB. Not on the batch endpoint, same as Resend. See [Attachments](/email/attachments). |
-| `scheduledAt` | none | Not supported. Queue the send from your own scheduler. |
+| `scheduledAt` | `scheduledAt` | Same field, with one restriction: Retransmit takes an ISO 8601 instant with an offset, not natural language like `"in 1 min"`. Rescheduling is `PATCH /v1/emails/:id` and cancelling is `POST /v1/emails/:id/cancel`, as on Resend. See [Schedule Email](/email/schedule). |
 | `idempotencyKey` | `idempotencyKey` | Same `Idempotency-Key` header, same 24 hour window and `409` codes. Passed as the second argument in both SDKs. See [Idempotency](/email/send#idempotency). |
 | none | `marketing` | Hosted unsubscribe link and suppression list. See [Marketing Email](/email/marketing-email). |
+| none | `bounceReason` | On a retrieved email, why a bounce happened, classified from the receiving server's SMTP response. See [Bounce reasons](/email/get#bounce-reasons). |
 
 ## Cutting over
 
