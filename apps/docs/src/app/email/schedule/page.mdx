@@ -14,11 +14,21 @@ POST   /v1/emails/:id/cancel # stop it
 ## Scheduling a send
 
 `scheduled_at` is an ISO 8601 instant with an offset, such as
-`2026-09-20T09:00:00Z` or `2026-09-20T11:00:00+02:00`. A bare local time like
-`2026-09-20T09:00:00` is rejected: it would mean one instant on your clock and
-another on ours, and an email that goes out at the wrong hour is the one
-mistake a scheduled send cannot make. Convert to an instant first, in whatever
-timezone you mean.
+`2026-09-20T09:00:00Z` or `2026-09-20T11:00:00+02:00`. In JavaScript that is
+what `Date.toISOString()` gives you:
+
+```ts
+// An hour from now.
+const inAnHour = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+// A fixed time.
+const onTheDay = new Date("2026-09-20T09:00:00Z").toISOString();
+```
+
+A bare local time like `2026-09-20T09:00:00` is rejected: it would mean one
+instant on your clock and another on ours, and an email that goes out at the
+wrong hour is the one mistake a scheduled send cannot make. Convert to an
+instant first, in whatever timezone you mean.
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
@@ -28,7 +38,7 @@ const { data, error } = await retransmit.emails.send({
   to: "user@example.com",
   subject: "Your trial ends tomorrow",
   html: "<p>Here is what happens next.</p>",
-  scheduledAt: "2026-09-20T09:00:00Z",
+  scheduledAt: new Date("2026-09-20T09:00:00Z").toISOString(),
 });
 ```
 </Tabs.Tab>
@@ -83,7 +93,7 @@ redoing all three; send a new email instead.
 <Tabs.Tab>
 ```ts
 const { data, error } = await retransmit.emails.reschedule("em_xxxxxxxxxxxx", {
-  scheduledAt: "2026-09-21T09:00:00Z",
+  scheduledAt: new Date("2026-09-21T09:00:00Z").toISOString(),
 });
 ```
 </Tabs.Tab>

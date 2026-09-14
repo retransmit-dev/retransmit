@@ -47,6 +47,11 @@ export function readIdempotencyKey(
 /** JSON with object keys sorted at every level, so equal payloads hash equally. */
 export function stableStringify(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  // Before the object branch: a Date has no own enumerable properties, so it
+  // would serialise to `{}` and every date would hash alike. A body carrying
+  // a parsed `scheduled_at` would then replay a send scheduled for a
+  // different time instead of rejecting it.
+  if (value instanceof Date) return JSON.stringify(value.toISOString());
   if (value !== null && typeof value === "object") {
     const entries = Object.entries(value as Record<string, unknown>)
       .filter(([, item]) => item !== undefined)

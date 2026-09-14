@@ -53,7 +53,11 @@ function EmailDetailsBody({ emailId }: { emailId: string }) {
           {email && <EmailStatusBadge status={email.status} />}
         </DialogTitle>
         <DialogDescription>
-          {email ? `Sent ${formatDateTime(email.createdAt)}` : null}
+          {email
+            ? email.status === "scheduled" && email.scheduledAt
+              ? `Scheduled for ${formatDateTime(email.scheduledAt)}`
+              : `Sent ${formatDateTime(email.createdAt)}`
+            : null}
         </DialogDescription>
       </DialogHeader>
 
