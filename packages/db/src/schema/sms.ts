@@ -25,6 +25,23 @@ export type SmsStatus = (typeof SMS_STATUSES)[number];
 export const SMS_PROVIDER_NAMES = ["mtn", "orange", "sns"] as const;
 export type SmsProviderName = (typeof SMS_PROVIDER_NAMES)[number];
 
+/** Transactional purposes an approved SMS program may send. */
+export const SMS_PURPOSES = ["otp", "security", "account", "reminder", "status_update"] as const;
+export type SmsPurpose = (typeof SMS_PURPOSES)[number];
+
+/** How a recipient gave the sender permission to text this number. */
+export const SMS_CONSENT_METHODS = [
+  "web_form",
+  "otp_request",
+  "keyword",
+  "written",
+  "verbal",
+] as const;
+export type SmsConsentMethod = (typeof SMS_CONSENT_METHODS)[number];
+
+export const SMS_SUPPRESSION_REASONS = ["opt_out", "manual", "complaint", "provider"] as const;
+export type SmsSuppressionReason = (typeof SMS_SUPPRESSION_REASONS)[number];
+
 /**
  * Lifecycle of a sender id request. `pending` is the whole point of the
  * table: in most countries the string that shows on the handset has to be
@@ -85,6 +102,22 @@ export const smsSender = pgTable(
     /** Legal entity behind the sender id, and its site. Both go on the filing. */
     companyName: text("company_name"),
     companyWebsite: text("company_website"),
+    /** Public evidence reviewed before this program may send. */
+    optInUrl: text("opt_in_url"),
+    privacyUrl: text("privacy_url"),
+    termsUrl: text("terms_url"),
+    supportEmail: text("support_email"),
+    /** Appended to every outbound message because alphanumeric sender ids cannot receive STOP. */
+    optOutText: text("opt_out_text"),
+    /** Only these declared transactional purposes may be used on the send API. */
+    purposes: jsonb("purposes").$type<SmsPurpose[]>().default([]).notNull(),
+    /** Applicant forecast; retained as part of the compliance review. */
+    expectedDailyVolume: integer("expected_daily_volume"),
+    expectedMonthlyVolume: integer("expected_monthly_volume"),
+    /** Operator-approved caps. Null means the program is not ready to send. */
+    dailyLimit: integer("daily_limit"),
+    monthlyLimit: integer("monthly_limit"),
+    recipientDailyLimit: integer("recipient_daily_limit"),
     /**
      * Upstream reference once filed: an AWS End User Messaging registration
      * id, or a carrier ticket. Null while the request is still on our side.
@@ -121,11 +154,15 @@ export const sms = pgTable(
       onDelete: "cascade",
     }),
     apiKeyId: text("api_key_id").references(() => apiKey.id, { onDelete: "set null" }),
+    /** Approved program/sender whose consent and limits authorize this send. */
+    smsSenderId: text("sms_sender_id").references(() => smsSender.id, { onDelete: "restrict" }),
     /** Sender id shown on the recipient's device (alphanumeric or short code). */
     from: text("from"),
     /** Recipient MSISDNs, normalized E.164 (`+2376...`). */
     to: jsonb("to").$type<string[]>().notNull(),
     text: text("text").notNull(),
+    /** Transactional purpose checked against both the program and recipient consent. */
+    purpose: text("purpose").$type<SmsPurpose>(),
     /** ISO 3166-1 alpha-2 destination country detected from the first recipient. */
     country: text("country"),
     /** Billable message parts (GSM-7: 160/153 chars, UCS-2: 70/67). */
@@ -159,6 +196,72 @@ export const sms = pgTable(
     index("sms_userId_createdAt_idx").on(table.userId, table.createdAt),
     index("sms_providerMessageId_idx").on(table.providerMessageId),
     index("sms_userId_status_idx").on(table.userId, table.status),
+    index("sms_organizationId_senderId_createdAt_idx").on(
+      table.organizationId,
+      table.smsSenderId,
+      table.createdAt,
+    ),
+  ],
+);
+
+/**
+ * Auditable, recipient-specific permission to send one or more message types.
+ * One row is the latest state for a number and approved program; re-consent
+ * updates it and clears optedOutAt rather than erasing the earlier source.
+ */
+export const smsConsent = pgTable(
+  "sms_consent",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    smsSenderId: text("sms_sender_id")
+      .notNull()
+      .references(() => smsSender.id, { onDelete: "cascade" }),
+    phone: text("phone").notNull(),
+    purposes: jsonb("purposes").$type<SmsPurpose[]>().default([]).notNull(),
+    method: text("method").$type<SmsConsentMethod>().notNull(),
+    /** Page, screen, form id, or human-readable source of the consent. */
+    source: text("source").notNull(),
+    /** Exact disclosure shown to the recipient, for a carrier audit. */
+    disclosureText: text("disclosure_text").notNull(),
+    evidenceUrl: text("evidence_url"),
+    consentedAt: timestamp("consented_at").notNull(),
+    confirmedAt: timestamp("confirmed_at"),
+    optedOutAt: timestamp("opted_out_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("smsConsent_org_sender_phone_uidx").on(
+      table.organizationId,
+      table.smsSenderId,
+      table.phone,
+    ),
+    index("smsConsent_organizationId_createdAt_idx").on(table.organizationId, table.createdAt),
+  ],
+);
+
+/** Organization-wide block checked again immediately before provider send. */
+export const smsSuppression = pgTable(
+  "sms_suppression",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    phone: text("phone").notNull(),
+    reason: text("reason").$type<SmsSuppressionReason>().notNull(),
+    source: text("source").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("smsSuppression_org_phone_uidx").on(table.organizationId, table.phone),
+    index("smsSuppression_organizationId_createdAt_idx").on(table.organizationId, table.createdAt),
   ],
 );
 
@@ -180,6 +283,7 @@ export const smsEvent = pgTable(
 export const smsRelations = relations(sms, ({ one, many }) => ({
   user: one(user, { fields: [sms.userId], references: [user.id] }),
   apiKey: one(apiKey, { fields: [sms.apiKeyId], references: [apiKey.id] }),
+  sender: one(smsSender, { fields: [sms.smsSenderId], references: [smsSender.id] }),
   events: many(smsEvent),
 }));
 
@@ -193,4 +297,19 @@ export const smsSenderRelations = relations(smsSender, ({ one }) => ({
     references: [organization.id],
   }),
   user: one(user, { fields: [smsSender.userId], references: [user.id] }),
+}));
+
+export const smsConsentRelations = relations(smsConsent, ({ one }) => ({
+  organization: one(organization, {
+    fields: [smsConsent.organizationId],
+    references: [organization.id],
+  }),
+  sender: one(smsSender, { fields: [smsConsent.smsSenderId], references: [smsSender.id] }),
+}));
+
+export const smsSuppressionRelations = relations(smsSuppression, ({ one }) => ({
+  organization: one(organization, {
+    fields: [smsSuppression.organizationId],
+    references: [organization.id],
+  }),
 }));

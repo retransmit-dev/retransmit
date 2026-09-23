@@ -13,7 +13,7 @@ import { RequestSenderDialog } from "./request-sender-dialog";
 import { SendersTable } from "./senders-table";
 
 /**
- * Sender ids are the only thing a customer sets up for SMS. There is no
+ * Approved SMS programs are the thing a customer sets up for SMS. There is no
  * "add provider" step on purpose: which carrier carries a message is a cost
  * decision Retransmit makes per destination, and one API key still covers
  * every channel. What a customer cannot send without is a name the carriers
@@ -33,7 +33,7 @@ export function SendersView() {
         actions={
           <Button onClick={() => setRequestOpen(true)}>
             <PlusIcon />
-            Request sender id
+            Request program
           </Button>
         }
       />
@@ -44,12 +44,12 @@ export function SendersView() {
         <Alert>
           <InfoIcon />
           <AlertTitle>
-            {hasPending ? "Your request is with the carriers" : "Messages need an approved sender id"}
+            {hasPending ? "Your program is under review" : "Messages need an approved SMS program"}
           </AlertTitle>
           <AlertDescription>
             {hasPending
-              ? "Registration takes a few days. Until it clears, sends fall back to a shared default sender, which some carriers filter."
-              : "Carriers decide what name appears on a handset, per country. Request one here and Retransmit files the registration — you never need an AWS or carrier account."}
+              ? "Sending remains blocked until the sender identity, public opt-in, policy pages, message purposes, and volume limits are approved."
+              : "Request a Cameroon program with the public consent flow and transactional purposes recipients explicitly choose."}
           </AlertDescription>
         </Alert>
       )}

@@ -1,169 +1,61 @@
 # SMS
 
-Send SMS with the same API key and SDK you use for email. Retransmit detects
-the destination country and routes the message to an available provider.
+Retransmit launches production SMS with a deliberately narrow scope: approved
+transactional programs sending to recipients in Cameroon who specifically
+requested the messages. Promotional and purchased-list traffic is not accepted.
 
-## Send a message
+## Required flow
 
-```ts
-import { Retransmit } from "retransmit.dev";
-
-const retransmit = new Retransmit(process.env.RETRANSMIT_API_KEY);
-
-const { data, error } = await retransmit.sms.send({
-  from: "Acme",
-  to: "+237670000000",
-  text: "Your order is ready for pickup.",
-});
-```
-
-Recipients must be in international E.164 format, such as `+237670000000`.
-One request takes up to 50 recipients, all in the same country.
-
-## Sender IDs
-
-`from` is the name that appears on the recipient's handset instead of a phone
-number. Request it in the dashboard under **SMS > Sender IDs**, and pass it as
-`from` once it is approved.
-
-A request asks for three things:
-
-- **The name.** 3 to 11 letters, digits, spaces, hyphens, or underscores.
-- **The countries you send to.** Approval is per country.
-- **The region.** Where the name is registered. Pick the one closest to your
-  recipients; it cannot be changed afterwards.
-
-In most countries that is the whole form: the carriers there take the name as
-it is. The country picker says which kind each destination is, **No
-registration needed** or **Carrier registration required**. Picking one of the
-second kind adds three questions, because they go on the filing the carriers
-read:
-
-- What you send.
-- A sample message. Registrations are rejected when the sample does not match
-  the traffic.
-- The legal entity behind the name, and its website if it has one.
-
-Those three are required only while a registration country is selected.
-Retransmit asks for nothing its providers do not, so a request that only
-targets countries with no registration needs nothing but the name and the
-destinations.
-
-Approval follows the same split. Where no registration is involved, it is ours
-to give and is usually same-day. Where a carrier files it, it takes a few days
-and the request sits `pending` until the carriers clear it.
-
-You do not need an AWS or carrier account. Retransmit holds the provider
-relationships, so one API key still covers every channel.
-
-Once approved, pass the name as `from`:
+1. Request a program in **SMS > Programs** with the business identity, public
+   opt-in page, privacy policy, SMS terms, representative content, purposes,
+   and forecast volume.
+2. An operator verifies the evidence and sets hard daily, monthly, and
+   per-recipient caps. Sending remains blocked while the program is pending.
+3. When a recipient affirmatively opts in, call
+   [`POST /v1/sms/consents`](/sms/consent) with the exact disclosure they saw,
+   the source, timestamp, and purposes they selected.
+4. Send with the approved `from` and one matching transactional `purpose`.
+5. Submit every opt-out immediately through
+   [`POST /v1/sms/opt-outs`](/sms/consent). Suppression applies across the
+   organization, not only one program.
 
 ```ts
 const { data, error } = await retransmit.sms.send({
-  from: "Acme",
+  from: "DISCOLAIRE",
   to: "+237670000000",
-  text: "Your order is ready for pickup.",
+  text: "Your verification code is 482913. It expires in 10 minutes.",
+  purpose: "otp",
 });
 ```
 
-Rules:
+Retransmit prefixes the message with the approved program identity and appends
+the reviewed one-way opt-out and support instructions. It rejects sends outside
+Cameroon, unapproved purposes, missing consent, suppressed recipients, volume
+caps, and non-urgent traffic outside 08:00–20:00 Africa/Douala. The worker
+checks consent and suppression again immediately before provider delivery.
 
-- A sender ID approved for one country does not work in another. Request each
-  country you send to.
-- Messages carrying a sender ID go out of the region it was registered in. You
-  do not pass the region on a send; the name carries it.
-- Sending with a name you have not had approved returns `422 sender_not_allowed`.
-- Omit `from` and Retransmit uses your approved sender for that country. If you
-  have none, the message goes out under a shared default, which some carriers
-  filter.
+## Transactional purposes
 
-The United States, Canada, and Mexico do not accept alphanumeric sender IDs at
-all. Those destinations need a number, which Retransmit does not offer yet.
+Programs may request only these purposes:
 
-## Routing and availability
+- `otp` — one-time passwords and phone verification
+- `security` — account and login security alerts
+- `account` — service and account notifications
+- `reminder` — user-requested reminders
+- `status_update` — user-requested workflow or service status
 
-Retransmit reads the destination country from the recipient number and picks
-the cheapest provider that covers it. Direct carrier integrations (MTN and
-Orange in Cameroon) come first where they exist; AWS End User Messaging is the
-global fallback for every other destination. If no provider covers that country, the
-request returns `422 no_route` and nothing is queued.
+There is no marketing purpose. A purpose must be approved for the program and
+selected in the recipient's consent record.
 
-For mixed-country recipient lists, send one request per country.
+## Routing
 
-## Choosing a provider
-
-You do not have to guess which carrier fits a number. Leave `provider` out and
-Retransmit routes the message for you.
-
-Pass it when you need one specific carrier, for example because your sender ID
-is registered there or a customer's number is on that network. `sns` is the
-one that reaches every destination, so it is the safe value to pin:
-
-```ts
-const { data, error } = await retransmit.sms.send({
-  to: "+237670000000",
-  text: "Your order is ready for pickup.",
-  provider: "sns",
-});
-```
-
-| Value | Carrier |
-| --- | --- |
-| `sns` | AWS End User Messaging. Covers every destination |
-| `mtn` | MTN, in every country we have an MTN integration for |
-| `orange` | Orange, in every country we have an Orange integration for |
-
-The value is the carrier, not one of its country operations, so a request keeps
-working as we add more countries for that carrier. A pinned send never falls
-back to another provider: if that carrier cannot deliver to the destination,
-the request returns `422 no_route`.
-
-The route a message actually took is returned as `provider` on
-[Get SMS](/sms/get). That field is more specific than what you send, naming the
-country operation: `mtn_cm`, `orange_cm` or `aws_sns`. What you asked for comes
-back as `requested_provider`.
-
-## Message segments
-
-SMS is billed per segment, not per request. The send response includes
-`segments`, the number of billable GSM-7 or UCS-2 parts. Unicode characters
-reduce how many characters fit in each segment.
-
-```json
-{
-  "id": "sms_xxxxxxxxxxxx",
-  "status": "queued",
-  "country": "CM",
-  "segments": 1,
-  "created_at": "2026-09-01T12:00:00.000Z"
-}
-```
-
-## What a message costs
-
-SMS is pay as you go on every plan: there is no included volume, and a
-[payment method](https://app.retransmit.dev/settings/billing) is required
-before the first send. Without one a send fails with
-[`402 quota_exceeded`](/api-reference/errors).
-
-The rate is **per segment and per recipient, and depends on the destination
-country** — carrier costs differ by more than a hundredfold between the
-cheapest and dearest destinations, so a single rate would be meaningless. A
-three-segment message to ten recipients bills thirty segments at that
-country's rate.
-
-Which carrier Retransmit routes through never changes what you pay. Routing
-picks the cheapest carrier covering the destination; the rate is fixed per
-country, so the same message costs the same whichever route it takes.
-
-Usage appears on your monthly invoice as a single SMS line, and the running
-total for the period is on the
-[billing page](https://app.retransmit.dev/settings/billing).
+Recipients use Cameroon E.164 numbers such as `+237670000000`. Retransmit routes
+through a configured Cameroon provider; AWS traffic uses the Africa (Cape Town)
+region and an AWS Protect configuration that allows Cameroon while blocking
+other destinations. A pinned provider never falls back if it cannot deliver.
 
 ## Track delivery
 
-Poll `retransmit.sms.get(id)` or [`GET /v1/sms/:id`](/sms/get) for the
-current status and event history. For push updates, subscribe to `sms.sent`,
-`sms.delivered`, `sms.undelivered`, and `sms.failed` [webhooks](/webhooks).
-
-See [Send SMS](/sms/send) for the full request contract.
+Poll `retransmit.sms.get(id)` or [`GET /v1/sms/:id`](/sms/get) for status and
+events. Subscribe to `sms.sent`, `sms.delivered`, `sms.undelivered`, and
+`sms.failed` [webhooks](/webhooks) for push updates.

@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
   Empty,
   EmptyDescription,
@@ -22,7 +23,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -186,6 +186,9 @@ function ReviewDialog({
   const [registrationId, setRegistrationId] = useState("");
   const [region, setRegion] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [dailyLimit, setDailyLimit] = useState("");
+  const [monthlyLimit, setMonthlyLimit] = useState("");
+  const [recipientDailyLimit, setRecipientDailyLimit] = useState("3");
 
   const reviewMutation = useMutation(
     trpc.smsSender.review.mutationOptions({
@@ -196,6 +199,9 @@ function ReviewDialog({
         setRegistrationId("");
         setRegion(null);
         setNote("");
+        setDailyLimit("");
+        setMonthlyLimit("");
+        setRecipientDailyLimit("3");
       },
     }),
   );
@@ -205,9 +211,20 @@ function ReviewDialog({
   // Defaults to what the customer asked for; changed only when the
   // registration actually landed somewhere else.
   const selectedRegion = region ?? row.region;
+  const approvedDailyLimit = Number(dailyLimit || row.expectedDailyVolume || 0);
+  const approvedMonthlyLimit = Number(monthlyLimit || row.expectedMonthlyVolume || 0);
+  const approvedRecipientLimit = Number(recipientDailyLimit);
   // A rejection the customer cannot act on is worse than none, so the reason
   // is required here as well as on the server.
-  const canSubmit = approve || note.trim().length > 0;
+  const canSubmit = approve
+    ? selectedRegion === "af-south-1" &&
+      Number.isInteger(approvedDailyLimit) &&
+      approvedDailyLimit > 0 &&
+      Number.isInteger(approvedMonthlyLimit) &&
+      approvedMonthlyLimit >= approvedDailyLimit &&
+      Number.isInteger(approvedRecipientLimit) &&
+      approvedRecipientLimit > 0
+    : note.trim().length > 0;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -230,9 +247,50 @@ function ReviewDialog({
             </p>
           </div>
 
+          <div className="grid gap-3 rounded-md border p-3 text-sm sm:grid-cols-2">
+            <p>
+              <span className="block font-medium">Purposes</span>
+              <span className="text-muted-foreground">{row.purposes.join(", ")}</span>
+            </p>
+            <p>
+              <span className="block font-medium">Expected volume</span>
+              <span className="text-muted-foreground">
+                {row.expectedDailyVolume ?? "—"}/day · {row.expectedMonthlyVolume ?? "—"}/month
+              </span>
+            </p>
+            {[
+              ["Opt-in", row.optInUrl],
+              ["Privacy", row.privacyUrl],
+              ["SMS terms", row.termsUrl],
+              ["Website", row.companyWebsite],
+            ].map(([label, href]) => (
+              <p key={label}>
+                <span className="block font-medium">{label}</span>
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="break-all text-muted-foreground underline underline-offset-2"
+                  >
+                    {href}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">Missing</span>
+                )}
+              </p>
+            ))}
+            <p className="sm:col-span-2">
+              <span className="block font-medium">Support and opt-out</span>
+              <span className="text-muted-foreground">
+                {row.supportEmail ?? "Missing"} · {row.optOutText ?? "Missing"}
+              </span>
+            </p>
+          </div>
+
           {approve && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="registration-id">Registration reference</Label>
+            <Field>
+              <FieldLabel htmlFor="registration-id">Registration reference</FieldLabel>
               <Input
                 id="registration-id"
                 placeholder="AWS registration id or carrier ticket"
@@ -240,15 +298,15 @@ function ReviewDialog({
                 onChange={(e) => setRegistrationId(e.target.value)}
                 disabled={reviewMutation.isPending}
               />
-              <p className="text-xs text-muted-foreground">
+              <FieldDescription>
                 What was filed upstream, so this row can be traced back to it later.
-              </p>
-            </div>
+              </FieldDescription>
+            </Field>
           )}
 
           {approve && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="review-region">Region</Label>
+            <Field>
+              <FieldLabel htmlFor="review-region">Region</FieldLabel>
               <RegionSelect
                 id="review-region"
                 regions={regions.data?.regions}
@@ -257,15 +315,60 @@ function ReviewDialog({
                 loading={regions.isLoading}
                 disabled={reviewMutation.isPending}
               />
-              <p className="text-xs text-muted-foreground">
+              <FieldDescription>
                 Where the origination identity actually lives. Correct it if the registration
                 landed somewhere other than {row.region}, or every send with this name fails.
-              </p>
-            </div>
+              </FieldDescription>
+            </Field>
           )}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="review-note">{approve ? "Note (optional)" : "Reason"}</Label>
+          {approve && (
+            <FieldGroup>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field>
+                  <FieldLabel htmlFor="review-daily-limit">Daily cap</FieldLabel>
+                  <Input
+                    id="review-daily-limit"
+                    type="number"
+                    min={1}
+                    value={dailyLimit || row.expectedDailyVolume || ""}
+                    onChange={(event) => setDailyLimit(event.target.value)}
+                    disabled={reviewMutation.isPending}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="review-monthly-limit">Monthly cap</FieldLabel>
+                  <Input
+                    id="review-monthly-limit"
+                    type="number"
+                    min={1}
+                    value={monthlyLimit || row.expectedMonthlyVolume || ""}
+                    onChange={(event) => setMonthlyLimit(event.target.value)}
+                    disabled={reviewMutation.isPending}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="review-recipient-limit">Per recipient/day</FieldLabel>
+                  <Input
+                    id="review-recipient-limit"
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={recipientDailyLimit}
+                    onChange={(event) => setRecipientDailyLimit(event.target.value)}
+                    disabled={reviewMutation.isPending}
+                  />
+                </Field>
+              </div>
+              <FieldDescription>
+                Hard application limits. Start at or below the reviewed forecast and raise only
+                after another review.
+              </FieldDescription>
+            </FieldGroup>
+          )}
+
+          <Field>
+            <FieldLabel htmlFor="review-note">{approve ? "Note (optional)" : "Reason"}</FieldLabel>
             <Textarea
               id="review-note"
               placeholder={
@@ -278,10 +381,8 @@ function ReviewDialog({
               rows={3}
               disabled={reviewMutation.isPending}
             />
-            {!approve && (
-              <p className="text-xs text-muted-foreground">The customer reads this.</p>
-            )}
-          </div>
+            {!approve && <FieldDescription>The customer reads this.</FieldDescription>}
+          </Field>
         </div>
 
         <DialogFooter>
@@ -293,16 +394,21 @@ function ReviewDialog({
                 id: row.id,
                 status: approve ? "approved" : "rejected",
                 registrationId: registrationId.trim() || undefined,
-                region: approve
-                  ? (selectedRegion as NonNullable<
-                      typeof regions.data
-                    >["regions"][number]["id"])
-                  : undefined,
+                region: approve && selectedRegion === "af-south-1" ? selectedRegion : undefined,
                 note: note.trim() || undefined,
+                dailyLimit: approve ? approvedDailyLimit : undefined,
+                monthlyLimit: approve ? approvedMonthlyLimit : undefined,
+                recipientDailyLimit: approve ? approvedRecipientLimit : undefined,
               })
             }
           >
-            {reviewMutation.isPending ? <Spinner /> : approve ? <CheckIcon /> : <XIcon />}
+            {reviewMutation.isPending ? (
+              <Spinner data-icon="inline-start" />
+            ) : approve ? (
+              <CheckIcon data-icon="inline-start" />
+            ) : (
+              <XIcon data-icon="inline-start" />
+            )}
             {approve ? "Approve" : "Reject"}
           </Button>
         </DialogFooter>

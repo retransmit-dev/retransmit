@@ -52,8 +52,7 @@ const EVENT_TYPES = [
   "email.failed",
 ] as const;
 
-// `sns` first: it is the route that covers every destination, so it is the
-// value to reach for when a send has to be pinned at all.
+// `sns` first because AWS is the primary Cameroon launch route.
 const SMS_PROVIDERS = ["sns", "mtn", "orange"] as const;
 
 const SMS_STATUSES = [
@@ -164,7 +163,10 @@ export const OPENAPI_DOCUMENT = {
   security: [{ bearerAuth: [] }],
   tags: [
     { name: "Emails", description: "Send email and read delivery state." },
-    { name: "Sms", description: "Send SMS and read delivery state." },
+    {
+      name: "Sms",
+      description: "Record consent, enforce opt-outs, send transactional SMS, and read delivery state.",
+    },
     { name: "Whatsapp", description: "Send WhatsApp messages and read delivery state." },
     { name: "Service", description: "Unauthenticated service endpoints." },
   ],
@@ -592,13 +594,73 @@ export const OPENAPI_DOCUMENT = {
         },
       },
     },
+    "/v1/sms/consents": {
+      post: {
+        operationId: "recordSmsConsent",
+        tags: ["Sms"],
+        summary: "Record recipient SMS consent",
+        description:
+          "Records the exact disclosure, source, time, approved program, and transactional purposes selected by a Cameroon recipient. A matching active record must exist before an SMS can be queued.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/RecordSmsConsentRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Consent recorded or refreshed.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/SmsConsent" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "422": errorResponse(
+            "The program or purpose is not approved, the number is outside Cameroon, or consent evidence is invalid.",
+          ),
+        },
+      },
+    },
+    "/v1/sms/opt-outs": {
+      post: {
+        operationId: "optOutSmsRecipient",
+        tags: ["Sms"],
+        summary: "Suppress an SMS recipient",
+        description:
+          "Immediately adds the number to the organization-wide SMS suppression list and revokes all active program consents for it.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/OptOutSmsRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Recipient suppressed.",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/SmsOptOut" },
+              },
+            },
+          },
+          "401": errorResponse("Missing, invalid, or revoked API key."),
+          "422": errorResponse("The number or opt-out evidence is invalid."),
+        },
+      },
+    },
     "/v1/sms": {
       post: {
         operationId: "sendSms",
         tags: ["Sms"],
         summary: "Queue one SMS",
         description:
-          "Returns 202 immediately; a worker sends it with retries and a dead-letter queue. The destination country is detected from the number prefix and the message is routed to the cheapest configured provider for that country, unless `provider` names one. All recipients in one request must be in the same country. Poll GET /v1/sms/{id} or subscribe to webhooks for the outcome.",
+          "Queues transactional SMS only for Cameroon recipients with matching active consent. `from` must identify an approved SMS program and `purpose` must be approved for both the program and recipient. Retransmit adds program identification and opt-out instructions, enforces quiet hours and volume limits, then a worker rechecks consent and suppression immediately before delivery.",
         requestBody: {
           required: true,
           content: {
@@ -621,8 +683,11 @@ export const OPENAPI_DOCUMENT = {
           "402": errorResponse(
             "SMS is pay as you go and the account has no payment method (`quota_exceeded`).",
           ),
+          "429": errorResponse(
+            "The approved program, organization, or recipient volume limit was reached (`sms_rate_limit`).",
+          ),
           "422": errorResponse(
-            "Schema validation failed (`validation_error`), recipients span countries (`validation_error`), no provider — or not the requested one — is configured for the destination (`no_route`), or `from` is not an approved sender id for the destination country (`sender_not_allowed`).",
+            "Validation failed; the country is not allowed; the program or purpose is not approved; consent is missing; the recipient opted out; quiet hours apply; or no configured provider covers Cameroon.",
           ),
           "500": errorResponse("Unexpected server error."),
         },
@@ -1078,7 +1143,7 @@ export const OPENAPI_DOCUMENT = {
       },
       SendSmsRequest: {
         type: "object",
-        required: ["to", "text"],
+        required: ["from", "to", "text", "purpose"],
         properties: {
           from: {
             type: "string",
@@ -1086,11 +1151,11 @@ export const OPENAPI_DOCUMENT = {
             maxLength: 11,
             pattern: "^[a-zA-Z0-9 _-]+$",
             description:
-              "Sender id shown on the device. Must be one your organization has had approved for the destination country (SMS > Sender IDs in the dashboard); the request fails with `sender_not_allowed` otherwise. Omit it to use your approved sender for that country, or the provider default when you have none.",
+              "Approved Cameroon SMS program and sender identity shown on the device. Shared or provider-default senders are not used.",
           },
           to: {
             description:
-              "One recipient or up to 50, in international format, e.g. +237670000000. Each number is checked against its country's numbering plan and rejected if it does not fit. All recipients must be in the same country.",
+              "One Cameroon recipient or up to 50, in international format, e.g. +237670000000. Every number needs active consent for the same program and purpose.",
             oneOf: [
               { type: "string" },
               {
@@ -1101,14 +1166,80 @@ export const OPENAPI_DOCUMENT = {
               },
             ],
           },
-          text: { type: "string", minLength: 1, maxLength: 1600 },
+          text: { type: "string", minLength: 1, maxLength: 1500 },
+          purpose: {
+            type: "string",
+            enum: ["otp", "security", "account", "reminder", "status_update"],
+            description: "Transactional purpose approved for the program and selected by the recipient.",
+          },
           provider: {
             type: "string",
             enum: [...SMS_PROVIDERS],
             example: "sns",
             description:
-              "Pins the send to one carrier instead of letting Retransmit route by country and price. `sns` (AWS End User Messaging) reaches every destination; `mtn` and `orange` only the countries we have that carrier in. The request fails with `no_route` when that carrier cannot deliver to the destination.",
+              "Pins the send to one configured Cameroon carrier. `sns` is AWS End User Messaging with a required Cameroon-only Protect configuration. The request fails with `no_route` when the selected carrier cannot deliver.",
           },
+        },
+      },
+      RecordSmsConsentRequest: {
+        type: "object",
+        required: ["from", "phone", "purposes", "method", "source", "disclosure_text"],
+        properties: {
+          from: { type: "string", description: "Approved SMS program sender ID." },
+          phone: { type: "string", example: "+237670000000" },
+          purposes: {
+            type: "array",
+            minItems: 1,
+            items: {
+              type: "string",
+              enum: ["otp", "security", "account", "reminder", "status_update"],
+            },
+          },
+          method: {
+            type: "string",
+            enum: ["web_form", "otp_request", "keyword", "written", "verbal"],
+          },
+          source: { type: "string", description: "Form, workflow, or staff-recorded source." },
+          disclosure_text: {
+            type: "string",
+            description: "Exact consent disclosure shown or read to the recipient.",
+          },
+          evidence_url: { type: "string", format: "uri" },
+          consented_at: { type: "string", format: "date-time" },
+          confirmed_at: { type: "string", format: "date-time" },
+        },
+      },
+      SmsConsent: {
+        type: "object",
+        required: ["id", "phone", "from", "purposes", "consented_at"],
+        properties: {
+          id: { type: "string" },
+          phone: { type: "string" },
+          from: { type: "string" },
+          purposes: { type: "array", items: { type: "string" } },
+          consented_at: { type: "string", format: "date-time" },
+        },
+      },
+      OptOutSmsRequest: {
+        type: "object",
+        required: ["phone", "source"],
+        properties: {
+          phone: { type: "string", example: "+237670000000" },
+          reason: {
+            type: "string",
+            enum: ["opt_out", "manual", "complaint", "provider"],
+            default: "opt_out",
+          },
+          source: { type: "string", description: "Where the opt-out request was received." },
+        },
+      },
+      SmsOptOut: {
+        type: "object",
+        required: ["id", "phone", "opted_out_at"],
+        properties: {
+          id: { type: "string" },
+          phone: { type: "string" },
+          opted_out_at: { type: "string", format: "date-time" },
         },
       },
       QueuedSms: {

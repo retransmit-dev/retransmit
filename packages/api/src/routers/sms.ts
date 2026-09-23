@@ -1,12 +1,23 @@
 import { checkPaymentMethod, logRetentionCutoff } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
-import { SMS_PROVIDER_NAMES, SMS_STATUSES, sms, smsEvent } from "@retransmit/db/schema/sms";
+import {
+  SMS_PROVIDER_NAMES,
+  SMS_PURPOSES,
+  SMS_STATUSES,
+  sms,
+  smsEvent,
+} from "@retransmit/db/schema/sms";
 import type { SmsStatus } from "@retransmit/db/schema/sms";
 import { enqueueSmsSend } from "@retransmit/queue";
 import { detectCountry, normalizePhone, smsSegments } from "@retransmit/sms/phone";
 import { providerFamilies, providerLabel, selectProvider } from "@retransmit/sms/provider";
-import { DEFAULT_SMS_REGION, SMS_REGIONS, SMS_REGION_IDS } from "@retransmit/sms/regions";
+import {
+  allowedSmsCountries,
+  checkSmsCompliance,
+  formatProgramMessage,
+} from "@retransmit/sms/compliance";
+import { DEFAULT_SMS_REGION, SMS_REGIONS } from "@retransmit/sms/regions";
 import { SenderNotAllowedError, resolveSender } from "@retransmit/sms/senders";
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, desc, eq, gte, ilike, lt, lte, or, sql } from "drizzle-orm";
@@ -162,7 +173,7 @@ export const smsRouter = router({
    * one region over.
    */
   regions: protectedProcedure.query(() => ({
-    regions: SMS_REGIONS,
+    regions: SMS_REGIONS.filter((region) => region.id === "af-south-1"),
     defaultRegion: DEFAULT_SMS_REGION,
   })),
 
@@ -174,9 +185,10 @@ export const smsRouter = router({
   sendTest: orgProcedure
     .input(
       z.object({
-        from: senderId.optional(),
+        from: senderId,
         to: z.string().trim().min(5),
-        text: z.string().min(1).max(1600),
+        text: z.string().min(1).max(1500),
+        purpose: z.enum(SMS_PURPOSES),
         /** Pins the send to one carrier; omit to route by country and price. */
         provider: z.enum(SMS_PROVIDER_NAMES).optional(),
         /**
@@ -184,7 +196,7 @@ export const smsRouter = router({
          * would never pick. Ignored by the direct carrier routes, which have
          * no region.
          */
-        region: z.enum(SMS_REGION_IDS).optional(),
+        region: z.literal("af-south-1").optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -207,6 +219,12 @@ export const smsRouter = router({
         });
       }
       const country = detectCountry(to);
+      if (!country || !allowedSmsCountries().has(country)) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "SMS production access is currently limited to Cameroon",
+        });
+      }
       const provider = selectProvider(country, input.provider);
       if (!provider) {
         throw new TRPCError({
@@ -221,8 +239,13 @@ export const smsRouter = router({
       // sender id as well as the route.
       let from: string | null;
       let senderRegion: string | null;
+      let program: Awaited<ReturnType<typeof resolveSender>>["program"];
       try {
-        ({ from, region: senderRegion } = await resolveSender(ctx.org.id, country, input.from));
+        ({ from, region: senderRegion, program } = await resolveSender(
+          ctx.org.id,
+          country,
+          input.from,
+        ));
       } catch (cause) {
         if (cause instanceof SenderNotAllowedError) {
           throw new TRPCError({ code: "FORBIDDEN", message: cause.message });
@@ -240,6 +263,23 @@ export const smsRouter = router({
         });
       }
       const region = input.region ?? senderRegion;
+      const complianceFailure = await checkSmsCompliance({
+        organizationId: ctx.org.id,
+        program,
+        recipients: [to],
+        purpose: input.purpose,
+        country,
+      });
+      if (complianceFailure) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: complianceFailure.message });
+      }
+      const text = formatProgramMessage(program, input.text);
+      if (text.length > 1600) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Message is too long after the required brand and opt-out footer",
+        });
+      }
 
       const id = createId("sms");
       const [created] = await db
@@ -248,12 +288,14 @@ export const smsRouter = router({
           id,
           userId: ctx.session.user.id,
           organizationId: ctx.org.id,
+          smsSenderId: program.id,
           from,
           to: [to],
-          text: input.text,
+          text,
+          purpose: input.purpose,
           country,
           region,
-          segments: smsSegments(input.text),
+          segments: smsSegments(text),
           requestedProvider: input.provider,
         })
         .returning();

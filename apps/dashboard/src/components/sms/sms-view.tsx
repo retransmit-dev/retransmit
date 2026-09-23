@@ -51,7 +51,7 @@ export function SmsView({
               render={<Link href="/sms/senders" />}
             >
               <BadgeCheckIcon />
-              Sender IDs
+              Programs
             </Button>
             {isAdmin && (
               <Button

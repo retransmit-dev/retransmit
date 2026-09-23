@@ -92,8 +92,13 @@ const smsSection: NavSection = {
   items: [
     {
       href: "/sms/senders",
-      title: "Sender IDs",
-      description: "Request the name your messages arrive from.",
+      title: "Programs",
+      description: "Request a reviewed sender, consent flow, and sending limits.",
+    },
+    {
+      href: "/sms/recipients",
+      title: "Consent & opt-outs",
+      description: "Record recipient consent and enforce the suppression list.",
     },
     {
       href: "/sms/test",

@@ -12,9 +12,8 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
  * (https://docs.aws.amazon.com/sms-voice/latest/userguide/what-is-service.html),
  * the service that took over SMS from Amazon SNS.
  *
- * It reaches every country AWS sells SMS in, so this provider is the global
- * fallback: it covers any destination, and the price makes the cheaper carrier
- * integrations (MTN, Orange) win wherever they are configured. The routing key
+ * The hosted launch exposes this provider only for an explicit country
+ * allowlist (Cameroon by default). The routing key
  * stays `aws_sns` and the public provider name stays `sns` because both are
  * persisted on every row already sent.
  *
@@ -38,15 +37,12 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from "../provider";
  *   destination that feeds delivery receipts back to
  *   `/v1/callbacks/sms/sns`. Without it a send still goes out, but its status
  *   never moves past `sent`. Created by `infra/setup-sms.sh`.
- * - `SNS_SMS_SENDER_ID` — default origination identity when the message
- *   carries no approved sender id of its own. Registered per country where
- *   carriers require it.
- * - `SNS_SMS_ORIGINATION_NUMBER` — a number owned in the region, used instead
- *   of a sender id for countries that reject alphanumeric ids (US, CA, ...).
+ * - `SNS_SMS_PROTECT_CONFIGURATION_ID` — AWS Protect configuration attached
+ *   to this request. For the initial launch its country rules allow Cameroon
+ *   and block every other destination.
  * - `SNS_SMS_TYPE` — `TRANSACTIONAL` (default) or `PROMOTIONAL`.
  * - `SNS_SMS_MAX_PRICE` — USD ceiling per message part; AWS drops sends above it.
- * - `SNS_SMS_COUNTRIES` — optional allowlist of ISO countries, e.g. `US,GB`.
- *   Unset means every destination, including undetected countries.
+ * - `SNS_SMS_COUNTRIES` — destination allowlist. Unset defaults to `CM`.
  * - `SNS_SMS_COST_PER_SMS` — USD price per segment used for routing.
  */
 export interface SnsProviderOptions {
@@ -70,14 +66,16 @@ function getClient(region: string): PinpointSMSVoiceV2Client {
   return client;
 }
 
-function allowedCountries(): Set<string> | null {
+function allowedCountries(): Set<string> {
   const raw = process.env.SNS_SMS_COUNTRIES;
-  if (!raw) return null;
+  // The hosted launch is Cameroon-only. An unset environment must fail
+  // closed, not silently turn AWS back into a worldwide fallback.
+  if (!raw) return new Set(["CM"]);
   const list = raw
     .split(",")
     .map((value) => value.trim().toUpperCase())
     .filter(Boolean);
-  return list.length > 0 ? new Set(list) : null;
+  return list.length > 0 ? new Set(list) : new Set(["CM"]);
 }
 
 export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
@@ -90,16 +88,19 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
   async function sendOne(to: string, message: SmsMessage): Promise<string | undefined> {
     const currentRegion = regionFor(message);
     if (!currentRegion) throw new Error(`${options.name}: SNS_SMS_REGION is not set`);
+    const protectConfigurationId = process.env.SNS_SMS_PROTECT_CONFIGURATION_ID;
+    if (!protectConfigurationId) {
+      throw new Error(`${options.name}: SNS_SMS_PROTECT_CONFIGURATION_ID is not set`);
+    }
 
     // The message's own sender id has already been checked against the
     // organization's approvals (see senders.ts), so it wins. A number beats a
     // sender id where one is configured, because the countries that need a
     // number reject alphanumeric ids outright.
-    const originationIdentity =
-      message.from ??
-      process.env.SNS_SMS_ORIGINATION_NUMBER ??
-      process.env.SNS_SMS_SENDER_ID ??
-      undefined;
+    const originationIdentity = message.from;
+    if (!originationIdentity) {
+      throw new Error(`${options.name}: an approved origination identity is required`);
+    }
     const maxPrice = process.env.SNS_SMS_MAX_PRICE;
 
     const response = await getClient(currentRegion).send(
@@ -111,6 +112,7 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
         ...(process.env.SNS_SMS_CONFIGURATION_SET
           ? { ConfigurationSetName: process.env.SNS_SMS_CONFIGURATION_SET }
           : {}),
+        ProtectConfigurationId: protectConfigurationId,
         ...(maxPrice ? { MaxPrice: maxPrice } : {}),
       }),
     );
@@ -144,18 +146,14 @@ export function createSnsProvider(options: SnsProviderOptions): SmsProvider {
     family: options.family,
     name: options.name,
     isConfigured() {
-      return Boolean(defaultRegion());
+      return Boolean(defaultRegion() && process.env.SNS_SMS_PROTECT_CONFIGURATION_ID);
     },
     countries() {
-      // Null means "every destination": AWS quotes anywhere it sells SMS,
-      // which is what makes this the fallback. An SNS_SMS_COUNTRIES allowlist
-      // narrows that to a fixed set.
-      const allowed = allowedCountries();
-      return allowed ? [...allowed].sort() : null;
+      return [...allowedCountries()].sort();
     },
     costFor(country) {
       const allowed = allowedCountries();
-      if (allowed && (!country || !allowed.has(country))) return null;
+      if (!country || !allowed.has(country)) return null;
       const configured = Number(process.env.SNS_SMS_COST_PER_SMS);
       return Number.isFinite(configured) && configured > 0 ? configured : options.defaultCostUsd;
     },

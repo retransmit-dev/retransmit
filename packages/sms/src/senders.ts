@@ -24,11 +24,12 @@ import { isSmsRegion } from "./regions";
  */
 
 export interface ResolvedSender {
-  /** The string to hand the provider, or null to use the provider default. */
+  /** Approved compliance program backing this origination identity. */
+  program: Awaited<ReturnType<typeof approvedSenders>>[number];
+  /** Approved sender identity handed to the provider. */
   from: string | null;
   /**
-   * Region the sender id is registered in, or null when no sender id matched
-   * and the provider should use its configured default.
+   * Region the sender id is registered in.
    */
   region: SmsRegion | null;
 }
@@ -53,16 +54,15 @@ async function approvedSenders(organizationId: string) {
 function covers(row: { countries: string[] }, country: string | null): boolean {
   // An undetected country cannot be checked against an approval, so only a
   // sender id approved everywhere we know about would qualify — treat it as
-  // no match and let the provider default apply.
+  // no match and reject the send.
   if (!country) return false;
   return row.countries.includes(country.toUpperCase());
 }
 
 /**
  * The row's region, or null if it holds a value this build no longer knows.
- * A retired region is not a reason to fail the send: falling back to the
- * provider default at least attempts delivery, and the operator sees the
- * stale row in the queue.
+ * A retired region returns null and the provider refuses an unattributed AWS
+ * send rather than silently selecting another region.
  */
 function regionOf(row: { region: string }): SmsRegion | null {
   return isSmsRegion(row.region) ? row.region : null;
@@ -76,19 +76,17 @@ function regionOf(row: { region: string }): SmsRegion | null {
  *   caller who names a sender gets it or an error, never a silent swap — the
  *   same contract `selectProvider` uses for a pinned provider.
  * - `requested` omitted: the oldest approved sender id covering the
- *   destination, or null so the provider falls back to its configured
- *   default (`SNS_SMS_SENDER_ID`, the MTN sender address, ...).
- *
- * Organization-less rows (personal API keys that predate organizations)
- * cannot be checked against an allowlist, so they keep the old behaviour and
- * pass `from` through untouched.
+ *   destination. Hosted sends never fall back to a shared platform identity:
+ *   every message must belong to one reviewed program.
  */
 export async function resolveSender(
   organizationId: string | null,
   country: string | null,
   requested?: string | null,
 ): Promise<ResolvedSender> {
-  if (!organizationId) return { from: requested ?? null, region: null };
+  if (!organizationId) {
+    throw new SenderNotAllowedError("SMS requires an organization with an approved sender program");
+  }
 
   const senders = await approvedSenders(organizationId);
 
@@ -97,16 +95,21 @@ export async function resolveSender(
     const match = senders.find(
       (row) => row.senderId.toLowerCase() === wanted.toLowerCase() && covers(row, country),
     );
-    if (match) return { from: match.senderId, region: regionOf(match) };
+    if (match) return { from: match.senderId, region: regionOf(match), program: match };
 
     const known = senders.find((row) => row.senderId.toLowerCase() === wanted.toLowerCase());
     throw new SenderNotAllowedError(
       known
         ? `Sender id "${wanted}" is not approved for ${country ?? "this destination"}`
-        : `Sender id "${wanted}" is not approved for your organization. Request it under SMS > Sender IDs.`,
+        : `Sender id "${wanted}" is not approved for your organization. Request it under SMS > Programs.`,
     );
   }
 
   const match = senders.find((row) => covers(row, country));
-  return { from: match?.senderId ?? null, region: match ? regionOf(match) : null };
+  if (!match) {
+    throw new SenderNotAllowedError(
+      `No approved SMS program covers ${country ?? "this destination"}. Request one under SMS > Programs.`,
+    );
+  }
+  return { from: match.senderId, region: regionOf(match), program: match };
 }

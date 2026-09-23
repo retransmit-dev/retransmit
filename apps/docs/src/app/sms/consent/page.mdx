@@ -1,0 +1,47 @@
+# Consent and opt-outs
+
+## Record consent
+
+```http
+POST /v1/sms/consents
+```
+
+Call this only after a recipient affirmatively chooses SMS. Store the exact
+disclosure text rather than only a policy URL so the evidence remains valid if
+the public page changes later.
+
+```json
+{
+  "from": "DISCOLAIRE",
+  "phone": "+237670000000",
+  "purposes": ["otp", "account"],
+  "method": "web_form",
+  "source": "Discolaire notification preferences",
+  "disclosure_text": "I agree to receive transactional SMS from Discolaire for the selected purposes. Message frequency varies. I can opt out at any time from my Discolaire notification settings. Consent is not a condition of purchase.",
+  "evidence_url": "https://discolaire.com/sms-opt-in",
+  "consented_at": "2026-09-22T15:00:00.000Z"
+}
+```
+
+`method` is one of `web_form`, `otp_request`, `keyword`, `written`, or `verbal`.
+Recording new affirmative consent clears an existing suppression for the same
+organization and number.
+
+## Record an opt-out
+
+```http
+POST /v1/sms/opt-outs
+```
+
+```json
+{
+  "phone": "+237670000000",
+  "reason": "opt_out",
+  "source": "Discolaire notification preferences"
+}
+```
+
+The number is immediately suppressed across every SMS program in the
+organization, and all active consent records for it are marked opted out. The
+worker rechecks this state just before sending, so an opt-out received after a
+message was queued still prevents provider delivery.

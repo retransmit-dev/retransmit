@@ -44,5 +44,5 @@ export function isSmsRegion(value: string): value is SmsRegion {
  */
 export const DEFAULT_SMS_REGION: SmsRegion = (() => {
   const fromEnv = process.env.SNS_SMS_REGION;
-  return fromEnv && isSmsRegion(fromEnv) ? fromEnv : "eu-central-1";
+  return fromEnv && isSmsRegion(fromEnv) ? fromEnv : "af-south-1";
 })();

@@ -7,6 +7,7 @@ import { domainRouter } from "./domains";
 import { emailRouter } from "./emails";
 import { organizationRouter } from "./organizations";
 import { smsRouter } from "./sms";
+import { smsComplianceRouter } from "./sms-compliance";
 import { smsSenderRouter } from "./sms-senders";
 import { suppressionRouter } from "./suppressions";
 import { todoRouter } from "./todo";
@@ -32,6 +33,7 @@ export const appRouter = router({
   email: emailRouter,
   organization: organizationRouter,
   sms: smsRouter,
+  smsCompliance: smsComplianceRouter,
   smsSender: smsSenderRouter,
   suppression: suppressionRouter,
   webhook: webhookRouter,

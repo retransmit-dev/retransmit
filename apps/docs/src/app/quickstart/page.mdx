@@ -83,22 +83,20 @@ For thousands of emails, use [Send Batch](/email/send-batch)
 
 ## Send an SMS
 
-To have your own name on the handset, request a sender ID in the dashboard
-under **SMS > Sender IDs** first. It asks for the name and the countries you
-send to; only countries whose carriers require a registration ask for more.
-Sending with a name that is not approved returns `422 sender_not_allowed`.
-Leave `from` out and the message goes under the route's default sender.
-
-Recipients use international E.164 format with the leading `+` and country
-code. All recipients in one request must be in the same country.
+Request a reviewed program under **SMS > Programs** first. It includes the
+sender identity, public consent evidence, transactional purposes, and expected
+volume. Production SMS is currently limited to opted-in Cameroon recipients.
+Record consent before the first send; `from` and a matching transactional
+`purpose` are required on every message.
 
 <Tabs items={["Node.js", "cURL"]}>
 <Tabs.Tab>
 ```ts
 const { data, error } = await retransmit.sms.send({
-  from: "Acme",
+  from: "DISCOLAIRE",
   to: "+237670000000",
   text: "Your verification code is 482913",
+  purpose: "otp",
 });
 
 if (error) console.error(error.code, error.message);
@@ -111,15 +109,16 @@ curl -X POST https://api.retransmit.dev/v1/sms \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "from": "Acme",
+    "from": "DISCOLAIRE",
     "to": "+237670000000",
-    "text": "Your verification code is 482913"
+    "text": "Your verification code is 482913",
+    "purpose": "otp"
   }'
 ```
 </Tabs.Tab>
 </Tabs>
 
-See [SMS](/sms) for sender IDs, routing, segments, and statuses.
+See [SMS](/sms) for consent, programs, routing, limits, and statuses.
 
 ## Send a WhatsApp message
 

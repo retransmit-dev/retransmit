@@ -17,6 +17,7 @@ import { RegionSelect } from "@/components/selectors/region-select";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -41,6 +42,14 @@ const AUTO_PROVIDER = "auto";
 
 /** Select value for "whatever the sender id or env says". */
 const AUTO_REGION = "auto";
+
+const PURPOSES = [
+  ["otp", "One-time password"],
+  ["security", "Security alert"],
+  ["account", "Account notice"],
+  ["reminder", "Reminder"],
+  ["status_update", "Status update"],
+] as const;
 
 type ProviderOption = RouterOutputs["sms"]["providers"][number];
 type ProviderName = NonNullable<RouterInputs["sms"]["sendTest"]["provider"]>;
@@ -75,6 +84,7 @@ export function SmsTestSendView() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [text, setText] = useState("Hello from Retransmit.");
+  const [purpose, setPurpose] = useState<(typeof PURPOSES)[number][0]>("account");
   const [provider, setProvider] = useState<string>(AUTO_PROVIDER);
   const [region, setRegion] = useState<string>(AUTO_REGION);
 
@@ -95,16 +105,20 @@ export function SmsTestSendView() {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     sendMutation.mutate({
-      from: from.trim() || undefined,
+      from: from.trim(),
       to,
       text,
+      purpose,
       provider: provider === AUTO_PROVIDER ? undefined : (provider as ProviderName),
       region: region === AUTO_REGION ? undefined : (region as RegionName),
     });
   };
 
   const canSend =
-    !sendMutation.isPending && to.trim().length > 4 && text.trim().length > 0;
+    !sendMutation.isPending &&
+    from.trim().length >= 3 &&
+    to.trim().length > 4 &&
+    text.trim().length > 0;
 
   return (
     <>
@@ -127,8 +141,8 @@ export function SmsTestSendView() {
           <CardHeader>
             <CardTitle>Message</CardTitle>
             <CardDescription>
-              Pin a provider to test it. Left on automatic, the message takes
-              the cheapest configured route to the destination country.
+              Cameroon only. The recipient must have an active consent record
+              for the selected program and purpose.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -139,7 +153,7 @@ export function SmsTestSendView() {
                   id="sms-test-from"
                   value={from}
                   onChange={(e) => setFrom(e.target.value)}
-                  placeholder="Acme"
+                  placeholder="DISCOLAIRE"
                   maxLength={11}
                   autoComplete="off"
                   disabled={sendMutation.isPending}
@@ -149,8 +163,35 @@ export function SmsTestSendView() {
                   <Link href="/sms/senders" className="underline underline-offset-2">
                     approved sender ids
                   </Link>{" "}
-                  for the destination country. Leave empty for the provider
-                  default.
+                  for Cameroon. Shared fallback senders are disabled.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="sms-test-purpose">Purpose</Label>
+                <Select
+                  value={purpose}
+                  onValueChange={(value) =>
+                    setPurpose(value as (typeof PURPOSES)[number][0])
+                  }
+                  disabled={sendMutation.isPending}
+                >
+                  <SelectTrigger id="sms-test-purpose" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {PURPOSES.map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  The purpose must be covered by both program approval and the
+                  recipient&apos;s consent.
                 </p>
               </div>
 
@@ -165,22 +206,21 @@ export function SmsTestSendView() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={AUTO_PROVIDER}>
-                      Automatic (best route)
-                    </SelectItem>
-                    {providers.data?.map((option) => (
-                      // An unconfigured carrier stays listed but unpickable:
-                      // seeing it greyed out answers "why did it not go over
-                      // MTN" without a trip to the admin screen.
-                      <SelectItem
-                        key={option.family}
-                        value={option.family}
-                        disabled={!option.configured}
-                      >
-                        {option.label}
-                        {!option.configured && " (not configured)"}
+                    <SelectGroup>
+                      <SelectItem value={AUTO_PROVIDER}>
+                        Automatic (best route)
                       </SelectItem>
-                    ))}
+                      {providers.data?.map((option) => (
+                        <SelectItem
+                          key={option.family}
+                          value={option.family}
+                          disabled={!option.configured}
+                        >
+                          {option.label}
+                          {!option.configured && " (not configured)"}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
@@ -223,7 +263,7 @@ export function SmsTestSendView() {
                   disabled={sendMutation.isPending}
                 />
                 <p className="text-xs text-muted-foreground">
-                  International format. The country prefix decides the route.
+                  Cameroon international format, for example +237670000000.
                 </p>
               </div>
 

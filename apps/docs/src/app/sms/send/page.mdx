@@ -6,19 +6,20 @@ import { Tabs } from "nextra/components";
 POST /v1/sms
 ```
 
-Validates and queues an SMS for asynchronous delivery. Retransmit normalizes
-the recipient numbers, detects their destination country, and selects an
-available provider, or uses the one you name in `provider`. Poll
+Validates and queues a transactional SMS for asynchronous delivery. Production
+SMS is currently restricted to Cameroon. Every recipient must have active
+consent for the approved program and declared purpose. Poll
 [Get SMS](/sms/get) or subscribe to [Webhooks](/webhooks) for the outcome.
 
 ## Request body
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `from` | string | No | Sender ID shown on the recipient's device. Must be approved for the destination country. See [Sender IDs](/sms#sender-ids). Defaults to your approved sender for that country. |
-| `to` | string \| string[] | Yes | One recipient or up to 50 in international E.164 format. All recipients must be in the same country. |
-| `text` | string | Yes | Message body, from 1 to 1,600 characters. |
-| `provider` | `"sns"` \| `"mtn"` \| `"orange"` | No | Pins the send to one carrier. `sns` covers every destination; the others only the countries we have that carrier in. Omit it to route by destination country and price. See [Choosing a provider](/sms#choosing-a-provider). |
+| `from` | string | Yes | Sender ID of an approved Cameroon SMS program. Shared and provider-default senders are disabled. |
+| `to` | string \| string[] | Yes | One recipient or up to 50 Cameroon recipients in international E.164 format. |
+| `text` | string | Yes | Transactional message body, from 1 to 1,500 characters. Program identification and opt-out instructions are added automatically. |
+| `purpose` | `"otp"` \| `"security"` \| `"account"` \| `"reminder"` \| `"status_update"` | Yes | Must be approved for the program and included in each recipient's active consent. |
+| `provider` | `"sns"` \| `"mtn"` \| `"orange"` | No | Pins the send to one configured Cameroon carrier. Omit it to route automatically. |
 
 ## Example
 
@@ -26,11 +27,10 @@ available provider, or uses the one you name in `provider`. Poll
 <Tabs.Tab>
 ```ts
 const { data, error } = await retransmit.sms.send({
-  from: "Acme",
+  from: "DISCOLAIRE",
   to: "+237670000000",
   text: "Your verification code is 482913",
-  // Optional. Leave it out to let Retransmit pick the route.
-  provider: "sns",
+  purpose: "otp",
 });
 ```
 </Tabs.Tab>
@@ -40,10 +40,10 @@ curl -X POST https://api.retransmit.dev/v1/sms \
   -H "Authorization: Bearer $RETRANSMIT_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "from": "Acme",
+    "from": "DISCOLAIRE",
     "to": "+237670000000",
     "text": "Your verification code is 482913",
-    "provider": "sns"
+    "purpose": "otp"
   }'
 ```
 </Tabs.Tab>
@@ -75,4 +75,10 @@ number of billable SMS parts.
 | `422` | `validation_error` | A field is invalid, phone numbers are malformed, or recipients span multiple countries. |
 | `422` | `no_route` | No SMS provider, or not the requested one, is configured for the destination country. |
 | `422` | `sender_not_allowed` | `from` is not a sender ID your organization has approved for the destination country. |
+| `422` | `sms_country_not_allowed` | The destination is outside the current Cameroon launch. |
+| `422` | `sms_purpose_not_allowed` | The program is not approved for the declared purpose. |
+| `422` | `sms_consent_required` | A recipient has no active matching consent record. |
+| `422` | `sms_recipient_suppressed` | A recipient opted out or is otherwise suppressed. |
+| `422` | `sms_quiet_hours` | A non-urgent message was requested outside 08:00–20:00 Africa/Douala. |
+| `429` | `sms_rate_limit` | A program, organization, or per-recipient cap was reached. |
 | `500` | `internal_error` | The message could not be created. |

@@ -5,6 +5,7 @@ import { dispatchWebhookEvent } from "@retransmit/email/webhooks";
 import { eq } from "drizzle-orm";
 
 import { selectProvider } from "./provider";
+import { approvedProgramById, checkSmsCompliance } from "./compliance";
 
 function webhookPayload(row: typeof sms.$inferSelect) {
   return {
@@ -34,6 +35,31 @@ function webhookPayload(row: typeof sms.$inferSelect) {
 export async function processSmsSend(smsId: string): Promise<void> {
   const [row] = await db.select().from(sms).where(eq(sms.id, smsId));
   if (!row || row.status !== "queued") return;
+
+  if (!row.organizationId || !row.smsSenderId || !row.purpose) {
+    await failBeforeProvider(row, "SMS is missing its approved program or declared purpose");
+    return;
+  }
+  const program = await approvedProgramById(row.smsSenderId);
+  if (!program) {
+    await failBeforeProvider(row, "The SMS program is no longer approved");
+    return;
+  }
+  // Consent and suppression are checked again here so an opt-out received
+  // after enqueueing but before the worker runs still wins the race.
+  const complianceFailure = await checkSmsCompliance({
+    organizationId: row.organizationId,
+    program,
+    recipients: row.to,
+    purpose: row.purpose,
+    country: row.country,
+    checkVolume: false,
+    checkTiming: false,
+  });
+  if (complianceFailure) {
+    await failBeforeProvider(row, complianceFailure.message, complianceFailure.code);
+    return;
+  }
 
   const provider = selectProvider(row.country, row.requestedProvider);
   if (!provider) {
@@ -90,6 +116,27 @@ export async function processSmsSend(smsId: string): Promise<void> {
     await db.update(sms).set({ error: message, lastEventAt: new Date() }).where(eq(sms.id, smsId));
     throw cause;
   }
+}
+
+async function failBeforeProvider(
+  row: typeof sms.$inferSelect,
+  message: string,
+  code = "sms_program_required",
+): Promise<void> {
+  await db
+    .update(sms)
+    .set({ status: "failed", error: message, lastEventAt: new Date() })
+    .where(eq(sms.id, row.id));
+  await db.insert(smsEvent).values({
+    id: createId("sev"),
+    smsId: row.id,
+    type: "sms.failed",
+    data: { code, message },
+  });
+  await dispatchWebhookEvent(row.userId, "sms.failed", {
+    ...webhookPayload(row),
+    data: { code, message },
+  });
 }
 
 /**

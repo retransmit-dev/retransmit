@@ -2,14 +2,14 @@ import { checkPaymentMethod } from "@retransmit/billing/limits";
 import { db } from "@retransmit/db";
 import { createId } from "@retransmit/db/id";
 import { organization } from "@retransmit/db/schema/auth";
-import { smsSender } from "@retransmit/db/schema/sms";
+import { SMS_PURPOSES, smsSender } from "@retransmit/db/schema/sms";
 import {
   SENDER_ID_COUNTRY_CODES,
   SMS_COUNTRIES,
   UNSUPPORTED_REASON,
-  registrationCountries,
 } from "@retransmit/sms/countries";
-import { DEFAULT_SMS_REGION, SMS_REGIONS, SMS_REGION_IDS } from "@retransmit/sms/regions";
+import { allowedSmsCountries } from "@retransmit/sms/compliance";
+import { DEFAULT_SMS_REGION, SMS_REGIONS } from "@retransmit/sms/regions";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import z from "zod";
@@ -37,28 +37,12 @@ const countriesSchema = z
   .array(z.enum(SENDER_ID_COUNTRY_CODES))
   .min(1, "Pick at least one country")
   .max(SMS_COUNTRIES.length)
+  .refine((values) => values.every((country) => allowedSmsCountries().has(country)), {
+    message: "SMS production access is currently limited to Cameroon",
+  })
   .transform((values) => [...new Set(values)]);
 
-/** Blank inputs from a form are the same thing as an omitted field here. */
-const optionalText = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max)
-    .optional()
-    .transform((value) => (value ? value : undefined));
-
-/**
- * What a carrier registration form asks for. Collected only when one is
- * actually filed: in a `dynamic` country the sender id goes upstream as-is,
- * so requiring a use case, a sample and a legal entity would be paperwork for
- * a filing nobody makes. Anything the upstream does not require, we do not.
- */
-const REGISTRATION_FIELDS = [
-  { key: "useCase", min: 10, message: "Describe what you send" },
-  { key: "sampleMessage", min: 10, message: "Paste a representative message" },
-  { key: "companyName", min: 2, message: "Name the legal entity behind the sender id" },
-] as const;
+const publicUrl = z.url({ protocol: /^https$/ }).max(500);
 
 async function findOwnedSender(id: string, organizationId: string) {
   const [row] = await db
@@ -75,7 +59,7 @@ export const smsSenderRouter = router({
    * number instead marked so the form can disable them with the reason.
    */
   countries: orgProcedure.query(() => ({
-    countries: SMS_COUNTRIES,
+    countries: SMS_COUNTRIES.filter((country) => allowedSmsCountries().has(country.code)),
     unsupportedReason: UNSUPPORTED_REASON,
   })),
 
@@ -86,8 +70,8 @@ export const smsSenderRouter = router({
    * Frankfurt cannot send from Cape Town.
    */
   regions: orgProcedure.query(() => ({
-    regions: SMS_REGIONS,
-    defaultRegion: DEFAULT_SMS_REGION,
+    regions: SMS_REGIONS.filter((region) => region.id === "af-south-1"),
+    defaultRegion: allowedSmsCountries().has("CM") ? "af-south-1" : DEFAULT_SMS_REGION,
   })),
 
   list: orgProcedure.query(async ({ ctx }) => {
@@ -108,28 +92,19 @@ export const smsSenderRouter = router({
         .object({
           senderId: senderIdSchema,
           countries: countriesSchema,
-          region: z.enum(SMS_REGION_IDS).default(DEFAULT_SMS_REGION),
-          useCase: optionalText(500),
-          sampleMessage: optionalText(500),
-          companyName: optionalText(200),
-          companyWebsite: z
-            .url("Enter a full URL, e.g. https://example.com")
-            .max(300)
-            .optional()
-            .or(z.literal("").transform(() => undefined)),
-        })
-        .superRefine((input, ctx) => {
-          const filed = registrationCountries(input.countries);
-          if (filed.length === 0) return;
-          for (const field of REGISTRATION_FIELDS) {
-            const value = input[field.key];
-            if (value && value.length >= field.min) continue;
-            ctx.addIssue({
-              code: "custom",
-              path: [field.key],
-              message: `${field.message}. ${filed.join(", ")} needs a carrier registration filed.`,
-            });
-          }
+          region: z.literal("af-south-1").default("af-south-1"),
+          useCase: z.string().trim().min(30).max(1000),
+          sampleMessage: z.string().trim().min(20).max(1000),
+          companyName: z.string().trim().min(2).max(200),
+          companyWebsite: publicUrl,
+          optInUrl: publicUrl,
+          privacyUrl: publicUrl,
+          termsUrl: publicUrl,
+          supportEmail: z.string().trim().email().max(320),
+          optOutText: z.string().trim().min(10).max(160),
+          purposes: z.array(z.enum(SMS_PURPOSES)).min(1).max(SMS_PURPOSES.length),
+          expectedDailyVolume: z.number().int().min(1).max(100_000),
+          expectedMonthlyVolume: z.number().int().min(1).max(3_000_000),
         }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -169,10 +144,18 @@ export const smsSenderRouter = router({
           senderId: input.senderId,
           countries: input.countries,
           region: input.region,
-          useCase: input.useCase ?? null,
-          sampleMessage: input.sampleMessage ?? null,
-          companyName: input.companyName ?? null,
-          companyWebsite: input.companyWebsite ?? null,
+          useCase: input.useCase,
+          sampleMessage: input.sampleMessage,
+          companyName: input.companyName,
+          companyWebsite: input.companyWebsite,
+          optInUrl: input.optInUrl,
+          privacyUrl: input.privacyUrl,
+          termsUrl: input.termsUrl,
+          supportEmail: input.supportEmail,
+          optOutText: input.optOutText,
+          purposes: [...new Set(input.purposes)],
+          expectedDailyVolume: input.expectedDailyVolume,
+          expectedMonthlyVolume: input.expectedMonthlyVolume,
         })
         .returning();
       if (!created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -180,9 +163,8 @@ export const smsSenderRouter = router({
     }),
 
   /**
-   * Withdraws a request. Approved rows can go too: the send path then falls
-   * back to the provider default for that country, and the upstream
-   * registration is cleaned up by the operator.
+   * Withdraws a request. Approved rows can go too: the send path then blocks
+   * that program, and the operator can clean up its upstream registration.
    */
   delete: orgProcedure
     .input(z.object({ id: z.string() }))
@@ -212,6 +194,17 @@ export const smsSenderRouter = router({
         sampleMessage: smsSender.sampleMessage,
         companyName: smsSender.companyName,
         companyWebsite: smsSender.companyWebsite,
+        optInUrl: smsSender.optInUrl,
+        privacyUrl: smsSender.privacyUrl,
+        termsUrl: smsSender.termsUrl,
+        supportEmail: smsSender.supportEmail,
+        optOutText: smsSender.optOutText,
+        purposes: smsSender.purposes,
+        expectedDailyVolume: smsSender.expectedDailyVolume,
+        expectedMonthlyVolume: smsSender.expectedMonthlyVolume,
+        dailyLimit: smsSender.dailyLimit,
+        monthlyLimit: smsSender.monthlyLimit,
+        recipientDailyLimit: smsSender.recipientDailyLimit,
         registrationId: smsSender.registrationId,
         reviewNote: smsSender.reviewNote,
         reviewedAt: smsSender.reviewedAt,
@@ -246,7 +239,10 @@ export const smsSenderRouter = router({
          * than the customer asked for. The row has to name where the
          * origination identity actually lives, or every send using it fails.
          */
-        region: z.enum(SMS_REGION_IDS).optional(),
+        region: z.literal("af-south-1").optional(),
+        dailyLimit: z.number().int().min(1).max(100_000).optional(),
+        monthlyLimit: z.number().int().min(1).max(3_000_000).optional(),
+        recipientDailyLimit: z.number().int().min(1).max(100).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -257,6 +253,15 @@ export const smsSenderRouter = router({
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "A rejection needs a reason; the customer reads it",
+        });
+      }
+      if (
+        input.status === "approved" &&
+        (!input.dailyLimit || !input.monthlyLimit || !input.recipientDailyLimit)
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "An approval needs daily, monthly, and per-recipient limits",
         });
       }
 
@@ -270,6 +275,9 @@ export const smsSenderRouter = router({
           reviewNote: input.note ?? null,
           reviewedAt: new Date(),
           reviewedBy: ctx.session.user.email,
+          dailyLimit: input.status === "approved" ? input.dailyLimit : null,
+          monthlyLimit: input.status === "approved" ? input.monthlyLimit : null,
+          recipientDailyLimit: input.status === "approved" ? input.recipientDailyLimit : null,
         })
         .where(eq(smsSender.id, row.id))
         .returning();

@@ -2,11 +2,11 @@
 #
 # One-time (per region) setup of Retransmit's AWS End User Messaging SMS
 # resources. These live in RETRANSMIT's AWS account — customers never touch
-# AWS, they only request a sender id in the dashboard (SMS > Sender IDs) and
+# AWS, they only request a reviewed program in the dashboard (SMS > Programs) and
 # an operator registers it here.
 #
-#   ./infra/setup-sms.sh                       # all four regions
-#   ./infra/setup-sms.sh eu-central-1          # one region
+#   ./infra/setup-sms.sh                       # Cameroon launch region
+#   ./infra/setup-sms.sh af-south-1            # explicit equivalent
 #   SMS_SKIP_CALLBACK=1 ./infra/setup-sms.sh   # resources only (API not deployed yet)
 #
 # Per region it creates:
@@ -39,7 +39,7 @@ set -euo pipefail
 CONFIG_SET="${SMS_CONFIGURATION_SET:-retransmit-sms-events}"
 TOPIC_NAME="${SMS_TOPIC_NAME:-retransmit-sms-events}"
 CALLBACK_BASE="${SMS_CALLBACK_URL:-https://api.retransmit.dev/v1/callbacks/sms/sns}"
-DEFAULT_REGIONS="eu-central-1 us-east-1 ap-southeast-1 af-south-1"
+DEFAULT_REGIONS="af-south-1"
 REGIONS=("${@:-$DEFAULT_REGIONS}")
 # shellcheck disable=SC2206
 REGIONS=(${REGIONS[@]})
@@ -199,12 +199,22 @@ echo "Add to .env (the fallback region; a sender id sends from the region it"
 echo "was registered in, which the dashboard records per sender id):"
 echo "  SNS_SMS_REGION=${REGIONS[0]}"
 echo "  SNS_SMS_CONFIGURATION_SET=$CONFIG_SET"
+echo "  SNS_SMS_COUNTRIES=CM"
+echo "  SMS_ALLOWED_COUNTRIES=CM"
+echo "  SNS_SMS_PROTECT_CONFIGURATION_ID=<Cameroon-only protect configuration id>"
 echo
 echo "Still manual, per region, before real traffic:"
+echo "  - Create an SMS Protect configuration. BLOCK every destination country"
+echo "    except Cameroon (CM), leave CM as ALLOW, and copy its id into"
+echo "    SNS_SMS_PROTECT_CONFIGURATION_ID. The AWS provider refuses to send"
+echo "    when this value is absent. Verify it with:"
+echo "      aws pinpoint-sms-voice-v2 get-protect-configuration-country-rule-set \\\"
+echo "        --protect-configuration-id <id> --number-capability SMS \\\"
+echo "        --region ${REGIONS[0]}"
 echo "  - tier=SANDBOX means only verified destination numbers receive messages."
 echo "    Request production access in the End User Messaging console (support case)."
 echo "  - Raise the monthly spend limit in the same case."
-echo "  - Register a sender id per country as requests come in (SMS > Sender IDs"
+echo "  - Register the DISCOLAIRE sender id for Cameroon (SMS > Programs"
 echo "    in the dashboard is the queue). Register it in the region the request"
 echo "    names, or correct the region on the row when you approve it:"
 echo "      aws pinpoint-sms-voice-v2 describe-sender-ids --region <region>"

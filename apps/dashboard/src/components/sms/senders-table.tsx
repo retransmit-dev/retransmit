@@ -83,15 +83,14 @@ export function SendersTable({ onRequest }: { onRequest: () => void }) {
           <EmptyMedia variant="icon">
             <SignatureIcon />
           </EmptyMedia>
-          <EmptyTitle>No sender ids yet</EmptyTitle>
+          <EmptyTitle>No SMS programs yet</EmptyTitle>
           <EmptyDescription>
-            Until one is approved, messages go out under a shared default and may not reach every
-            country.
+            Sending is blocked until a Cameroon program and its consent flow are approved.
           </EmptyDescription>
         </EmptyHeader>
         <Button onClick={onRequest}>
           <PlusIcon />
-          Request sender id
+          Request program
         </Button>
       </Empty>
     );
@@ -147,7 +146,7 @@ export function SendersTable({ onRequest }: { onRequest: () => void }) {
                     <AlertDialogTitle>Remove {row.senderId}?</AlertDialogTitle>
                     <AlertDialogDescription>
                       {row.status === "approved"
-                        ? "Messages to these countries will fall back to the shared default sender, and the carrier registration is released."
+                        ? "Sending with this program stops immediately, and its upstream registration can be released."
                         : "The request is withdrawn. You can request the same name again later."}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
