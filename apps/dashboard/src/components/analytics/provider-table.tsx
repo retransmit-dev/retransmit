@@ -66,11 +66,11 @@ export function ProviderTable({ filters }: { filters: AnalyticsFilters }) {
     >
       <CardHeader>
         <CardTitle>Mailbox providers</CardTitle>
-        <CardDescription>
+        {/* <CardDescription>
           Where your recipients read mail, from the MX records of their domain.
           No provider reports spam-folder placement, so compare open rates: one
           provider well below the rest is filtering you into junk.
-        </CardDescription>
+        </CardDescription> */}
       </CardHeader>
       <CardContent>
         {query.isLoading ? (
