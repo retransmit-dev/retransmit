@@ -4,7 +4,7 @@
 # per SES region so the send worker reads attachment bytes from the region
 # the sending domain was verified in (see packages/email/src/regions.ts).
 #
-#   ./infra/setup-attachments.sh                 # all four SES regions
+#   ./infra/setup-attachments.sh                 # every SES region
 #   ./infra/setup-attachments.sh eu-central-1    # one region
 #
 # Bucket name: ${ATTACHMENTS_BUCKET_PREFIX}-${region}. The prefix carries a
@@ -21,7 +21,7 @@
 set -euo pipefail
 
 PREFIX="${ATTACHMENTS_BUCKET_PREFIX:?set ATTACHMENTS_BUCKET_PREFIX, e.g. retransmit-attachments-qatg7v}"
-REGIONS=("${@:-eu-central-1 us-east-1 ap-southeast-1 af-south-1}")
+REGIONS=("${@:-eu-central-1 us-east-1 us-west-1 us-west-2 ap-southeast-1 af-south-1}")
 # shellcheck disable=SC2206
 REGIONS=(${REGIONS[@]})
 

@@ -8,6 +8,8 @@
 export const SES_REGIONS = [
   { id: "eu-central-1", name: "Europe", location: "Frankfurt", flag: "🇩🇪" },
   { id: "us-east-1", name: "United States", location: "N. Virginia", flag: "🇺🇸" },
+  { id: "us-west-1", name: "United States", location: "N. California", flag: "🇺🇸" },
+  { id: "us-west-2", name: "United States", location: "Oregon", flag: "🇺🇸" },
   { id: "ap-southeast-1", name: "Asia Pacific", location: "Singapore", flag: "🇸🇬" },
   { id: "af-south-1", name: "Africa", location: "Cape Town", flag: "🇿🇦" },
 ] as const;
